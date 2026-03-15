@@ -96,6 +96,12 @@ public sealed class MyPotion : ModPotionTemplate
 }
 ```
 
+### 3. Card dynamic var toolkit
+
+See [CardDynamicVarToolkit.md](CardDynamicVarToolkit.md).
+
+RitsuLib only provides generic dynamic var creation helpers plus tooltip registration and cloning support.
+
 ## Runtime support now included
 
 RitsuLib now patches the game to allow template-based overrides for:

@@ -3,6 +3,7 @@ using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
+using STS2RitsuLib.Cards.Patches;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Content.Patches;
 using STS2RitsuLib.Data;
@@ -154,6 +155,8 @@ namespace STS2RitsuLib
                     _frameworkPatcher.RegisterPatch<CardTextureOverridePatch>();
                     _frameworkPatcher.RegisterPatch<CardFrameMaterialPatch>();
                     _frameworkPatcher.RegisterPatch<CardAllPortraitPathsPatch>();
+                    _frameworkPatcher.RegisterPatch<CardDynamicVarTooltipPatch>();
+                    _frameworkPatcher.RegisterPatch<DynamicVarTooltipClonePatch>();
                     _frameworkPatcher.RegisterPatch<RelicIconPathPatch>();
                     _frameworkPatcher.RegisterPatch<RelicTexturePatch>();
                     _frameworkPatcher.RegisterPatch<PowerIconPathPatch>();
