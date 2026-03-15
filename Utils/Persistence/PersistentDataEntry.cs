@@ -8,9 +8,9 @@ namespace STS2RitsuLib.Utils.Persistence
         private readonly bool _autoCreateIfMissing;
         private readonly T _defaultValues;
         private readonly string _fileName;
-        private readonly string _modId;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly MigrationManager _migrationManager;
+        private readonly string _modId;
 
         public PersistentDataEntry(
             string modId,

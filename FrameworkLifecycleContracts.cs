@@ -5,6 +5,10 @@ namespace STS2RitsuLib
         DateTimeOffset OccurredAtUtc { get; }
     }
 
+    public interface IReplayableFrameworkLifecycleEvent : IFrameworkLifecycleEvent
+    {
+    }
+
     public readonly record struct FrameworkInitializingEvent(
         string FrameworkModId,
         string FrameworkVersion,
@@ -15,7 +19,7 @@ namespace STS2RitsuLib
         string FrameworkModId,
         bool IsActive,
         DateTimeOffset OccurredAtUtc
-    ) : IFrameworkLifecycleEvent;
+    ) : IReplayableFrameworkLifecycleEvent;
 
     public readonly record struct ProfileServicesInitializingEvent(
         DateTimeOffset OccurredAtUtc
@@ -24,7 +28,7 @@ namespace STS2RitsuLib
     public readonly record struct ProfileServicesInitializedEvent(
         int ProfileId,
         DateTimeOffset OccurredAtUtc
-    ) : IFrameworkLifecycleEvent;
+    ) : IReplayableFrameworkLifecycleEvent;
 
     public interface ILifecycleObserver
     {

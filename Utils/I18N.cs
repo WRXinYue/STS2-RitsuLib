@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Diagnostics;
 using System.Text.Json;
 using Godot;
 using MegaCrit.Sts2.Core.Localization;

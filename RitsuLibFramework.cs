@@ -1,10 +1,14 @@
+using System.Reflection;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using STS2RitsuLib.Content;
+using STS2RitsuLib.Content.Patches;
 using STS2RitsuLib.Data;
+using STS2RitsuLib.Lifecycle.Patches;
 using STS2RitsuLib.Patching.Core;
+using STS2RitsuLib.Timeline;
+using STS2RitsuLib.Unlocks;
+using STS2RitsuLib.Unlocks.Patches;
 using STS2RitsuLib.Utils;
 using STS2RitsuLib.Utils.Persistence;
 using STS2RitsuLib.Utils.Persistence.Patches;
@@ -21,9 +25,7 @@ namespace STS2RitsuLib
         private static ModPatcher? _frameworkPatcher;
         private static bool _profileServicesInitialized;
         private static readonly List<ILifecycleObserver> LifecycleObservers = [];
-        private static FrameworkInitializedEvent? _lastFrameworkInitializedEvent;
-        private static ProfileServicesInitializedEvent? _lastProfileServicesInitializedEvent;
-        private static ProfileDataReadyEvent? _lastProfileDataReadyEvent;
+        private static readonly Dictionary<Type, IFrameworkLifecycleEvent> ReplayableLifecycleEvents = [];
 
         static RitsuLibFramework()
         {
@@ -38,26 +40,18 @@ namespace STS2RitsuLib
         {
             ArgumentNullException.ThrowIfNull(observer);
 
-            FrameworkInitializedEvent? initializedSnapshot;
-            ProfileServicesInitializedEvent? profileSnapshot;
-            ProfileDataReadyEvent? dataReadySnapshot;
+            IFrameworkLifecycleEvent[] lifecycleSnapshot;
 
             lock (SyncRoot)
             {
                 LifecycleObservers.Add(observer);
-                initializedSnapshot = replayCurrentState ? _lastFrameworkInitializedEvent : null;
-                profileSnapshot = replayCurrentState ? _lastProfileServicesInitializedEvent : null;
-                dataReadySnapshot = replayCurrentState ? _lastProfileDataReadyEvent : null;
+                lifecycleSnapshot = replayCurrentState
+                    ? ReplayableLifecycleEvents.Values.OrderBy(evt => evt.OccurredAtUtc).ToArray()
+                    : [];
             }
 
-            if (initializedSnapshot.HasValue)
-                SafeNotify(observer, o => o.OnEvent(initializedSnapshot.Value), nameof(FrameworkInitializedEvent));
-
-            if (profileSnapshot.HasValue)
-                SafeNotify(observer, o => o.OnEvent(profileSnapshot.Value), nameof(ProfileServicesInitializedEvent));
-
-            if (dataReadySnapshot.HasValue)
-                SafeNotify(observer, o => o.OnEvent(dataReadySnapshot.Value), nameof(ProfileDataReadyEvent));
+            foreach (var evt in lifecycleSnapshot)
+                SafeNotify(observer, o => o.OnEvent(evt), evt.GetType().Name);
 
             return new FrameworkLifecycleSubscription(() =>
             {
@@ -93,8 +87,28 @@ namespace STS2RitsuLib
                 {
                     _frameworkPatcher = CreatePatcher(Const.ModId, "framework", "framework");
 
+                    _frameworkPatcher.RegisterPatch<CoreInitializationLifecyclePatch>();
+                    _frameworkPatcher.RegisterPatch<ModelRegistryLifecyclePatch>();
+                    _frameworkPatcher.RegisterPatch<GameNodeLifecyclePatch>();
+                    _frameworkPatcher.RegisterPatch<RunLifecyclePatch>();
+                    _frameworkPatcher.RegisterPatch<RunEndedLifecyclePatch>();
+
                     _frameworkPatcher.RegisterPatch<ProfilePathInitializedPatch>();
                     _frameworkPatcher.RegisterPatch<ProfileDeletePatch>();
+
+                    _frameworkPatcher.RegisterPatch<AllCharactersPatch>();
+                    _frameworkPatcher.RegisterPatch<AllSharedEventsPatch>();
+                    _frameworkPatcher.RegisterPatch<AllEventsPatch>();
+                    _frameworkPatcher.RegisterPatch<AllSharedAncientsPatch>();
+                    _frameworkPatcher.RegisterPatch<AllAncientsPatch>();
+                    _frameworkPatcher.RegisterPatch<DynamicActContentPatchBootstrap>();
+
+                    _frameworkPatcher.RegisterPatch<CharacterUnlockFilterPatch>();
+                    _frameworkPatcher.RegisterPatch<SharedAncientUnlockFilterPatch>();
+                    _frameworkPatcher.RegisterPatch<CardUnlockFilterPatch>();
+                    _frameworkPatcher.RegisterPatch<RelicUnlockFilterPatch>();
+                    _frameworkPatcher.RegisterPatch<PotionUnlockFilterPatch>();
+                    _frameworkPatcher.RegisterPatch<GeneratedRoomEventUnlockFilterPatch>();
 
                     if (!_frameworkPatcher.PatchAll())
                     {
@@ -112,7 +126,6 @@ namespace STS2RitsuLib
                         DateTimeOffset.UtcNow
                     );
 
-                    _lastFrameworkInitializedEvent = frameworkInitializedEvent;
                     PublishLifecycleEvent(frameworkInitializedEvent, nameof(FrameworkInitializedEvent));
 
                     Logger.Info("Shared framework initialization complete.");
@@ -148,7 +161,6 @@ namespace STS2RitsuLib
                     DateTimeOffset.UtcNow
                 );
 
-                _lastProfileServicesInitializedEvent = profileInitializedEvent;
                 PublishLifecycleEvent(profileInitializedEvent, nameof(ProfileServicesInitializedEvent));
 
                 Logger.Debug("Profile-scoped framework services initialized.");
@@ -164,6 +176,21 @@ namespace STS2RitsuLib
         public static ModDataStore GetDataStore(string modId)
         {
             return ModDataStore.For(modId);
+        }
+
+        public static ModContentRegistry GetContentRegistry(string modId)
+        {
+            return ModContentRegistry.For(modId);
+        }
+
+        public static ModTimelineRegistry GetTimelineRegistry(string modId)
+        {
+            return ModTimelineRegistry.For(modId);
+        }
+
+        public static ModUnlockRegistry GetUnlockRegistry(string modId)
+        {
+            return ModUnlockRegistry.For(modId);
         }
 
         public static Logger CreateLogger(string modId, LogType logType = LogType.Generic)
@@ -238,14 +265,26 @@ namespace STS2RitsuLib
             return false;
         }
 
+        internal static ModPatcher RequireFrameworkPatcher()
+        {
+            return _frameworkPatcher
+                   ?? throw new InvalidOperationException("Framework patcher is not available yet.");
+        }
+
         internal static void PublishLifecycleEvent(IFrameworkLifecycleEvent evt, string phase)
         {
-            _lastProfileDataReadyEvent = evt switch
+            lock (SyncRoot)
             {
-                ProfileDataReadyEvent dataReadyEvent => dataReadyEvent,
-                ProfileDataInvalidatedEvent => null,
-                _ => _lastProfileDataReadyEvent,
-            };
+                switch (evt)
+                {
+                    case ProfileDataInvalidatedEvent:
+                        ReplayableLifecycleEvents.Remove(typeof(ProfileDataReadyEvent));
+                        break;
+                    case IReplayableFrameworkLifecycleEvent:
+                        ReplayableLifecycleEvents[evt.GetType()] = evt;
+                        break;
+                }
+            }
 
             NotifyObservers(o => o.OnEvent(evt), phase);
         }

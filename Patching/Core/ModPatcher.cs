@@ -16,12 +16,14 @@ namespace STS2RitsuLib.Patching.Core
             string.IsNullOrEmpty(patcherName) ? "[Patcher] " : $"[Patcher - {patcherName}] ";
 
         private readonly Dictionary<string, bool> _patchedStatus = [];
+        private readonly List<DynamicPatchInfo> _registeredDynamicPatches = [];
         private readonly List<ModPatchInfo> _registeredPatches = [];
 
         public string PatcherId => patcherId;
         public string PatcherName => patcherName;
         public Logger Logger => logger;
         public int RegisteredPatchCount => _registeredPatches.Count;
+        public int RegisteredDynamicPatchCount => _registeredDynamicPatches.Count;
         public int AppliedPatchCount => _patchedStatus.Count(kvp => kvp.Value);
         public bool IsApplied { get; private set; }
 
@@ -52,6 +54,81 @@ namespace STS2RitsuLib.Patching.Core
             foreach (var patch in patches) RegisterPatch(patch);
         }
 
+        public void RegisterDynamicPatch(DynamicPatchInfo dynamicPatchInfo)
+        {
+            ArgumentNullException.ThrowIfNull(dynamicPatchInfo);
+
+            if (_registeredDynamicPatches.Any(p => p.Id == dynamicPatchInfo.Id))
+            {
+                logger.Warn(
+                    $"{_logPrefix}Dynamic patch '{dynamicPatchInfo.Id}' already registered, skipping duplicate");
+                return;
+            }
+
+            _registeredDynamicPatches.Add(dynamicPatchInfo);
+            logger.Debug(
+                $"{_logPrefix}Registered dynamic patch: {dynamicPatchInfo.Id} - {dynamicPatchInfo.Description}");
+        }
+
+        public void RegisterDynamicPatches(params ReadOnlySpan<DynamicPatchInfo> dynamicPatches)
+        {
+            foreach (var patch in dynamicPatches) RegisterDynamicPatch(patch);
+        }
+
+        public bool ApplyDynamicPatches(IEnumerable<DynamicPatchInfo> dynamicPatches,
+            bool rollbackOnCriticalFailure = false)
+        {
+            ArgumentNullException.ThrowIfNull(dynamicPatches);
+
+            var patches = dynamicPatches.ToArray();
+            if (patches.Length == 0)
+                return true;
+
+            RegisterDynamicPatches(patches);
+
+            logger.Info($"{_logPrefix}Applying {patches.Length} dynamic patch(es)...");
+
+            var successCount = 0;
+            var failureCount = 0;
+            var criticalFailureCount = 0;
+
+            foreach (var patch in patches)
+            {
+                var (success, errorMessage, exception) = ApplyDynamicPatch(patch);
+
+                if (success)
+                {
+                    successCount++;
+                    logger.Info($"{_logPrefix}[{(patch.IsCritical ? "Critical" : "Optional")}] {patch.Id} - Success ✓");
+                    continue;
+                }
+
+                failureCount++;
+                if (patch.IsCritical)
+                    criticalFailureCount++;
+
+                logger.Error($"{_logPrefix}[{(patch.IsCritical ? "Critical" : "Optional")}] {patch.Id} - Failed ✗");
+                logger.Error($"{_logPrefix}  Description: {patch.Description}");
+                logger.Error($"{_logPrefix}  Error: {errorMessage}");
+                if (exception != null)
+                    logger.Error($"{_logPrefix}  Exception: {exception}");
+            }
+
+            logger.Info($"{_logPrefix}Dynamic patch application complete: {successCount}/{patches.Length} succeeded");
+
+            if (failureCount > 0)
+                logger.Warn($"{_logPrefix}{failureCount} dynamic patch(es) failed");
+
+            if (criticalFailureCount == 0)
+                return true;
+
+            logger.Error($"{_logPrefix}{criticalFailureCount} critical dynamic patch(es) failed");
+            if (rollbackOnCriticalFailure)
+                UnpatchAll();
+
+            return false;
+        }
+
         public bool PatchAll()
         {
             if (IsApplied)
@@ -69,7 +146,11 @@ namespace STS2RitsuLib.Patching.Core
             if (success)
             {
                 IsApplied = true;
-                logger.Info($"{_logPrefix}All patches applied successfully");
+                if (AppliedPatchCount == _registeredPatches.Count)
+                    logger.Info($"{_logPrefix}All patches applied successfully");
+                else
+                    logger.Warn(
+                        $"{_logPrefix}Critical patches succeeded, but some optional patches failed to apply");
             }
             else
             {
@@ -83,14 +164,15 @@ namespace STS2RitsuLib.Patching.Core
 
         public void UnpatchAll()
         {
-            if (_registeredPatches.Count == 0)
+            if (_registeredPatches.Count == 0 && _registeredDynamicPatches.Count == 0)
             {
                 logger.Debug($"{_logPrefix}No patches registered, skipping unpatch");
                 return;
             }
 
             var appliedCount =
-                _registeredPatches.Count(patchInfo => _patchedStatus.GetValueOrDefault(patchInfo.Id, false));
+                _registeredPatches.Count(patchInfo => _patchedStatus.GetValueOrDefault(patchInfo.Id, false)) +
+                _registeredDynamicPatches.Count(patchInfo => _patchedStatus.GetValueOrDefault(patchInfo.Id, false));
 
             if (appliedCount == 0)
             {
@@ -114,6 +196,19 @@ namespace STS2RitsuLib.Patching.Core
                 catch (Exception ex)
                 {
                     logger.Error($"{_logPrefix}✗ Failed to remove patch: {patchInfo.Id} - {ex.Message}");
+                }
+
+            foreach (var patchInfo in _registeredDynamicPatches.Where(patchInfo =>
+                         _patchedStatus.GetValueOrDefault(patchInfo.Id, false)))
+                try
+                {
+                    _harmony.Unpatch(patchInfo.OriginalMethod, HarmonyPatchType.All, _harmony.Id);
+                    _patchedStatus[patchInfo.Id] = false;
+                    logger.Info($"{_logPrefix}✓ Removed dynamic patch: {patchInfo.Id}");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"{_logPrefix}✗ Failed to remove dynamic patch: {patchInfo.Id} - {ex.Message}");
                 }
 
             IsApplied = false;
@@ -163,6 +258,34 @@ namespace STS2RitsuLib.Patching.Core
             {
                 _patchedStatus[modPatchInfo.Id] = false;
                 return ModPatchResult.CreateFailure(modPatchInfo, ex.Message, ex);
+            }
+        }
+
+        private (bool Success, string ErrorMessage, Exception? Exception) ApplyDynamicPatch(
+            DynamicPatchInfo dynamicPatchInfo)
+        {
+            try
+            {
+                if (!dynamicPatchInfo.HasPatchMethods)
+                {
+                    _patchedStatus[dynamicPatchInfo.Id] = false;
+                    return (false, $"No valid patch methods found for dynamic patch '{dynamicPatchInfo.Id}'", null);
+                }
+
+                _harmony.Patch(
+                    dynamicPatchInfo.OriginalMethod,
+                    dynamicPatchInfo.Prefix,
+                    dynamicPatchInfo.Postfix,
+                    dynamicPatchInfo.Transpiler,
+                    dynamicPatchInfo.Finalizer);
+
+                _patchedStatus[dynamicPatchInfo.Id] = true;
+                return (true, string.Empty, null);
+            }
+            catch (Exception ex)
+            {
+                _patchedStatus[dynamicPatchInfo.Id] = false;
+                return (false, ex.Message, ex);
             }
         }
 

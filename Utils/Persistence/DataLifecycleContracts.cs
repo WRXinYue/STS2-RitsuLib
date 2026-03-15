@@ -13,7 +13,7 @@ namespace STS2RitsuLib.Utils.Persistence
         bool IsProfileSwitch,
         bool DataReloaded,
         DateTimeOffset OccurredAtUtc
-    ) : IFrameworkLifecycleEvent;
+    ) : IReplayableFrameworkLifecycleEvent;
 
     public readonly record struct ProfileDataChangedEvent(
         int OldProfileId,
