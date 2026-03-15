@@ -1,4 +1,5 @@
 using System.Reflection;
+using Godot;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using STS2RitsuLib.Content;
@@ -7,12 +8,14 @@ using STS2RitsuLib.Data;
 using STS2RitsuLib.Keywords;
 using STS2RitsuLib.Lifecycle.Patches;
 using STS2RitsuLib.Patching.Core;
+using STS2RitsuLib.Scaffolding.Characters.Patches;
 using STS2RitsuLib.Timeline;
 using STS2RitsuLib.Unlocks;
 using STS2RitsuLib.Unlocks.Patches;
 using STS2RitsuLib.Utils;
 using STS2RitsuLib.Utils.Persistence;
 using STS2RitsuLib.Utils.Persistence.Patches;
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace STS2RitsuLib
 {
@@ -27,6 +30,7 @@ namespace STS2RitsuLib
         private static bool _profileServicesInitialized;
         private static readonly List<ILifecycleObserver> LifecycleObservers = [];
         private static readonly Dictionary<Type, IFrameworkLifecycleEvent> ReplayableLifecycleEvents = [];
+        private static readonly HashSet<string> RegisteredScriptAssemblies = [];
 
         static RitsuLibFramework()
         {
@@ -105,6 +109,22 @@ namespace STS2RitsuLib
                     _frameworkPatcher.RegisterPatch<AllSharedAncientsPatch>();
                     _frameworkPatcher.RegisterPatch<AllAncientsPatch>();
                     _frameworkPatcher.RegisterPatch<DynamicActContentPatchBootstrap>();
+
+                    _frameworkPatcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterVisualsPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterEnergyCounterPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterMerchantAnimPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterRestSiteAnimPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterIconTexturePathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterIconPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterSelectBgPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterSelectTransitionPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterTrailPathPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterTrailStyleOverridePatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterAttackSfxPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterCastSfxPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterDeathSfxPatch>();
+                    _frameworkPatcher.RegisterPatch<CharacterCombatSpineOverridePatch>();
 
                     _frameworkPatcher.RegisterPatch<CharacterUnlockFilterPatch>();
                     _frameworkPatcher.RegisterPatch<SharedAncientUnlockFilterPatch>();
@@ -256,6 +276,44 @@ namespace STS2RitsuLib
 
             var folders = fileSystemFolders?.ToArray() ?? [$"user://mod-configs/{modId}/localization"];
             return CreateLocalization(instanceName, folders, resourceFolders, pckFolders, resourceAssembly);
+        }
+
+        public static void EnsureGodotScriptsRegistered(Assembly assembly, Logger? logger = null)
+        {
+            ArgumentNullException.ThrowIfNull(assembly);
+
+            var assemblyName = assembly.FullName ?? assembly.GetName().Name ?? assembly.ToString();
+
+            lock (SyncRoot)
+            {
+                if (!RegisteredScriptAssemblies.Add(assemblyName))
+                    return;
+            }
+
+            try
+            {
+                var bridgeType = typeof(GodotObject).Assembly.GetType("Godot.Bridge.ScriptManagerBridge");
+                var lookupMethod = bridgeType?.GetMethod(
+                    "LookupScriptsInAssembly",
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    [typeof(Assembly)],
+                    null);
+
+                if (lookupMethod == null)
+                {
+                    logger?.Warn($"Godot script registration bridge not found for assembly {assemblyName}.");
+                    return;
+                }
+
+                lookupMethod.Invoke(null, [assembly]);
+                logger?.Debug($"Registered Godot C# scripts for assembly: {assemblyName}");
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Failed to register Godot C# scripts for assembly {assemblyName}: {ex.Message}");
+                logger?.Error($"Stack trace: {ex.StackTrace}");
+            }
         }
 
         public static bool ApplyRequiredPatcher(ModPatcher patcher, Action disableMod, string? failureMessage = null)

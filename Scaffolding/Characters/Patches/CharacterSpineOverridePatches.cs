@@ -1,0 +1,56 @@
+using Godot;
+using MegaCrit.Sts2.Core.Bindings.MegaSpine;
+using MegaCrit.Sts2.Core.Nodes.Combat;
+using STS2RitsuLib.Patching.Models;
+
+namespace STS2RitsuLib.Scaffolding.Characters.Patches
+{
+    public class CharacterCombatSpineOverridePatch : IPatchMethod
+    {
+        public static string PatchId => "character_combat_spine_override";
+
+        public static string Description =>
+            "Allow mod characters to replace combat Spine skeleton data while reusing existing visuals scenes";
+
+        public static bool IsCritical => false;
+
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(NCreature), nameof(NCreature._Ready))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        public static void Postfix(NCreature __instance)
+            // ReSharper restore InconsistentNaming
+        {
+            var player = __instance.Entity?.Player;
+            if (player?.Character is not IModCharacterAssetOverrides overrides)
+                return;
+
+            var skeletonPath = overrides.CustomCombatSpineSkeletonDataPath;
+            if (string.IsNullOrWhiteSpace(skeletonPath))
+                return;
+
+            var visuals = __instance.Visuals;
+            if (visuals?.Body == null || !visuals.HasSpineAnimation)
+                return;
+
+            try
+            {
+                var skeletonData = ResourceLoader.Load<Resource>(skeletonPath);
+                if (skeletonData == null)
+                {
+                    RitsuLibFramework.Logger.Warn($"[Visuals] Failed to load combat spine data: {skeletonPath}");
+                    return;
+                }
+
+                new MegaSprite(visuals.Body).SetSkeletonDataRes(new(skeletonData));
+            }
+            catch (Exception ex)
+            {
+                RitsuLibFramework.Logger.Error(
+                    $"[Visuals] Failed to apply combat spine override '{skeletonPath}': {ex.Message}");
+            }
+        }
+    }
+}
