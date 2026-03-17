@@ -45,6 +45,18 @@ namespace STS2RitsuLib.Scaffolding.Content
         public static PotionAssetProfile Empty { get; } = new();
     }
 
+    public sealed record AfflictionAssetProfile(
+        string? OverlayScenePath = null)
+    {
+        public static AfflictionAssetProfile Empty { get; } = new();
+    }
+
+    public sealed record EnchantmentAssetProfile(
+        string? IconPath = null)
+    {
+        public static EnchantmentAssetProfile Empty { get; } = new();
+    }
+
     public static class ContentAssetProfiles
     {
         public static CardAssetProfile Card(string poolEntry, string cardEntry)
@@ -99,6 +111,24 @@ namespace STS2RitsuLib.Scaffolding.Content
             return new(
                 ImageHelper.GetImagePath($"atlases/potion_atlas.sprites/{normalized}.tres"),
                 ImageHelper.GetImagePath($"atlases/potion_outline_atlas.sprites/{normalized}.tres"));
+        }
+
+        public static AfflictionAssetProfile Affliction(string afflictionEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(afflictionEntry);
+
+            var normalized = Normalize(afflictionEntry);
+            return new(
+                SceneHelper.GetScenePath($"cards/overlays/afflictions/{normalized}"));
+        }
+
+        public static EnchantmentAssetProfile Enchantment(string enchantmentEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(enchantmentEntry);
+
+            var normalized = Normalize(enchantmentEntry);
+            return new(
+                ImageHelper.GetImagePath($"enchantments/{normalized}.png"));
         }
 
         private static string Normalize(string value)

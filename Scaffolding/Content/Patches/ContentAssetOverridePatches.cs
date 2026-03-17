@@ -671,7 +671,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
     public interface IModAfflictionAssetOverrides
     {
-        string? CustomOverlayScenePath { get; }
+        AfflictionAssetProfile AssetProfile => AfflictionAssetProfile.Empty;
+        string? CustomOverlayScenePath => AssetProfile.OverlayScenePath;
     }
 
     public class AfflictionOverlayPathPatch : IPatchMethod
@@ -710,13 +711,11 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
             // ReSharper restore InconsistentNaming
         {
             var path = string.Empty;
-            if (ContentAssetOverridePatchHelper.TryUseStringOverride<IModAfflictionAssetOverrides>(
-                    __instance,
-                    ref path,
-                    o => o.CustomOverlayScenePath))
-                return true;
-
-            return ContentAssetOverridePatchHelper.TryUseExistenceOverride(path, ref __result);
+            return ContentAssetOverridePatchHelper.TryUseStringOverride<IModAfflictionAssetOverrides>(
+                       __instance,
+                       ref path,
+                       o => o.CustomOverlayScenePath) ||
+                   ContentAssetOverridePatchHelper.TryUseExistenceOverride(path, ref __result);
         }
     }
 
@@ -752,7 +751,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
     public interface IModEnchantmentAssetOverrides
     {
-        string? CustomIconPath { get; }
+        EnchantmentAssetProfile AssetProfile => EnchantmentAssetProfile.Empty;
+        string? CustomIconPath => AssetProfile.IconPath;
     }
 
     public class EnchantmentIntendedIconPathPatch : IPatchMethod
