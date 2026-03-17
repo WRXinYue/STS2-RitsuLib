@@ -1,0 +1,183 @@
+using STS2RitsuLib.Cards.Patches;
+using STS2RitsuLib.Content.Patches;
+using STS2RitsuLib.Lifecycle.Patches;
+using STS2RitsuLib.Patching.Core;
+using STS2RitsuLib.Scaffolding.Characters.Patches;
+using STS2RitsuLib.Scaffolding.Content.Patches;
+using STS2RitsuLib.Unlocks.Patches;
+using STS2RitsuLib.Utils.Persistence.Patches;
+
+namespace STS2RitsuLib
+{
+    public static partial class RitsuLibFramework
+    {
+        internal static ModPatcher GetFrameworkPatcher(FrameworkPatcherArea area)
+        {
+            lock (SyncRoot)
+            {
+                return FrameworkPatchersByArea.TryGetValue(area, out var patcher)
+                    ? patcher
+                    : throw new InvalidOperationException($"Framework patcher for area '{area}' is not available yet.");
+            }
+        }
+
+        private static bool PatchAllRequired()
+        {
+            foreach (var area in Enum.GetValues<FrameworkPatcherArea>())
+            {
+                if (!FrameworkPatchersByArea.TryGetValue(area, out var patcher))
+                    throw new InvalidOperationException($"Framework patcher for area '{area}' was not initialized.");
+
+                if (!patcher.PatchAll())
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static void RegisterFrameworkPatcher(FrameworkPatcherArea area, ModPatcher patcher)
+        {
+            if (!FrameworkPatchersByArea.TryAdd(area, patcher))
+                throw new InvalidOperationException($"Duplicate framework patcher registration for area '{area}'.");
+        }
+
+        private static void RegisterLifecyclePatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-core", "framework core");
+            patcher.RegisterPatch<CoreInitializationLifecyclePatch>();
+            patcher.RegisterPatch<ModelRegistryLifecyclePatch>();
+            patcher.RegisterPatch<GameNodeLifecyclePatch>();
+            patcher.RegisterPatch<RunLifecyclePatch>();
+            patcher.RegisterPatch<RunEndedLifecyclePatch>();
+            patcher.RegisterPatch<CombatHookLifecyclePatch>();
+            patcher.RegisterPatch<RewardHookLifecyclePatch>();
+            patcher.RegisterPatch<GoldLossLifecyclePatch>();
+            patcher.RegisterPatch<RelicObtainedLifecyclePatch>();
+            patcher.RegisterPatch<RelicRemovedLifecyclePatch>();
+            patcher.RegisterPatch<RoomHookLifecyclePatch>();
+            patcher.RegisterPatch<ActHookLifecyclePatch>();
+            patcher.RegisterPatch<RoomExitLifecyclePatch>();
+            patcher.RegisterPatch<ActTransitionLifecyclePatch>();
+            patcher.RegisterPatch<SaveManagerLifecyclePatch>();
+            patcher.RegisterPatch<RunSavingLifecyclePatch>();
+            patcher.RegisterPatch<EpochLifecyclePatch>();
+            patcher.RegisterPatch<UnlockIncrementLifecyclePatch>();
+            patcher.RegisterPatch<GameOverScreenLifecyclePatch>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.Core, patcher);
+        }
+
+        private static void RegisterContentAssetPatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-content-assets", "content assets");
+            patcher.RegisterPatch<CardPortraitPathPatch>();
+            patcher.RegisterPatch<CardPortraitAvailabilityPatch>();
+            patcher.RegisterPatch<CardTextureOverridePatch>();
+            patcher.RegisterPatch<CardFrameMaterialPatch>();
+            patcher.RegisterPatch<CardAllPortraitPathsPatch>();
+            patcher.RegisterPatch<CardOverlayPathPatch>();
+            patcher.RegisterPatch<CardOverlayAvailabilityPatch>();
+            patcher.RegisterPatch<CardOverlayCreatePatch>();
+            patcher.RegisterPatch<CardBannerTexturePatch>();
+            patcher.RegisterPatch<CardBannerMaterialPatch>();
+            patcher.RegisterPatch<CardDynamicVarTooltipPatch>();
+            patcher.RegisterPatch<DynamicVarTooltipClonePatch>();
+
+            patcher.RegisterPatch<RelicIconPathPatch>();
+            patcher.RegisterPatch<RelicTexturePatch>();
+
+            patcher.RegisterPatch<PowerIconPathPatch>();
+            patcher.RegisterPatch<PowerTexturePatch>();
+            patcher.RegisterPatch<PowerResolvedBigIconPathPatch>();
+
+            patcher.RegisterPatch<OrbIconPatch>();
+            patcher.RegisterPatch<OrbSpritePathPatch>();
+            patcher.RegisterPatch<OrbAssetPathsPatch>();
+
+            patcher.RegisterPatch<PotionImagePathPatch>();
+            patcher.RegisterPatch<PotionTexturePatch>();
+
+            patcher.RegisterPatch<AfflictionOverlayPathPatch>();
+            patcher.RegisterPatch<AfflictionHasOverlayPatch>();
+            patcher.RegisterPatch<AfflictionCreateOverlayPatch>();
+
+            patcher.RegisterPatch<EnchantmentIntendedIconPathPatch>();
+
+            patcher.RegisterPatch<ActBackgroundScenePathPatch>();
+            patcher.RegisterPatch<ActRestSiteBackgroundPathPatch>();
+            patcher.RegisterPatch<ActMapBackgroundPathPatch>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.ContentAssets, patcher);
+        }
+
+        private static void RegisterCharacterAssetPatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-character-assets", "character assets");
+            patcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
+            patcher.RegisterPatch<CharacterVisualsPathPatch>();
+            patcher.RegisterPatch<CharacterEnergyCounterPathPatch>();
+            patcher.RegisterPatch<CharacterMerchantAnimPathPatch>();
+            patcher.RegisterPatch<CharacterRestSiteAnimPathPatch>();
+            patcher.RegisterPatch<CharacterIconTexturePathPatch>();
+            patcher.RegisterPatch<CharacterIconPathPatch>();
+            patcher.RegisterPatch<CharacterSelectBgPathPatch>();
+            patcher.RegisterPatch<CharacterSelectTransitionPathPatch>();
+            patcher.RegisterPatch<CharacterTrailPathPatch>();
+            patcher.RegisterPatch<CharacterTrailStyleOverridePatch>();
+            patcher.RegisterPatch<CharacterAttackSfxPatch>();
+            patcher.RegisterPatch<CharacterCastSfxPatch>();
+            patcher.RegisterPatch<CharacterDeathSfxPatch>();
+            patcher.RegisterPatch<CharacterArmPointingTexturePathPatch>();
+            patcher.RegisterPatch<CharacterArmRockTexturePathPatch>();
+            patcher.RegisterPatch<CharacterArmPaperTexturePathPatch>();
+            patcher.RegisterPatch<CharacterArmScissorsTexturePathPatch>();
+            patcher.RegisterPatch<CharacterCombatSpineOverridePatch>();
+            patcher.RegisterPatch<CharacterGameOverScreenCompatibilityPatch>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.CharacterAssets, patcher);
+        }
+
+        private static void RegisterContentRegistryPatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-content-registry", "content registry");
+            patcher.RegisterPatch<AllCharactersPatch>();
+            patcher.RegisterPatch<ActsPatch>();
+            patcher.RegisterPatch<AllPowersPatch>();
+            patcher.RegisterPatch<AllOrbsPatch>();
+            patcher.RegisterPatch<AllSharedEventsPatch>();
+            patcher.RegisterPatch<AllEventsPatch>();
+            patcher.RegisterPatch<AllSharedAncientsPatch>();
+            patcher.RegisterPatch<AllAncientsPatch>();
+            patcher.RegisterPatch<ModelDbModdedEntryPatch>();
+            patcher.RegisterPatch<DynamicActContentPatchBootstrap>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.ContentRegistry, patcher);
+        }
+
+        private static void RegisterPersistencePatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-persistence", "persistence");
+            patcher.RegisterPatch<ProfilePathInitializedPatch>();
+            patcher.RegisterPatch<ProfileDeletePatch>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.Persistence, patcher);
+        }
+
+        private static void RegisterUnlockPatches()
+        {
+            var patcher = CreatePatcher(Const.ModId, "framework-unlocks", "unlocks");
+            patcher.RegisterPatch<CharacterUnlockFilterPatch>();
+            patcher.RegisterPatch<SharedAncientUnlockFilterPatch>();
+            patcher.RegisterPatch<CardUnlockFilterPatch>();
+            patcher.RegisterPatch<RelicUnlockFilterPatch>();
+            patcher.RegisterPatch<PotionUnlockFilterPatch>();
+            patcher.RegisterPatch<GeneratedRoomEventUnlockFilterPatch>();
+            RegisterFrameworkPatcher(FrameworkPatcherArea.Unlocks, patcher);
+        }
+
+        internal enum FrameworkPatcherArea
+        {
+            Core,
+            ContentAssets,
+            CharacterAssets,
+            ContentRegistry,
+            Persistence,
+            Unlocks,
+        }
+    }
+}

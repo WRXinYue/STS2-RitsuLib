@@ -3,22 +3,15 @@ using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
-using STS2RitsuLib.Cards.Patches;
 using STS2RitsuLib.Content;
-using STS2RitsuLib.Content.Patches;
 using STS2RitsuLib.Data;
 using STS2RitsuLib.Keywords;
-using STS2RitsuLib.Lifecycle.Patches;
 using STS2RitsuLib.Patching.Core;
-using STS2RitsuLib.Scaffolding.Characters.Patches;
 using STS2RitsuLib.Scaffolding.Content;
-using STS2RitsuLib.Scaffolding.Content.Patches;
 using STS2RitsuLib.Timeline;
 using STS2RitsuLib.Unlocks;
-using STS2RitsuLib.Unlocks.Patches;
 using STS2RitsuLib.Utils;
 using STS2RitsuLib.Utils.Persistence;
-using STS2RitsuLib.Utils.Persistence.Patches;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace STS2RitsuLib
@@ -27,10 +20,11 @@ namespace STS2RitsuLib
     ///     Shared runtime bootstrap for the framework itself and for mods that reference it.
     /// </summary>
     [ModInitializer(nameof(Initialize))]
-    public static class RitsuLibFramework
+    public static partial class RitsuLibFramework
     {
         private static readonly Lock SyncRoot = new();
-        private static ModPatcher? _frameworkPatcher;
+        private static readonly Dictionary<FrameworkPatcherArea, ModPatcher> FrameworkPatchersByArea = [];
+
         private static bool _profileServicesInitialized;
         private static ILifecycleObserver[] _lifecycleObservers = [];
         private static readonly ConcurrentDictionary<Type, object> LifecycleTopics = new();
@@ -129,100 +123,15 @@ namespace STS2RitsuLib
 
                 try
                 {
-                    _frameworkPatcher = CreatePatcher(Const.ModId, "framework", "framework");
+                    FrameworkPatchersByArea.Clear();
+                    RegisterLifecyclePatches();
+                    RegisterContentAssetPatches();
+                    RegisterCharacterAssetPatches();
+                    RegisterContentRegistryPatches();
+                    RegisterPersistencePatches();
+                    RegisterUnlockPatches();
 
-                    _frameworkPatcher.RegisterPatch<CoreInitializationLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<ModelRegistryLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<GameNodeLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RunLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RunEndedLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<CombatHookLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RewardHookLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<GoldLossLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RelicObtainedLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RelicRemovedLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RoomHookLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<ActHookLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RoomExitLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<ActTransitionLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<SaveManagerLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<RunSavingLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<EpochLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<UnlockIncrementLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<GameOverScreenLifecyclePatch>();
-                    _frameworkPatcher.RegisterPatch<CardPortraitPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CardPortraitAvailabilityPatch>();
-                    _frameworkPatcher.RegisterPatch<CardTextureOverridePatch>();
-                    _frameworkPatcher.RegisterPatch<CardFrameMaterialPatch>();
-                    _frameworkPatcher.RegisterPatch<CardAllPortraitPathsPatch>();
-                    _frameworkPatcher.RegisterPatch<CardOverlayPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CardOverlayAvailabilityPatch>();
-                    _frameworkPatcher.RegisterPatch<CardOverlayCreatePatch>();
-                    _frameworkPatcher.RegisterPatch<CardBannerTexturePatch>();
-                    _frameworkPatcher.RegisterPatch<CardBannerMaterialPatch>();
-                    _frameworkPatcher.RegisterPatch<CardDynamicVarTooltipPatch>();
-                    _frameworkPatcher.RegisterPatch<DynamicVarTooltipClonePatch>();
-                    _frameworkPatcher.RegisterPatch<RelicIconPathPatch>();
-                    _frameworkPatcher.RegisterPatch<RelicTexturePatch>();
-                    _frameworkPatcher.RegisterPatch<PowerIconPathPatch>();
-                    _frameworkPatcher.RegisterPatch<PowerTexturePatch>();
-                    _frameworkPatcher.RegisterPatch<OrbIconPatch>();
-                    _frameworkPatcher.RegisterPatch<OrbSpritePathPatch>();
-                    _frameworkPatcher.RegisterPatch<OrbAssetPathsPatch>();
-                    _frameworkPatcher.RegisterPatch<PotionImagePathPatch>();
-                    _frameworkPatcher.RegisterPatch<PotionTexturePatch>();
-                    _frameworkPatcher.RegisterPatch<AfflictionOverlayPathPatch>();
-                    _frameworkPatcher.RegisterPatch<AfflictionHasOverlayPatch>();
-                    _frameworkPatcher.RegisterPatch<AfflictionCreateOverlayPatch>();
-                    _frameworkPatcher.RegisterPatch<EnchantmentIntendedIconPathPatch>();
-                    _frameworkPatcher.RegisterPatch<PowerResolvedBigIconPathPatch>();
-                    _frameworkPatcher.RegisterPatch<ActBackgroundScenePathPatch>();
-                    _frameworkPatcher.RegisterPatch<ActRestSiteBackgroundPathPatch>();
-                    _frameworkPatcher.RegisterPatch<ActMapBackgroundPathPatch>();
-
-                    _frameworkPatcher.RegisterPatch<ProfilePathInitializedPatch>();
-                    _frameworkPatcher.RegisterPatch<ProfileDeletePatch>();
-
-                    _frameworkPatcher.RegisterPatch<AllCharactersPatch>();
-                    _frameworkPatcher.RegisterPatch<ActsPatch>();
-                    _frameworkPatcher.RegisterPatch<AllPowersPatch>();
-                    _frameworkPatcher.RegisterPatch<AllOrbsPatch>();
-                    _frameworkPatcher.RegisterPatch<AllSharedEventsPatch>();
-                    _frameworkPatcher.RegisterPatch<AllEventsPatch>();
-                    _frameworkPatcher.RegisterPatch<AllSharedAncientsPatch>();
-                    _frameworkPatcher.RegisterPatch<AllAncientsPatch>();
-                    _frameworkPatcher.RegisterPatch<ModelDbModdedEntryPatch>();
-                    _frameworkPatcher.RegisterPatch<DynamicActContentPatchBootstrap>();
-
-                    _frameworkPatcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterVisualsPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterEnergyCounterPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterMerchantAnimPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterRestSiteAnimPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterIconTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterIconPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterSelectBgPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterSelectTransitionPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterTrailPathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterTrailStyleOverridePatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterAttackSfxPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterCastSfxPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterDeathSfxPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterArmPointingTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterArmRockTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterArmPaperTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterArmScissorsTexturePathPatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterCombatSpineOverridePatch>();
-                    _frameworkPatcher.RegisterPatch<CharacterGameOverScreenCompatibilityPatch>();
-
-                    _frameworkPatcher.RegisterPatch<CharacterUnlockFilterPatch>();
-                    _frameworkPatcher.RegisterPatch<SharedAncientUnlockFilterPatch>();
-                    _frameworkPatcher.RegisterPatch<CardUnlockFilterPatch>();
-                    _frameworkPatcher.RegisterPatch<RelicUnlockFilterPatch>();
-                    _frameworkPatcher.RegisterPatch<PotionUnlockFilterPatch>();
-                    _frameworkPatcher.RegisterPatch<GeneratedRoomEventUnlockFilterPatch>();
-
-                    if (!_frameworkPatcher.PatchAll())
+                    if (!PatchAllRequired())
                     {
                         Logger.Error("Framework initialization failed: critical framework patches failed.");
                         IsActive = false;
@@ -423,12 +332,6 @@ namespace STS2RitsuLib
                 failureMessage ?? $"Required patcher '{patcher.PatcherName}' failed. The mod will be disabled.");
             disableMod();
             return false;
-        }
-
-        internal static ModPatcher RequireFrameworkPatcher()
-        {
-            return _frameworkPatcher
-                   ?? throw new InvalidOperationException("Framework patcher is not available yet.");
         }
 
         internal static void PublishLifecycleEvent<TEvent>(TEvent evt, string phase)

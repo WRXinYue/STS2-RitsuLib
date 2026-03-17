@@ -49,7 +49,9 @@ namespace STS2RitsuLib.Content
                         logger);
                 }
 
-                if (!RitsuLibFramework.RequireFrameworkPatcher().ApplyDynamic(builder))
+                if (!RitsuLibFramework
+                        .GetFrameworkPatcher(RitsuLibFramework.FrameworkPatcherArea.ContentRegistry)
+                        .ApplyDynamic(builder))
                     throw new InvalidOperationException("Failed to apply dynamic Act content patches.");
 
                 _patched = true;
