@@ -11,6 +11,18 @@ There is currently no conflict between this library and BaseMod.
 
 Documentation index: [Docs/README.md](Docs/README.md)
 
+## Debug Compatibility Mode
+
+RitsuLib provides a debug compatibility mode for localization lookup failures.
+
+- Setting: debug_compatibility_mode
+- Default: disabled (false)
+- Behavior when enabled: missing LocTable keys no longer throw immediately; they fall back to key placeholder text and emit a warning log.
+
+Settings file path on Windows:
+
+%appdata%\SlayTheSpire2\steam\<user_id>\mod_data\com.ritsukage.sts2-RitsuLib\settings.json
+
 ## License
 
 MIT
