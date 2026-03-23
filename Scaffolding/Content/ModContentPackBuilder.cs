@@ -165,6 +165,45 @@ namespace STS2RitsuLib.Scaffolding.Content
             return AddStep(ctx => entry.Register(ctx.Content));
         }
 
+        public ModContentPackBuilder Entries(IEnumerable<IContentRegistrationEntry> entries)
+        {
+            ArgumentNullException.ThrowIfNull(entries);
+
+            foreach (var entry in entries)
+                Entry(entry);
+
+            return this;
+        }
+
+        public ModContentPackBuilder Keyword(KeywordRegistrationEntry entry)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            return AddStep(ctx => entry.Register(ctx.Keywords));
+        }
+
+        public ModContentPackBuilder Keywords(IEnumerable<KeywordRegistrationEntry> entries)
+        {
+            ArgumentNullException.ThrowIfNull(entries);
+
+            foreach (var entry in entries)
+                Keyword(entry);
+
+            return this;
+        }
+
+        public ModContentPackBuilder Manifest(
+            IEnumerable<IContentRegistrationEntry>? contentEntries = null,
+            IEnumerable<KeywordRegistrationEntry>? keywordEntries = null)
+        {
+            if (contentEntries != null)
+                Entries(contentEntries);
+
+            if (keywordEntries != null)
+                Keywords(keywordEntries);
+
+            return this;
+        }
+
         public ModContentPackBuilder Custom(Action<ModContentPackContext> step)
         {
             return AddStep(step);
