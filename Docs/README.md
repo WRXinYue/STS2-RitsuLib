@@ -24,6 +24,7 @@
 | [Localization & Keywords](en/LocalizationAndKeywords.md) | `I18N`, keyword registry, and ancient dialogue localization |
 | [Godot Scene Authoring](en/GodotSceneAuthoring.md) | Scene-script wrappers, editor caveats, and runtime script registration |
 | [Card Dynamic Variables](en/CardDynamicVarToolkit.md) | Custom card vars with tooltip support |
+| [LocString Placeholder Resolution](en/LocStringPlaceholderResolution.md) | Placeholder syntax, custom formatters, and extension guide |
 
 ### Runtime & Infrastructure
 
@@ -55,6 +56,7 @@
 | [本地化与关键词](zh/LocalizationAndKeywords.md) | `I18N`、关键词注册与 Ancient 对话本地化 |
 | [Godot 场景编写说明](zh/GodotSceneAuthoring.md) | 场景脚本包装、编辑器问题与运行时脚本注册 |
 | [卡牌动态变量](zh/CardDynamicVarToolkit.md) | 带 Tooltip 支持的自定义卡牌变量 |
+| [LocString 占位符解析](zh/LocStringPlaceholderResolution.md) | 占位符语法、自定义格式化器与扩展指南 |
 
 ### 运行时与基础设施
 
