@@ -127,5 +127,5 @@ bool active = card.DynamicVars.HasPositiveValue("charges");
 
 ## Related Documents
 
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
-- [GettingStarted.md](GettingStarted.md)
+- [Content Authoring Toolkit](ContentAuthoringToolkit.md)
+- [Getting Started](GettingStarted.md)

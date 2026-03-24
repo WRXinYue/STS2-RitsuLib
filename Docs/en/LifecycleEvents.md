@@ -146,5 +146,5 @@ Used internally by `ModDataStore` and available for mods that need to react to s
 
 ## Related Documents
 
-- [GettingStarted.md](GettingStarted.md)
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
+- [Getting Started](GettingStarted.md)
+- [Content Authoring Toolkit](ContentAuthoringToolkit.md)

@@ -1,6 +1,8 @@
 # Content Authoring Toolkit
 
-This document defines the content registration APIs, model ID derivation rules, asset override behavior, and compatibility contracts.
+This document is the overview for content authoring: registration entry points, model identity, localization coupling, and asset override basics.
+
+Detailed registration mechanics live in [Content Packs & Registries](ContentPacksAndRegistries.md). Detailed asset semantics live in [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md).
 
 ---
 
@@ -16,45 +18,24 @@ This document defines the content registration APIs, model ID derivation rules, 
 
 `CreateContentPack` wraps all of the above in a fluent builder that executes registered steps in insertion order when `Apply()` is called.
 
+This document keeps the overview short. For builder surface, manifests, fixed-entry ownership, and freeze behavior, see [Content Packs & Registries](ContentPacksAndRegistries.md).
+
 ---
 
 ## Content Pack Builder
 
-All builder methods are chainable:
+All builder methods are chainable. A representative example:
 
 ```csharp
 RitsuLibFramework.CreateContentPack("MyMod")
-    // Content models
     .Character<MyCharacter>()
     .Card<MyCardPool, MyCard>()
     .Relic<MyRelicPool, MyRelic>()
-    .Potion<MyPotionPool, MyPotion>()
-    .Power<MyPower>()
-    .Orb<MyOrb>()
-    .SharedEvent<MyEvent>()
-    .ActEvent<MyAct, MyActEvent>()
-    .SharedAncient<MyAncient>()
-    .ActAncient<MyAct, MyActAncient>()
-    .Act<MyAct>()
-
-    // Keywords
     .CardKeyword("my_keyword", locKeyPrefix: "my_mod_my_keyword", iconPath: "res://MyMod/art/kw.png")
-    .Keyword("my_keyword", titleTable: "card_keywords")
-
-    // Timeline
     .Story<MyStory>()
     .Epoch<MyEpoch>()
-
-    // Unlock conditions
     .RequireEpoch<MyCard, MyEpoch>()
-    .UnlockEpochAfterRunAs<MyCharacter, MyEpoch>()
-    .UnlockEpochAfterWinAs<MyCharacter, MyEpoch>()
-    .UnlockEpochAfterAscensionWin<MyCharacter, MyEpoch>(ascensionLevel: 10)
-    .UnlockEpochAfterRunCount<MyEpoch>(requiredRuns: 5, requireVictory: false)
-
-    // Arbitrary registration step
     .Custom(ctx => { /* ... */ })
-
     .Apply();
 ```
 
@@ -72,13 +53,13 @@ For any model registered through the RitsuLib content registry, `ModelId.Entry` 
 
 All segments are normalized to **UPPER_SNAKE_CASE**.
 
-### Examples (Mod id `STS2-WineFox`)
+### Examples (Mod id `MyMod`)
 
 | C# Type | Category | ModelId.Entry |
 |---|---|---|
-| `WineFoxStrike` | card | `STS2_WINE_FOX_CARD_WINE_FOX_STRIKE` |
-| `HandCrank` | relic | `STS2_WINE_FOX_RELIC_HAND_CRANK` |
-| `WineFox` | character | `STS2_WINE_FOX_CHARACTER_WINE_FOX` |
+| `MyStrike` | card | `MY_MOD_CARD_MY_STRIKE` |
+| `MyStarterRelic` | relic | `MY_MOD_RELIC_MY_STARTER_RELIC` |
+| `MyCharacter` | character | `MY_MOD_CHARACTER_MY_CHARACTER` |
 
 > If two types under the same mod id and category share the same CLR name, they resolve to the same entry and must be renamed.
 
@@ -90,9 +71,9 @@ Localization keys are written directly against the fixed `ModelId.Entry`:
 
 ```json
 {
-  "STS2_WINE_FOX_CARD_WINE_FOX_STRIKE.title": "WineFox Strike",
-  "STS2_WINE_FOX_CARD_WINE_FOX_STRIKE.description": "Deal {damage} damage.",
-  "STS2_WINE_FOX_RELIC_HAND_CRANK.title": "Hand Crank"
+  "MY_MOD_CARD_MY_STRIKE.title": "My Strike",
+  "MY_MOD_CARD_MY_STRIKE.description": "Deal {damage} damage.",
+  "MY_MOD_RELIC_MY_STARTER_RELIC.title": "My Starter Relic"
 }
 ```
 
@@ -124,7 +105,7 @@ public class MyCard : ModCardTemplate(1, CardType.Attack, CardRarity.Common, Tar
 }
 ```
 
-Supported card fields: `PortraitPath`, `BetaPortraitPath`, `FramePath`, `PortraitBorderPath`, `EnergyIconPath`, `FrameMaterialPath`, `OverlayScenePath`, `BannerTexturePath`, `BannerMaterialPath`
+Supported card fields include portrait, frame, portrait border, energy icon, overlay, and banner-related assets.
 
 ### Other Content
 
@@ -140,7 +121,9 @@ Override behavior:
 2. The override member must return a non-empty path
 3. If the resource path does not exist, RitsuLib emits a one-time warning and falls back to the base asset
 
-This warning behavior is especially important for character assets because the base game has almost no safe fallback for missing paths. Character-specific placeholder fallback is documented in [CharacterAndUnlockScaffolding.md](CharacterAndUnlockScaffolding.md).
+This warning behavior is especially important for character assets because the base game has almost no safe fallback for missing paths.
+
+For the full profile records, helper factories, placeholder behavior, and diagnostics policy, see [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md).
 
 ---
 
@@ -160,8 +143,10 @@ The fixed-entry rule applies only to model types explicitly registered through t
 
 ## Related Documents
 
-- [GettingStarted.md](GettingStarted.md)
-- [CharacterAndUnlockScaffolding.md](CharacterAndUnlockScaffolding.md)
-- [CardDynamicVarToolkit.md](CardDynamicVarToolkit.md)
-- [LocalizationAndKeywords.md](LocalizationAndKeywords.md)
-- [FrameworkDesign.md](FrameworkDesign.md)
+- [Getting Started](GettingStarted.md)
+- [Content Packs & Registries](ContentPacksAndRegistries.md)
+- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Card Dynamic Variables](CardDynamicVarToolkit.md)
+- [Localization & Keywords](LocalizationAndKeywords.md)
+- [Framework Design](FrameworkDesign.md)
+- [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)

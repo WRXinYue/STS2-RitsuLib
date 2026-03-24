@@ -39,23 +39,19 @@ The tradeoff is deliberate: renaming a published CLR type is now a compatibility
 
 ## Registration Before Use
 
-RitsuLib splits authoring into registries:
+RitsuLib is built around explicit early registration.
 
-- content registry
-- keyword registry
-- timeline registry
-- unlock registry
-- persistent data store
+`CreateContentPack(modId)` is the ergonomic entry point, but the underlying registries stay first-class and explicit.
 
-`CreateContentPack(modId)` is the ergonomic entry point, but the underlying registries still exist and remain explicit.
+The framework freezes registration during early boot because it wants:
 
-The framework freezes content registration during early boot. This is intentional:
+- stable model identity
+- stable model lists
+- deterministic lookup and unlock behavior
 
-- model identity is finalized once
-- later lookups stay deterministic
-- runtime "surprise registration" bugs are avoided
+So the design prefers early failure over silently mutating the model graph after the game has started using it.
 
-The design prefers early failure over silently mutating the model graph after the game has started using it.
+See [Content Packs & Registries](ContentPacksAndRegistries.md) for the concrete registration model.
 
 ---
 
@@ -81,70 +77,29 @@ This is more verbose than a single placeholder property, but it scales better as
 
 ---
 
-## Placeholder Fallback Is A Safety Layer
+## Asset Safety Rails
 
-The base game does not provide robust fallback handling for missing character assets.
+The asset-profile system is intentionally paired with a few safety rails:
 
-That makes placeholder inheritance necessary, not merely convenient.
+- character placeholder fallback for missing character resources
+- separate APIs for full energy-counter scenes versus pool-linked icons
+- one-time warnings when explicit resource paths are missing
 
-RitsuLib now handles this through `ModCharacterTemplate.PlaceholderCharacterId`:
+These are not separate design accidents. They exist so a structured asset API stays practical during real mod authoring and migration.
 
-- default value: `ironclad`
-- missing character assets are filled from that base-character profile
-- returning `null` disables fallback entirely
-
-This keeps the framework-style explicit profile system, while removing the migration pain of manually filling merchant, rest-site, map marker, and default SFX paths one by one.
-
-The important design detail is that placeholder fallback is additive, not authoritative:
-
-- your explicit asset profile stays the source of truth
-- only missing entries are inherited
-
----
-
-## Custom Energy Counter vs Pool Energy Icons
-
-RitsuLib treats these as different layers:
-
-- `CustomEnergyCounterPath`: the combat counter scene itself
-- `BigEnergyIconPath`: the large energy icon resolved through `EnergyIconHelper`
-- `TextEnergyIconPath`: the small inline icon used in formatted text
-
-This split is intentional.
-
-The combat counter is a scene-level UI concern and deserves a scene-level API.
-The pool icons are content-pipeline concerns and belong on pool models.
-
-That separation keeps the clean scene-based approach for full counters while still providing convenience APIs for the icon use cases authors expect.
-
----
-
-## Missing Paths Warn And Fall Back
-
-RitsuLib now validates explicit asset paths more aggressively.
-
-Current behavior:
-
-- if an override path is empty, it is ignored
-- if an override path exists, it is used
-- if an override path is missing, RitsuLib logs a one-time warning and falls back to the base asset
-
-This is especially important for character assets, where a bad path can otherwise surface much later as a load failure in unrelated UI.
-
-The framework keeps the warning one-time so that a bad path is visible without flooding logs every frame or every screen refresh.
+See [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md) for the detailed behavior and API surface.
 
 ---
 
 ## Compatibility Shims Live At The Edges
 
-RitsuLib does include compatibility-oriented helpers, but they are kept narrow:
+RitsuLib does include compatibility-oriented helpers, but they are kept narrow.
 
-- localization debug compatibility mode for missing `LocTable` keys
-- ancient dialogue auto-discovery from localization keys
-- unlock progression bridge patches where vanilla hooks are incomplete
+The framework tries not to make every system magical by default. Instead, it adds shims where the game or modding surface would otherwise be unsafe or needlessly repetitive.
 
-The framework tries not to make every system magical by default.
-Instead, it adds shims where the game or modding surface would otherwise be unsafe or needlessly repetitive.
+Representative examples include localization debug compatibility, ancient dialogue append helpers, and unlock bridge patches for vanilla progression hooks that ignore mod characters.
+
+See [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md) for the concrete compatibility layers.
 
 ---
 
@@ -160,7 +115,7 @@ Harmony is still the underlying patch engine, but RitsuLib wraps it with:
 
 The goal is not to hide Harmony. The goal is to standardize patch shape and failure handling so large mods stay maintainable.
 
-See [PatchingGuide.md](PatchingGuide.md) for the patching workflow.
+See [Patching Guide](PatchingGuide.md) for the patching workflow.
 
 ---
 
@@ -177,15 +132,19 @@ That choice enables:
 
 It is slightly more ceremony up front, but it avoids the long-term pain of primitive save keys that outgrow their original shape.
 
-See [PersistenceGuide.md](PersistenceGuide.md) for the full data model.
+See [Persistence Guide](PersistenceGuide.md) for the full data model.
 
 ---
 
 ## Recommended Reading Order
 
-- [GettingStarted.md](GettingStarted.md)
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
-- [CharacterAndUnlockScaffolding.md](CharacterAndUnlockScaffolding.md)
-- [PatchingGuide.md](PatchingGuide.md)
-- [PersistenceGuide.md](PersistenceGuide.md)
-- [LocalizationAndKeywords.md](LocalizationAndKeywords.md)
+- [Getting Started](GettingStarted.md)
+- [Content Authoring Toolkit](ContentAuthoringToolkit.md)
+- [Content Packs & Registries](ContentPacksAndRegistries.md)
+- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Timeline & Unlocks](TimelineAndUnlocks.md)
+- [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)
+- [Patching Guide](PatchingGuide.md)
+- [Persistence Guide](PersistenceGuide.md)
+- [Localization & Keywords](LocalizationAndKeywords.md)
+- [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)

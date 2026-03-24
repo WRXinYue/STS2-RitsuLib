@@ -146,7 +146,7 @@ public static ModPatchTarget[] GetTargets()
 一个 `IPatchMethod` 可以同时补多个方法，只要它们共享同一套 Harmony 逻辑。
 
 RitsuLib 会把 `GetTargets()` 自动展开成多个 `ModPatchInfo`。
-当 target 不止一个时，框架会自动把目标名附加到 patch id 上，避免冲突。
+当目标不止一个时，框架会自动把目标名附加到补丁标识上，避免冲突。
 
 这样你就能把相关逻辑放在一起，而不需要手动复制多个补丁类。
 
@@ -173,21 +173,21 @@ patcher.ApplyDynamic(builder, rollbackOnCriticalFailure: false);
 
 常见用途：
 
-- patch 运行时生成的类型
-- 通过反射扫描后决定 patch 哪些 getter
-- patch 一组动态发现的方法
+- 给运行时生成的类型打补丁
+- 通过反射扫描后决定要给哪些属性读取器打补丁
+- 给一组动态发现的方法打补丁
 
 ---
 
 ## 日志与补丁边界
 
-`CreatePatcher(ownerModId, patcherName, patcherLabel)` 会为每个 patcher 生成：
+`CreatePatcher(ownerModId, patcherName, patcherLabel)` 会为每个补丁器生成：
 
 - 稳定的 Harmony id：`<ownerModId>.<patcherName>`
 - 独立的日志前缀
 - 独立的注册和应用生命周期
 
-实际开发里，把 patcher 按功能拆开通常非常值得，因为日志会清晰很多。
+实际开发里，把补丁器按功能拆开通常非常值得，因为日志会清晰很多。
 
 ---
 
@@ -195,7 +195,7 @@ patcher.ApplyDynamic(builder, rollbackOnCriticalFailure: false);
 
 对中大型 Mod，比较建议这样组织：
 
-- 每个功能区一个 patch namespace
+- 每个功能区一个补丁命名空间
 - 每个功能区一个 `IModPatches` 分组类型
 - 每个 `IPatchMethod` 只做一件明确的事
 - 兼容补丁默认设为 `IsCritical = false`
@@ -216,5 +216,5 @@ patcher.ApplyDynamic(builder, rollbackOnCriticalFailure: false);
 
 ## 相关文档
 
-- [GettingStarted.md](GettingStarted.md)
-- [FrameworkDesign.md](FrameworkDesign.md)
+- [快速入门](GettingStarted.md)
+- [框架设计](FrameworkDesign.md)

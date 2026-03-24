@@ -23,6 +23,7 @@
 使用 `[ModInitializer]` 声明入口方法，在其中获取 Logger、创建 Patcher 并注册内容：
 
 ```csharp
+using System.Reflection;
 using STS2RitsuLib;
 using STS2RitsuLib.Patching.Core;
 using MegaCrit.Sts2.Core.Logging;
@@ -36,6 +37,7 @@ public static class MyMod
     public static void Initialize()
     {
         Logger = RitsuLibFramework.CreateLogger("MyMod");
+        RitsuLibFramework.EnsureGodotScriptsRegistered(Assembly.GetExecutingAssembly(), Logger);
 
         var patcher = RitsuLibFramework.CreatePatcher("MyMod", "core-patches");
         patcher.RegisterPatches<MyModPatches>();
@@ -50,7 +52,9 @@ public static class MyMod
 }
 ```
 
-`CreatePatcher` 的 `patcherName` 参数用于日志标识。同一个 Mod 可以创建多个 Patcher。完整补丁写法见 [PatchingGuide.md](PatchingGuide.md)。
+`CreatePatcher` 的 `patcherName` 参数用于日志标识。同一个 Mod 可以创建多个 Patcher。完整补丁写法见 [补丁系统](PatchingGuide.md)。
+
+如果你的 Mod 使用了自定义 Godot C# 场景脚本，请把 `EnsureGodotScriptsRegistered(...)` 保留在初始化入口里。详见 [Godot 场景编写说明](GodotSceneAuthoring.md)。
 
 ---
 
@@ -109,7 +113,7 @@ RitsuLib 注册的所有模型，其 `ModelId.Entry` 由以下规则推导（各
 |---|---|---|---|
 | `MyMod` | `MyCard` | card | `MY_MOD_CARD_MY_CARD` |
 | `MyMod` | `MyRelic` | relic | `MY_MOD_RELIC_MY_RELIC` |
-| `STS2-WineFox` | `WineFoxStrike` | card | `STS2_WINE_FOX_CARD_WINE_FOX_STRIKE` |
+| `MyMod` | `MyCharacter` | character | `MY_MOD_CHARACTER_MY_CHARACTER` |
 
 本地化文件示例：
 
@@ -163,7 +167,7 @@ using (RitsuLibFramework.BeginModDataRegistration("MyMod"))
 }
 ```
 
-关于作用域、重载时机和迁移机制，可继续阅读 [PersistenceGuide.md](PersistenceGuide.md)。
+关于作用域、重载时机和迁移机制，可继续阅读 [持久化设计](PersistenceGuide.md)。
 
 ---
 
@@ -177,3 +181,8 @@ using (RitsuLibFramework.BeginModDataRegistration("MyMod"))
 - [持久化设计](PersistenceGuide.md)
 - [本地化与关键词](LocalizationAndKeywords.md)
 - [框架设计](FrameworkDesign.md)
+- [内容包与注册器](ContentPacksAndRegistries.md)
+- [Godot 场景编写说明](GodotSceneAuthoring.md)
+- [时间线与解锁](TimelineAndUnlocks.md)
+- [资源配置与回退规则](AssetProfilesAndFallbacks.md)
+- [诊断与兼容层](DiagnosticsAndCompatibility.md)

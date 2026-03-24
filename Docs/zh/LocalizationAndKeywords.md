@@ -2,10 +2,10 @@
 
 RitsuLib 很明确地把本地化分成两层：
 
-- 游戏自己的 `LocString` 模型 Key 管线
+- 游戏自己的 `LocString` 模型键管线
 - 框架自带的 `I18N` 辅助本地化
 
-同时，它还提供了一个轻量关键词注册器，用来统一 HoverTip 和关键词文本生成。
+同时，它还提供了一个轻量关键词注册器，用来统一悬浮提示和关键词文本生成。
 
 ---
 
@@ -19,7 +19,7 @@ RitsuLib 很明确地把本地化分成两层：
 - `characters`
 - `card_keywords`
 
-这些 Key 仍然建立在固定 `ModelId.Entry` 之上，规则见 [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)。
+这些键仍然建立在固定 `ModelId.Entry` 之上，规则见 [内容注册规则](ContentAuthoringToolkit.md)。
 
 RitsuLib 不会替换这套系统，它只是让模型身份更稳定，从而让这些 Key 更容易编写。
 
@@ -56,9 +56,9 @@ user://mod-configs/<modId>/localization
 
 它的合并策略是“先到先得”，不是后来的覆盖前面的：
 
-- 先加载 file-system
-- embedded 只补缺失 Key
-- PCK 再补剩下还没有的 Key
+- 先加载文件系统目录
+- 嵌入资源只补缺失键
+- PCK 再补剩下还没有的键
 
 这样本地覆写可以自然优先于打包默认值。
 
@@ -92,16 +92,16 @@ user://mod-configs/<modId>/localization
 
 ---
 
-## Debug 兼容模式
+## 调试兼容模式
 
 RitsuLib 提供了一个只用于调试的缺失本地化兼容层。
 
 开启 `debug_compatibility_mode` 后：
 
-- `LocTable.GetLocString(...)` 缺失 Key 时不再立刻抛异常
-- `LocTable.GetRawText(...)` 缺失 Key 时不再立刻抛异常
-- 框架会返回基于 Key 的占位值
-- 同时输出一次 warning
+- `LocTable.GetLocString(...)` 缺失键时不再立刻抛异常
+- `LocTable.GetRawText(...)` 缺失键时不再立刻抛异常
+- 框架会返回基于键的占位值
+- 同时输出一次警告
 
 它的目标是帮助排查问题，不是替代正确的本地化编写。
 
@@ -109,7 +109,7 @@ RitsuLib 提供了一个只用于调试的缺失本地化兼容层。
 
 ## 关键词注册器
 
-如果你希望关键词有统一定义、统一 HoverTip，可以使用 `ModKeywordRegistry`：
+如果你希望关键词有统一定义、统一悬浮提示，可以使用 `ModKeywordRegistry`：
 
 ```csharp
 var keywords = RitsuLibFramework.GetKeywordRegistry("MyMod");
@@ -120,13 +120,13 @@ keywords.RegisterCardKeyword(
     iconPath: "res://MyMod/ui/keywords/brew.png");
 ```
 
-它会为关键词生成规范化 id，并绑定 title / description 的本地化 Key。
+它会为关键词生成规范化标识，并绑定标题 / 描述的本地化键。
 
 ---
 
 ## 在代码里使用关键词
 
-常用 helper 包括：
+常用辅助方法包括：
 
 - `ModKeywordRegistry.CreateHoverTip(id)`
 - `ModKeywordRegistry.GetTitle(id)`
@@ -155,10 +155,10 @@ RitsuLib 现在内置了 `AncientDialogueLocalization`。
 
 它有两个作用：
 
-- 提供从本地化 Key 扫描对话的 helper API
+- 提供从本地化键扫描对话的辅助 API
 - 在 `AncientDialogueSet.PopulateLocKeys` 之前，自动把基于本地化定义的 Mod 角色 Ancient 对话追加进去
 
-Key 格式与原版保持一致：
+键格式与原版保持一致：
 
 - `<ancientEntry>.talk.<characterEntry>.<dialogueIndex>-<lineIndex>.ancient`
 - `<ancientEntry>.talk.<characterEntry>.<dialogueIndex>-<lineIndex>.char`
@@ -167,7 +167,7 @@ Key 格式与原版保持一致：
 - 可选 `-visit`
 - Architect 专用可选 `-attack`
 
-也就是说，作者现在只靠写本地化条目，就可以给自定义角色补 Ancient 对话，而不必再手动 patch 每个 AncientDialogueSet。
+也就是说，作者现在只靠写本地化条目，就可以给自定义角色补 Ancient 对话，而不必再手动给每个 `AncientDialogueSet` 打补丁。
 
 ---
 
@@ -184,5 +184,6 @@ Key 格式与原版保持一致：
 
 ## 相关文档
 
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
-- [CharacterAndUnlockScaffolding.md](CharacterAndUnlockScaffolding.md)
+- [内容注册规则](ContentAuthoringToolkit.md)
+- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [诊断与兼容层](DiagnosticsAndCompatibility.md)

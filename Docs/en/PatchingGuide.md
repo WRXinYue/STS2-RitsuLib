@@ -209,5 +209,5 @@ This matches how RitsuLib itself organizes its internal framework patchers.
 
 ## Related Documents
 
-- [GettingStarted.md](GettingStarted.md)
-- [FrameworkDesign.md](FrameworkDesign.md)
+- [Getting Started](GettingStarted.md)
+- [Framework Design](FrameworkDesign.md)

@@ -1,6 +1,8 @@
 # Character & Unlock Scaffolding
 
-This document covers character templates, content pool definitions, epoch templates, and unlock rule registration with full examples.
+This document is the practical assembly guide for a character mod: character templates, content pools, epoch templates, and unlock registration with full examples.
+
+Detailed fallback semantics live in [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md). Detailed timeline and progression semantics live in [Timeline & Unlocks](TimelineAndUnlocks.md). For scene-script wrappers used by visuals, rest sites, and counters, see [Godot Scene Authoring](GodotSceneAuthoring.md).
 
 ---
 
@@ -10,12 +12,12 @@ A full character mod typically includes:
 
 | Content | Base Type | Example |
 |---|---|---|
-| Card pool | `TypeListCardPoolModel` | `WineFoxCardPool` |
-| Relic pool | `TypeListRelicPoolModel` | `WineFoxRelicPool` |
-| Potion pool | `TypeListPotionPoolModel` | `WineFoxPotionPool` |
-| Character | `ModCharacterTemplate<TCard, TRelic, TPotion>` | `WineFoxCharacter` |
-| Story | `ModStoryTemplate` | `WineFoxStory` |
-| Epoch | `CharacterUnlockEpochTemplate<T>` or custom | `WineFoxEpoch2` |
+| Card pool | `TypeListCardPoolModel` | `MyCardPool` |
+| Relic pool | `TypeListRelicPoolModel` | `MyRelicPool` |
+| Potion pool | `TypeListPotionPoolModel` | `MyPotionPool` |
+| Character | `ModCharacterTemplate<TCard, TRelic, TPotion>` | `MyCharacter` |
+| Story | `ModStoryTemplate` | `MyStory` |
+| Epoch | `CharacterUnlockEpochTemplate<T>` or custom | `MyEpoch2` |
 
 ---
 
@@ -24,25 +26,25 @@ A full character mod typically includes:
 Use `TypeList*PoolModel` to declare pool contents by type — no manual `ModelId` handling required:
 
 ```csharp
-public class WineFoxCardPool : TypeListCardPoolModel
+public class MyCardPool : TypeListCardPoolModel
 {
     protected override IEnumerable<Type> CardTypes =>
     [
-        typeof(WineFoxStrike),
-        typeof(WineFoxDefend),
-        typeof(WineFoxSignatureCard),
+        typeof(MyStrike),
+        typeof(MyDefend),
+        typeof(MySignatureCard),
     ];
 }
 
-public class WineFoxRelicPool : TypeListRelicPoolModel
+public class MyRelicPool : TypeListRelicPoolModel
 {
     protected override IEnumerable<Type> RelicTypes =>
     [
-        typeof(WineFoxStarterRelic),
+        typeof(MyStarterRelic),
     ];
 }
 
-public class WineFoxPotionPool : TypeListPotionPoolModel
+public class MyPotionPool : TypeListPotionPoolModel
 {
     // Leave empty if the character has no exclusive potions
     protected override IEnumerable<Type> PotionTypes => [];
@@ -57,12 +59,12 @@ public class WineFoxPotionPool : TypeListPotionPoolModel
 using Godot;
 using STS2RitsuLib.Utils;
 
-public class WineFoxCardPool : TypeListCardPoolModel
+public class MyCardPool : TypeListCardPoolModel
 {
     protected override IEnumerable<Type> CardTypes =>
     [
-        typeof(WineFoxStrike),
-        typeof(WineFoxDefend),
+        typeof(MyStrike),
+        typeof(MyDefend),
     ];
 
     // Generate a frame material from HSV: H=0.55, S=0.45, V=0.95
@@ -73,7 +75,7 @@ public class WineFoxCardPool : TypeListCardPoolModel
 
 If you prefer path-based configuration, simply leave `PoolFrameMaterial` as `null` and override `CardFrameMaterialPath` instead.
 
-### Configure Pool Energy Icons
+### Example: Configure Pool Energy Icons
 
 `TypeList*PoolModel` also exposes pooled energy icon hooks:
 
@@ -81,16 +83,16 @@ If you prefer path-based configuration, simply leave `PoolFrameMaterial` as `nul
 - `TextEnergyIconPath`: the small inline icon used in rich-text card descriptions
 
 ```csharp
-public class WineFoxCardPool : TypeListCardPoolModel
+public class MyCardPool : TypeListCardPoolModel
 {
     protected override IEnumerable<Type> CardTypes =>
     [
-        typeof(WineFoxStrike),
-        typeof(WineFoxDefend),
+        typeof(MyStrike),
+        typeof(MyDefend),
     ];
 
-    public override string? BigEnergyIconPath => "res://WineFox/ui/energy/winefox_energy_big.png";
-    public override string? TextEnergyIconPath => "res://WineFox/ui/energy/winefox_energy_text.png";
+    public override string? BigEnergyIconPath => "res://MyMod/ui/energy/my_energy_big.png";
+    public override string? TextEnergyIconPath => "res://MyMod/ui/energy/my_energy_text.png";
 }
 ```
 
@@ -103,29 +105,29 @@ Inherit `ModCharacterTemplate<TCardPool, TRelicPool, TPotionPool>` and provide t
 Unspecified character assets automatically fall back to `PlaceholderCharacterId`, which defaults to `ironclad`.
 
 ```csharp
-public class WineFoxCharacter : ModCharacterTemplate<WineFoxCardPool, WineFoxRelicPool, WineFoxPotionPool>
+public class MyCharacter : ModCharacterTemplate<MyCardPool, MyRelicPool, MyPotionPool>
 {
     protected override IEnumerable<Type> StartingDeckTypes =>
     [
-        typeof(WineFoxStrike), typeof(WineFoxStrike), typeof(WineFoxStrike),
-        typeof(WineFoxDefend), typeof(WineFoxDefend),
+        typeof(MyStrike), typeof(MyStrike), typeof(MyStrike),
+        typeof(MyDefend), typeof(MyDefend),
     ];
 
     protected override IEnumerable<Type> StartingRelicTypes =>
     [
-        typeof(WineFoxStarterRelic),
+        typeof(MyStarterRelic),
     ];
 
     public override string? PlaceholderCharacterId => "ironclad";
 
     public override CharacterAssetProfile AssetProfile => new(
         Spine: new(
-            CombatSkeletonDataPath: "res://WineFox/spine/wine_fox.tres"),
+            CombatSkeletonDataPath: "res://MyMod/spine/my_character.tres"),
         Ui: new(
-            IconTexturePath: "res://WineFox/art/icon.png",
-            CharacterSelectBgPath: "res://WineFox/art/select_bg.tscn"),
+            IconTexturePath: "res://MyMod/art/icon.png",
+            CharacterSelectBgPath: "res://MyMod/art/select_bg.tscn"),
         Scenes: new(
-            RestSiteAnimPath: "res://WineFox/scenes/rest_site/winefox_rest_site.tscn"));
+            RestSiteAnimPath: "res://MyMod/scenes/rest_site/my_character_rest_site.tscn"));
 }
 ```
 
@@ -138,14 +140,14 @@ Override `PlaceholderCharacterId` with another base character such as `silent` o
 Inherit `ModStoryTemplate` to define a story node and the epoch sequence it exposes on the timeline:
 
 ```csharp
-public class WineFoxStory : ModStoryTemplate
+public class MyStory : ModStoryTemplate
 {
-    protected override string StoryKey => "wine-fox";
+    protected override string StoryKey => "my-character";
 
     protected override IEnumerable<Type> EpochTypes =>
     [
-        typeof(WineFoxCharacterEpoch),
-        typeof(WineFoxEpoch2),
+        typeof(MyCharacterEpoch),
+        typeof(MyEpoch2),
     ];
 }
 ```
@@ -177,11 +179,15 @@ RitsuLib provides pre-built epoch templates for common unlock targets:
 | `PotionUnlockEpochTemplate` | Epoch that unlocks additional potions |
 
 ```csharp
-public class WineFoxEpoch2 : CardUnlockEpochTemplate
+public class MyCharacterEpoch : CharacterUnlockEpochTemplate<MyCharacter>
 {
-    protected override IEnumerable<Type> UnlockedCardTypes =>
+}
+
+public class MyEpoch2 : CardUnlockEpochTemplate
+{
+    protected override IEnumerable<Type> CardTypes =>
     [
-        typeof(WineFoxAdvancedCard),
+        typeof(MyAdvancedCard),
     ];
 }
 ```
@@ -191,26 +197,27 @@ public class WineFoxEpoch2 : CardUnlockEpochTemplate
 ## Full Registration Example
 
 ```csharp
-RitsuLibFramework.CreateContentPack("STS2-WineFox")
+RitsuLibFramework.CreateContentPack("MyMod")
     // Cards (specify the owning pool)
-    .Card<WineFoxCardPool, WineFoxStrike>()
-    .Card<WineFoxCardPool, WineFoxDefend>()
-    .Card<WineFoxCardPool, WineFoxSignatureCard>()
-    .Card<WineFoxCardPool, WineFoxAdvancedCard>()
+    .Card<MyCardPool, MyStrike>()
+    .Card<MyCardPool, MyDefend>()
+    .Card<MyCardPool, MySignatureCard>()
+    .Card<MyCardPool, MyAdvancedCard>()
 
     // Relics
-    .Relic<WineFoxRelicPool, WineFoxStarterRelic>()
+    .Relic<MyRelicPool, MyStarterRelic>()
 
     // Character
-    .Character<WineFoxCharacter>()
+    .Character<MyCharacter>()
 
     // Story and epoch
-    .Story<WineFoxStory>()
-    .Epoch<WineFoxEpoch2>()
+    .Story<MyStory>()
+    .Epoch<MyCharacterEpoch>()
+    .Epoch<MyEpoch2>()
 
     // Unlock rules
-    .RequireEpoch<WineFoxAdvancedCard, WineFoxEpoch2>()       // hide card until epoch 2
-    .UnlockEpochAfterRunAs<WineFoxCharacter, WineFoxEpoch2>() // unlock epoch 2 after one run
+    .RequireEpoch<MyAdvancedCard, MyEpoch2>()       // hide card until epoch 2
+    .UnlockEpochAfterRunAs<MyCharacter, MyEpoch2>() // unlock epoch 2 after one completed run
 
     .Apply();
 ```
@@ -219,11 +226,11 @@ RitsuLibFramework.CreateContentPack("STS2-WineFox")
 
 ## Model ID and Localization
 
-Character models follow the same fixed `ModelId.Entry` rule as all other content (see [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)).
+Character models follow the same fixed `ModelId.Entry` rule as all other content (see [Content Authoring Toolkit](ContentAuthoringToolkit.md)).
 
-Example — mod id `STS2-WineFox`, type `WineFoxCharacter`:
-- `ModelId.Entry` → `STS2_WINE_FOX_CHARACTER_WINE_FOX`
-- Localization key → `STS2_WINE_FOX_CHARACTER_WINE_FOX.title`
+Example — mod id `MyMod`, type `MyCharacter`:
+- `ModelId.Entry` → `MY_MOD_CHARACTER_MY_CHARACTER`
+- Localization key → `MY_MOD_CHARACTER_MY_CHARACTER.title`
 
 > Renaming a CLR type changes its derived entry. Avoid renaming types after they have been published.
 
@@ -239,5 +246,8 @@ Example — mod id `STS2-WineFox`, type `WineFoxCharacter`:
 
 ## Related Documents
 
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
-- [GettingStarted.md](GettingStarted.md)
+- [Content Authoring Toolkit](ContentAuthoringToolkit.md)
+- [Getting Started](GettingStarted.md)
+- [Timeline & Unlocks](TimelineAndUnlocks.md)
+- [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)
+- [Godot Scene Authoring](GodotSceneAuthoring.md)

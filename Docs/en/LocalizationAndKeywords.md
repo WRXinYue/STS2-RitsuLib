@@ -19,7 +19,7 @@ For registered models, the game still reads localization through normal tables s
 - `characters`
 - `card_keywords`
 
-Those keys are based on the fixed `ModelId.Entry` described in [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md).
+Those keys are based on the fixed `ModelId.Entry` described in [Content Authoring Toolkit](ContentAuthoringToolkit.md).
 
 RitsuLib does not replace that system. It makes the identity side deterministic so those keys are easier to author.
 
@@ -184,5 +184,6 @@ Use the right tool for the right job:
 
 ## Related Documents
 
-- [ContentAuthoringToolkit.md](ContentAuthoringToolkit.md)
-- [CharacterAndUnlockScaffolding.md](CharacterAndUnlockScaffolding.md)
+- [Content Authoring Toolkit](ContentAuthoringToolkit.md)
+- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)

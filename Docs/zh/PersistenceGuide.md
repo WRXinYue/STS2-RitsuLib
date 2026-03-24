@@ -111,25 +111,25 @@ store.Save("counter");
 
 推荐始终通过 `BeginModDataRegistration` 批量注册。
 
-这样做的好处是，store 可以在整个批次结束后再统一初始化，避免半注册状态。
+这样做的好处是，数据存储器可以在整个批次结束后再统一初始化，避免半注册状态。
 
 作用域结束时：
 
-- global 条目会立即初始化
-- profile 条目会在 profile services 可用时初始化
+- 全局条目会立即初始化
+- 档位条目会在档位服务可用时初始化
 
 ---
 
 ## 档位切换
 
-Profile 作用域的数据会自动感知档位切换。
+档位作用域的数据会自动感知档位切换。
 
-当当前 profile 改变时，RitsuLib 会：
+当当前档位改变时，RitsuLib 会：
 
 - 先把旧档位数据保存回旧档位路径
 - 再从新档位路径重新加载
 
-这部分由框架接管，Mod 不需要手写 profile 切换重绑定逻辑。
+这部分由框架接管，Mod 不需要手写档位切换时的重绑定逻辑。
 
 ---
 
@@ -200,5 +200,5 @@ store.Register<MyData>(
 
 ## 相关文档
 
-- [GettingStarted.md](GettingStarted.md)
-- [FrameworkDesign.md](FrameworkDesign.md)
+- [快速入门](GettingStarted.md)
+- [框架设计](FrameworkDesign.md)

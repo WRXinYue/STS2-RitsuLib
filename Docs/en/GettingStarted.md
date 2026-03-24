@@ -23,6 +23,7 @@ Add `STS2-RitsuLib` to your `mod_manifest.json`:
 Use `[ModInitializer]` to declare the entry point. Obtain a logger, create a patcher, and register content:
 
 ```csharp
+using System.Reflection;
 using STS2RitsuLib;
 using STS2RitsuLib.Patching.Core;
 using MegaCrit.Sts2.Core.Logging;
@@ -36,6 +37,7 @@ public static class MyMod
     public static void Initialize()
     {
         Logger = RitsuLibFramework.CreateLogger("MyMod");
+        RitsuLibFramework.EnsureGodotScriptsRegistered(Assembly.GetExecutingAssembly(), Logger);
 
         var patcher = RitsuLibFramework.CreatePatcher("MyMod", "core-patches");
         patcher.RegisterPatches<MyModPatches>();
@@ -50,7 +52,9 @@ public static class MyMod
 }
 ```
 
-`CreatePatcher` takes a `patcherName` used for log identification. A mod may create multiple patchers. See [PatchingGuide.md](PatchingGuide.md) for the full patch workflow.
+`CreatePatcher` takes a `patcherName` used for log identification. A mod may create multiple patchers. See [Patching Guide](PatchingGuide.md) for the full patch workflow.
+
+If your mod uses custom Godot C# scene scripts, keep `EnsureGodotScriptsRegistered(...)` in your initializer. See [Godot Scene Authoring](GodotSceneAuthoring.md).
 
 ---
 
@@ -111,7 +115,7 @@ All segments are normalized to UPPER_SNAKE_CASE.
 |---|---|---|---|
 | `MyMod` | `MyCard` | card | `MY_MOD_CARD_MY_CARD` |
 | `MyMod` | `MyRelic` | relic | `MY_MOD_RELIC_MY_RELIC` |
-| `STS2-WineFox` | `WineFoxStrike` | card | `STS2_WINE_FOX_CARD_WINE_FOX_STRIKE` |
+| `MyMod` | `MyCharacter` | character | `MY_MOD_CHARACTER_MY_CHARACTER` |
 
 Localization file example:
 
@@ -165,7 +169,7 @@ using (RitsuLibFramework.BeginModDataRegistration("MyMod"))
 }
 ```
 
-See [PersistenceGuide.md](PersistenceGuide.md) for scopes, reload timing, and migrations.
+See [Persistence Guide](PersistenceGuide.md) for scopes, reload timing, and migrations.
 
 ---
 
@@ -179,3 +183,8 @@ See [PersistenceGuide.md](PersistenceGuide.md) for scopes, reload timing, and mi
 - [Persistence Guide](PersistenceGuide.md)
 - [Localization & Keywords](LocalizationAndKeywords.md)
 - [Framework Design](FrameworkDesign.md)
+- [Content Packs & Registries](ContentPacksAndRegistries.md)
+- [Godot Scene Authoring](GodotSceneAuthoring.md)
+- [Timeline & Unlocks](TimelineAndUnlocks.md)
+- [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)
+- [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)

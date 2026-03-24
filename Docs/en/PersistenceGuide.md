@@ -200,5 +200,5 @@ Use migrations when a file format is published and later evolves.
 
 ## Related Documents
 
-- [GettingStarted.md](GettingStarted.md)
-- [FrameworkDesign.md](FrameworkDesign.md)
+- [Getting Started](GettingStarted.md)
+- [Framework Design](FrameworkDesign.md)
