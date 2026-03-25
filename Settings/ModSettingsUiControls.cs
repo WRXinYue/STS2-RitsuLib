@@ -236,6 +236,8 @@ namespace STS2RitsuLib.Settings
             var control = new ModSettingsKeyBindingControl(
                 entry.Binding.Read(),
                 entry.AllowModifierCombos,
+                entry.AllowModifierOnly,
+                entry.DistinguishModifierSides,
                 value =>
                 {
                     entry.Binding.Write(value);
@@ -1867,15 +1869,20 @@ namespace STS2RitsuLib.Settings
     internal sealed partial class ModSettingsKeyBindingControl : VBoxContainer
     {
         private readonly bool _allowModifierCombos;
+        private readonly bool _allowModifierOnly;
+        private readonly bool _distinguishModifierSides;
         private readonly Action<string>? _onChanged;
         private Button? _captureButton;
         private bool _capturing;
         private string _currentValue = string.Empty;
         private Label? _hintLabel;
 
-        public ModSettingsKeyBindingControl(string initialValue, bool allowModifierCombos, Action<string> onChanged)
+        public ModSettingsKeyBindingControl(string initialValue, bool allowModifierCombos, bool allowModifierOnly,
+            bool distinguishModifierSides, Action<string> onChanged)
         {
             _allowModifierCombos = allowModifierCombos;
+            _allowModifierOnly = allowModifierOnly;
+            _distinguishModifierSides = distinguishModifierSides;
             _onChanged = onChanged;
             _currentValue = initialValue;
 
@@ -1964,7 +1971,8 @@ namespace STS2RitsuLib.Settings
                     return;
             }
 
-            var binding = FormatKeyBinding(keyEvent, _allowModifierCombos);
+            var binding = FormatKeyBinding(keyEvent, _allowModifierCombos, _allowModifierOnly,
+                _distinguishModifierSides);
             if (string.IsNullOrWhiteSpace(binding))
                 return;
 
@@ -1998,12 +2006,16 @@ namespace STS2RitsuLib.Settings
                 ? ModSettingsLocalization.Get("keybinding.hint.capturing",
                     "Press a key combination. Esc cancels, Backspace/Delete clears.")
                 : _allowModifierCombos
-                    ? ModSettingsLocalization.Get("keybinding.hint.combo",
-                        "Click to record. Supports key combinations.")
+                    ? _allowModifierOnly
+                        ? ModSettingsLocalization.Get("keybinding.hint.combo",
+                            "Click to record. Supports key combinations.")
+                        : ModSettingsLocalization.Get("keybinding.hint.comboNonModifier",
+                            "Click to record. Supports key combinations and requires a non-modifier key.")
                     : ModSettingsLocalization.Get("keybinding.hint.single", "Click to record a single key.");
         }
 
-        private static string FormatKeyBinding(InputEventKey keyEvent, bool allowModifierCombos)
+        private static string FormatKeyBinding(InputEventKey keyEvent, bool allowModifierCombos, bool allowModifierOnly,
+            bool distinguishModifierSides)
         {
             var parts = new List<string>();
             if (allowModifierCombos && keyEvent.CtrlPressed)
@@ -2015,13 +2027,24 @@ namespace STS2RitsuLib.Settings
             if (allowModifierCombos && keyEvent.MetaPressed)
                 parts.Add("Meta");
 
+            if (!allowModifierOnly && IsModifierKey(keyEvent.Keycode))
+                return string.Empty;
+
             if (!IsModifierKey(keyEvent.Keycode) || parts.Count == 0)
-                parts.Add(keyEvent.Keycode.ToString());
+                parts.Add(GetRecordedKeyName(keyEvent.Keycode, distinguishModifierSides));
 
             if (!allowModifierCombos && IsModifierKey(keyEvent.Keycode))
-                return keyEvent.Keycode.ToString();
+                return GetRecordedKeyName(keyEvent.Keycode, distinguishModifierSides);
 
             return string.Join('+', parts);
+        }
+
+        private static string GetRecordedKeyName(Key key, bool distinguishModifierSides)
+        {
+            if (!distinguishModifierSides || !IsModifierKey(key))
+                return key.ToString();
+
+            return key.ToString();
         }
 
         private static bool IsModifierKey(Key key)
