@@ -48,6 +48,7 @@ namespace STS2RitsuLib.Settings.Patches
 
     public class SettingsScreenModSettingsButtonPatch : IPatchMethod
     {
+        private const string GeneralSettingsResizeHookMeta = "ritsulib_general_settings_content_resize_hook";
         public static string PatchId => "ritsulib_mod_settings_button";
         public static string Description => "Add RitsuLib mod settings entry point to the settings screen";
         public static bool IsCritical => false;
@@ -71,6 +72,8 @@ namespace STS2RitsuLib.Settings.Patches
             {
                 var line = EnsureEntryPoint(__instance);
                 RefreshState(line);
+                var generalPanel = __instance.GetNode<NSettingsPanel>("%GeneralSettings");
+                ScheduleRefreshGeneralSettingsPanelSize(generalPanel);
             }
             catch (Exception ex)
             {
@@ -82,6 +85,7 @@ namespace STS2RitsuLib.Settings.Patches
         {
             var panel = screen.GetNode<NSettingsPanel>("%GeneralSettings");
             var content = panel.Content;
+            EnsureGeneralSettingsContentTracksChildAdds(content);
 
             if (content.GetNodeOrNull<MarginContainer>("RitsuLibModSettings") is { } existing)
                 return existing;
@@ -102,13 +106,41 @@ namespace STS2RitsuLib.Settings.Patches
                 content.MoveChild(line, targetIndex + 1);
             }
 
-            RefreshPanelSize(panel);
             return line;
 
             void OpenSubmenu()
             {
                 screen.GetAncestorOfType<NMainMenuSubmenuStack>()?.PushSubmenuType(typeof(RitsuModSettingsSubmenu));
             }
+        }
+
+        /// <summary>
+        ///     Vanilla <see cref="NSettingsPanel" /> only recomputes height on ready and viewport resize; injected rows
+        ///     (this mod and others) never trigger <c>RefreshSize</c>. Hooks <see cref="VBoxContainer.ChildEnteredTree" /> so
+        ///     we recalculate after layout and whenever the list of direct children changes.
+        /// </summary>
+        private static void EnsureGeneralSettingsContentTracksChildAdds(VBoxContainer content)
+        {
+            if (content.HasMeta(GeneralSettingsResizeHookMeta))
+                return;
+
+            content.SetMeta(GeneralSettingsResizeHookMeta, true);
+            content.ChildEnteredTree += OnGeneralSettingsContentChildEntered;
+        }
+
+        private static void OnGeneralSettingsContentChildEntered(Node child)
+        {
+            var content = child.GetParentOrNull<VBoxContainer>();
+            var panel = content?.GetParentOrNull<NSettingsPanel>();
+            if (panel is null)
+                return;
+
+            ScheduleRefreshGeneralSettingsPanelSize(panel);
+        }
+
+        private static void ScheduleRefreshGeneralSettingsPanelSize(NSettingsPanel panel)
+        {
+            Callable.From(() => RefreshPanelSize(panel)).CallDeferred();
         }
 
         private static void RefreshState(MarginContainer line)
@@ -122,6 +154,10 @@ namespace STS2RitsuLib.Settings.Patches
                 button.Enable();
         }
 
+        /// <summary>
+        ///     Mirrors <see cref="NSettingsPanel" />'s private refresh: when content exceeds the viewport (plus padding), panel
+        ///     height becomes <c>contentMinY + parentHeight * 0.4f</c> for bottom scroll slack (game default).
+        /// </summary>
         private static void RefreshPanelSize(NSettingsPanel panel)
         {
             try
@@ -129,17 +165,47 @@ namespace STS2RitsuLib.Settings.Patches
                 var content = panel.Content;
                 content.QueueSort();
 
-                var parentSize = panel.GetParent<Control>().Size;
+                var parent = panel.GetParent<Control>();
+                if (parent is null)
+                    return;
+
+                var parentSize = parent.Size;
                 var minimumSize = content.GetMinimumSize();
+                var stackedMinY = ComputeVBoxContentMinHeight(content);
+                var needHeightY = Mathf.Max(minimumSize.Y, stackedMinY);
                 const float minPadding = 50f;
-                panel.Size = minimumSize.Y + minPadding >= parentSize.Y
-                    ? new(content.Size.X, minimumSize.Y + parentSize.Y * 0.4f)
-                    : new Vector2(content.Size.X, minimumSize.Y);
+                var width = content.Size.X > 1f ? content.Size.X : parentSize.X;
+                panel.Size = needHeightY + minPadding >= parentSize.Y
+                    ? new(width, needHeightY + parentSize.Y * 0.4f)
+                    : new Vector2(width, needHeightY);
             }
             catch (Exception ex)
             {
                 RitsuLibFramework.Logger.Warn($"[Settings] Failed to refresh settings panel size: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        ///     Sum of visible direct children's <see cref="Control.GetCombinedMinimumSize" /> and VBox separation;
+        ///     fallback when <see cref="Control.GetMinimumSize" /> on the root VBox is temporarily too small.
+        /// </summary>
+        private static float ComputeVBoxContentMinHeight(VBoxContainer box)
+        {
+            var sep = box.GetThemeConstant("separation");
+            var y = 0f;
+            var first = true;
+            foreach (var node in box.GetChildren())
+            {
+                if (node is not Control { Visible: true } c)
+                    continue;
+
+                if (!first)
+                    y += sep;
+                first = false;
+                y += c.GetCombinedMinimumSize().Y;
+            }
+
+            return y;
         }
     }
 }
