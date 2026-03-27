@@ -28,6 +28,7 @@
 
     <ItemGroup>
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="all"/>
+        <PackageReference Include="System.IO.Hashing" Version="9.0.0"/>
     </ItemGroup>
     <ItemGroup>
         <Publicize Include="sts2" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false"/>

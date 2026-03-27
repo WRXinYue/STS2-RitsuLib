@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
@@ -18,6 +19,8 @@ namespace STS2RitsuLib.Content
 
         private static readonly Dictionary<string, ModContentRegistry> Registries =
             new(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly Dictionary<Type, string> FixedPublicEntryOverrides = [];
 
         private static readonly HashSet<(Type PoolType, Type ModelType)> RegisteredPoolContent = [];
         private static readonly HashSet<Type> RegisteredCharacters = [];
@@ -69,6 +72,15 @@ namespace STS2RitsuLib.Content
                 return false;
             }
 
+            lock (SyncRoot)
+            {
+                if (FixedPublicEntryOverrides.TryGetValue(modelType, out var over))
+                {
+                    entry = over;
+                    return true;
+                }
+            }
+
             entry = GetFixedPublicEntry(modId, modelType);
             return true;
         }
@@ -103,21 +115,42 @@ namespace STS2RitsuLib.Content
             where TPool : CardPoolModel
             where TCard : CardModel
         {
-            RegisterPoolModel(typeof(TPool), typeof(TCard), "card");
+            RegisterCard<TPool, TCard>(default);
+        }
+
+        public void RegisterCard<TPool, TCard>(ModelPublicEntryOptions publicEntry)
+            where TPool : CardPoolModel
+            where TCard : CardModel
+        {
+            RegisterPoolModel(typeof(TPool), typeof(TCard), "card", publicEntry);
         }
 
         public void RegisterRelic<TPool, TRelic>()
             where TPool : RelicPoolModel
             where TRelic : RelicModel
         {
-            RegisterPoolModel(typeof(TPool), typeof(TRelic), "relic");
+            RegisterRelic<TPool, TRelic>(default);
+        }
+
+        public void RegisterRelic<TPool, TRelic>(ModelPublicEntryOptions publicEntry)
+            where TPool : RelicPoolModel
+            where TRelic : RelicModel
+        {
+            RegisterPoolModel(typeof(TPool), typeof(TRelic), "relic", publicEntry);
         }
 
         public void RegisterPotion<TPool, TPotion>()
             where TPool : PotionPoolModel
             where TPotion : PotionModel
         {
-            RegisterPoolModel(typeof(TPool), typeof(TPotion), "potion");
+            RegisterPotion<TPool, TPotion>(default);
+        }
+
+        public void RegisterPotion<TPool, TPotion>(ModelPublicEntryOptions publicEntry)
+            where TPool : PotionPoolModel
+            where TPotion : PotionModel
+        {
+            RegisterPoolModel(typeof(TPool), typeof(TPotion), "potion", publicEntry);
         }
 
         public void RegisterCharacter<TCharacter>() where TCharacter : CharacterModel
@@ -264,7 +297,12 @@ namespace STS2RitsuLib.Content
             return AppendResolved(source, ResolveScopedModels<AncientEventModel>(RegisteredActAncients, act.GetType()));
         }
 
-        internal static void InjectRegisteredModels()
+        /// <summary>
+        ///     Injects RitsuLib-registered types that live in <see cref="Assembly.IsDynamic" /> assemblies into
+        ///     <see cref="ModelDb" /> before <c>Init</c> finishes populating <c>_contentById</c>. Static mod DLL types are
+        ///     picked up by the game's subtype scan; Reflection.Emit placeholder types are not, so they must be injected here.
+        /// </summary>
+        internal static void InjectDynamicRegisteredModels()
         {
             Type[] typesToInject;
 
@@ -284,6 +322,7 @@ namespace STS2RitsuLib.Content
                     .Concat(RegisteredActEvents.Values.SelectMany(static set => set))
                     .Concat(RegisteredActAncients.Values.SelectMany(static set => set))
                     .Distinct()
+                    .Where(static t => t.Assembly.IsDynamic)
                     .ToArray();
             }
 
@@ -291,13 +330,15 @@ namespace STS2RitsuLib.Content
                 ModelDb.Inject(type);
         }
 
-        private void RegisterPoolModel(Type poolType, Type modelType, string contentKind)
+        private void RegisterPoolModel(Type poolType, Type modelType, string contentKind,
+            ModelPublicEntryOptions publicEntry = default)
         {
             EnsureMutable($"register {contentKind} '{modelType.Name}' into pool '{poolType.Name}'");
             EnsureModelType(poolType, typeof(AbstractModel), nameof(poolType));
             EnsureModelType(modelType, typeof(AbstractModel), nameof(modelType));
             PrimeOwnedType(poolType);
             PrimeOwnedType(modelType);
+            ApplyFixedPublicEntryForModel(modelType, publicEntry);
             RegistrationConflictDetector.ThrowIfModelIdConflicts(poolType);
             RegistrationConflictDetector.ThrowIfModelIdConflicts(modelType);
 
@@ -443,6 +484,45 @@ namespace STS2RitsuLib.Content
             normalized = CamelBoundaryRegex().Replace(normalized, "$1_$2");
             normalized = RepeatedUnderscoreRegex().Replace(normalized, "_");
             return normalized.Trim('_').ToUpperInvariant();
+        }
+
+        private static string NormalizeFullPublicEntry(string value)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
+
+            var normalized = NonAlphaNumericRegex().Replace(value.Trim(), "_");
+            normalized = AcronymBoundaryRegex().Replace(normalized, "$1_$2");
+            normalized = CamelBoundaryRegex().Replace(normalized, "$1_$2");
+            normalized = RepeatedUnderscoreRegex().Replace(normalized, "_");
+            return normalized.Trim('_').ToUpperInvariant();
+        }
+
+        private void ApplyFixedPublicEntryForModel(Type modelType, ModelPublicEntryOptions options)
+        {
+            if (options.Kind == ModelPublicEntryKind.FromTypeName)
+                return;
+
+            var resolved = options.Kind switch
+            {
+                ModelPublicEntryKind.Stem =>
+                    $"{NormalizePublicStem(ModId)}_{NormalizePublicStem(ModelDb.GetCategory(modelType))}_{NormalizePublicStem(options.Value!)}",
+                ModelPublicEntryKind.FullEntry => NormalizeFullPublicEntry(options.Value!),
+                _ => throw new ArgumentOutOfRangeException(nameof(options), options.Kind, null),
+            };
+
+            lock (SyncRoot)
+            {
+                if (FixedPublicEntryOverrides.TryGetValue(modelType, out var existing))
+                {
+                    if (!string.Equals(existing, resolved, StringComparison.Ordinal))
+                        throw new InvalidOperationException(
+                            $"Cannot change fixed public entry for '{modelType.FullName}' from '{existing}' to '{resolved}'.");
+
+                    return;
+                }
+
+                FixedPublicEntryOverrides[modelType] = resolved;
+            }
         }
 
         [GeneratedRegex("[^A-Za-z0-9]+")]

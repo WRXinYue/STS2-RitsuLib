@@ -104,6 +104,7 @@ namespace STS2RitsuLib.Lifecycle.Patches
                     ModUnlockRegistry.FreezeRegistrations(nameof(ModelDb.Init));
                     RegistrationConflictDetector.ValidateAndLogModelIdCollisions();
                     RefreshModTypeCache();
+                    ModContentRegistry.InjectDynamicRegisteredModels();
                     RitsuLibFramework.PublishLifecycleEvent(
                         new ModelRegistryInitializingEvent(DateTimeOffset.UtcNow),
                         nameof(ModelRegistryInitializingEvent)

@@ -26,33 +26,36 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
     }
 
-    public sealed class CardRegistrationEntry<TPool, TCard> : IContentRegistrationEntry
+    public sealed class CardRegistrationEntry<TPool, TCard>(ModelPublicEntryOptions publicEntry = default)
+        : IContentRegistrationEntry
         where TPool : CardPoolModel
         where TCard : CardModel
     {
         public void Register(ModContentRegistry registry)
         {
-            registry.RegisterCard<TPool, TCard>();
+            registry.RegisterCard<TPool, TCard>(publicEntry);
         }
     }
 
-    public sealed class RelicRegistrationEntry<TPool, TRelic> : IContentRegistrationEntry
+    public sealed class RelicRegistrationEntry<TPool, TRelic>(ModelPublicEntryOptions publicEntry = default)
+        : IContentRegistrationEntry
         where TPool : RelicPoolModel
         where TRelic : RelicModel
     {
         public void Register(ModContentRegistry registry)
         {
-            registry.RegisterRelic<TPool, TRelic>();
+            registry.RegisterRelic<TPool, TRelic>(publicEntry);
         }
     }
 
-    public sealed class PotionRegistrationEntry<TPool, TPotion> : IContentRegistrationEntry
+    public sealed class PotionRegistrationEntry<TPool, TPotion>(ModelPublicEntryOptions publicEntry = default)
+        : IContentRegistrationEntry
         where TPool : PotionPoolModel
         where TPotion : PotionModel
     {
         public void Register(ModContentRegistry registry)
         {
-            registry.RegisterPotion<TPool, TPotion>();
+            registry.RegisterPotion<TPool, TPotion>(publicEntry);
         }
     }
 

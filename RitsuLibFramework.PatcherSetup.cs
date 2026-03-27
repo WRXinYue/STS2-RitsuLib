@@ -172,6 +172,7 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<AllSharedAncientsPatch>();
             patcher.RegisterPatch<AllAncientsPatch>();
             patcher.RegisterPatch<ModelDbModdedEntryPatch>();
+            patcher.RegisterPatch<ModelIdSerializationCacheDynamicContentPatch>();
             patcher.RegisterPatch<DynamicActContentPatchBootstrap>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.ContentRegistry, patcher);
         }

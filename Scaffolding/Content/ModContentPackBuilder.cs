@@ -50,6 +50,33 @@ namespace STS2RitsuLib.Scaffolding.Content
             return AddStep(ctx => ctx.Content.RegisterCard<TPool, TCard>());
         }
 
+        public ModContentPackBuilder Card<TPool, TCard>(ModelPublicEntryOptions publicEntry)
+            where TPool : CardPoolModel
+            where TCard : CardModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterCard<TPool, TCard>(publicEntry));
+        }
+
+        /// <summary>
+        ///     Registers a generated placeholder card (no custom CLR type). Prefer this for quick WIP flow.
+        /// </summary>
+        public ModContentPackBuilder PlaceholderCard<TPool>(string stableEntryStem,
+            PlaceholderCardDescriptor descriptor = default)
+            where TPool : CardPoolModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterPlaceholderCard<TPool>(stableEntryStem, descriptor));
+        }
+
+        /// <summary>
+        ///     Registers a card with a stable public entry stem when you already have a concrete card type.
+        /// </summary>
+        public ModContentPackBuilder PlaceholderCard<TPool, TCard>(string stableEntryStem)
+            where TPool : CardPoolModel
+            where TCard : CardModel
+        {
+            return Card<TPool, TCard>(ModelPublicEntryOptions.FromStem(stableEntryStem));
+        }
+
         public ModContentPackBuilder Relic<TPool, TRelic>()
             where TPool : RelicPoolModel
             where TRelic : RelicModel
@@ -57,11 +84,53 @@ namespace STS2RitsuLib.Scaffolding.Content
             return AddStep(ctx => ctx.Content.RegisterRelic<TPool, TRelic>());
         }
 
+        public ModContentPackBuilder Relic<TPool, TRelic>(ModelPublicEntryOptions publicEntry)
+            where TPool : RelicPoolModel
+            where TRelic : RelicModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterRelic<TPool, TRelic>(publicEntry));
+        }
+
+        public ModContentPackBuilder PlaceholderRelic<TPool>(string stableEntryStem,
+            PlaceholderRelicDescriptor descriptor = default)
+            where TPool : RelicPoolModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterPlaceholderRelic<TPool>(stableEntryStem, descriptor));
+        }
+
+        public ModContentPackBuilder PlaceholderRelic<TPool, TRelic>(string stableEntryStem)
+            where TPool : RelicPoolModel
+            where TRelic : RelicModel
+        {
+            return Relic<TPool, TRelic>(ModelPublicEntryOptions.FromStem(stableEntryStem));
+        }
+
         public ModContentPackBuilder Potion<TPool, TPotion>()
             where TPool : PotionPoolModel
             where TPotion : PotionModel
         {
             return AddStep(ctx => ctx.Content.RegisterPotion<TPool, TPotion>());
+        }
+
+        public ModContentPackBuilder Potion<TPool, TPotion>(ModelPublicEntryOptions publicEntry)
+            where TPool : PotionPoolModel
+            where TPotion : PotionModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterPotion<TPool, TPotion>(publicEntry));
+        }
+
+        public ModContentPackBuilder PlaceholderPotion<TPool>(string stableEntryStem,
+            PlaceholderPotionDescriptor descriptor = default)
+            where TPool : PotionPoolModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterPlaceholderPotion<TPool>(stableEntryStem, descriptor));
+        }
+
+        public ModContentPackBuilder PlaceholderPotion<TPool, TPotion>(string stableEntryStem)
+            where TPool : PotionPoolModel
+            where TPotion : PotionModel
+        {
+            return Potion<TPool, TPotion>(ModelPublicEntryOptions.FromStem(stableEntryStem));
         }
 
         public ModContentPackBuilder Power<TPower>() where TPower : PowerModel
