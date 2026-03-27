@@ -134,7 +134,7 @@ The registries are first-class APIs, not implementation details.
 
 - recording which model types belong to which mod
 - validating ownership and duplicate registration
-- exposing appended model sequences used by ModelDb patches
+- feeding ModelDb integration: global accessors such as `AllCharacters`, acts, powers, orbs, shared events, ancients, and **shared card pool types** are appended via patches; **per-pool** cards/relics/potions are merged through `ModHelper.AddModelToPool` when each pool expands `AllCards` / `AllRelics` / `AllPotions` (a different code path than those global appenders)
 - generating fixed public `ModelId.Entry` values for registered types
 
 That owner tracking is what lets RitsuLib safely answer questions like:
@@ -171,7 +171,8 @@ Registration alone is not enough; the game still needs to see the content.
 
 RitsuLib patches ModelDb and related model access points to:
 
-- append registered characters, acts, powers, orbs, events, and ancients
+- append registered characters, acts, powers, orbs, events, ancients, and shared card pools where applicable
+- attach registered cards/relics/potions to their **target pools** via `ModHelper.AddModelToPool` (concatenated when each pool materializes its `All*` sequence)
 - force fixed public entries for registered model types
 - bootstrap dynamic act-content patching before caches lock in
 
@@ -232,6 +233,7 @@ For most mods:
 2. register all content, keywords, timeline nodes, and unlock rules there
 3. keep `Custom(...)` steps small and explicit
 4. avoid late registration from gameplay hooks
+5. with `TypeListCardPoolModel`, register pool cards via `.Card<Pool, Card>()` or `CardRegistrationEntry`; **do not** override the obsolete `CardTypes` hook (the base already defaults to empty—see [Getting Started](GettingStarted.md))
 
 If the mod grows large, keep the builder at the top level and feed it entry objects or helper methods from submodules.
 

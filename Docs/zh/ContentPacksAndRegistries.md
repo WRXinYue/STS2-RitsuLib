@@ -134,7 +134,7 @@ timeline.RegisterEpoch<MyEpoch>();
 
 - 记录某个模型类型归属于哪个 Mod
 - 校验重复注册与冲突
-- 提供给 ModelDb 补丁使用的追加模型序列
+- 为 ModelDb 补丁与其它集成点提供数据：例如向 `AllCharacters`、Act、能力、球体、共享事件、Ancient、**共享卡池类型**等全局访问器追加已注册模型；卡牌/遗物/药水进入**具体池**则通过 `ModHelper.AddModelToPool` 在池展开 `AllCards` / `AllRelics` / `AllPotions` 时合并（与上述全局追加不是同一条实现路径）
 - 为已注册类型生成固定公开 `ModelId.Entry`
 
 这套归属跟踪很关键，因为它让 RitsuLib 可以安全回答这些问题：
@@ -171,7 +171,8 @@ timeline.RegisterEpoch<MyEpoch>();
 
 RitsuLib 通过对 ModelDb 及相关访问点打补丁来完成这件事，包括：
 
-- 追加已注册的角色、Act、能力、球体、事件、Ancient
+- 追加已注册的角色、Act、能力、球体、事件、Ancient，以及共享卡池等
+- 将已注册卡牌/遗物/药水等与**目标池**绑定（`ModHelper.AddModelToPool`，在对应池的 `All*` 枚举中与原版生成结果拼接）
 - 对已注册模型类型强制固定公开条目标识
 - 在缓存锁定前引导动态 Act 内容补丁
 
@@ -232,6 +233,7 @@ RitsuLibFramework.CreateContentPack("MyMod")
 2. 在其中注册所有内容、关键词、时间线节点与解锁规则
 3. `Custom(...)` 保持小而显式
 4. 不要把注册拖到运行期 hook 再做
+5. 使用 `TypeListCardPoolModel` 时，用 `.Card<池, 牌>()` 或 `CardRegistrationEntry` 登记池内牌；**不要**覆写已过时的 `CardTypes`（基类已默认空序列，详见 [快速入门](GettingStarted.md)）
 
 如果 Mod 很大，可以保留一个顶层构建器，再从子模块喂注册条目对象或辅助方法进去。
 

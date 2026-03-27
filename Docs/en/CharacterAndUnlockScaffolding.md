@@ -23,17 +23,19 @@ A full character mod typically includes:
 
 ## Pools
 
-Use `TypeList*PoolModel` to declare pool contents by type — no manual `ModelId` handling required:
+- **Card pools:** register members through `CreateContentPack` / manifest via `.Card<Pool, Card>()` or `CardRegistrationEntry`. `TypeListCardPoolModel` already defaults `CardTypes` to empty and marks it `[Obsolete]`—**do not override** it in new mods.
+- **Relic / potion pools:** still use `RelicTypes` / `PotionTypes` on `TypeListRelicPoolModel` / `TypeListPotionPoolModel` (or pack registration only—do not register the same model twice through both paths).
 
 ```csharp
+using Godot;
+
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-        typeof(MySignatureCard),
-    ];
+    public override string Title => "My Pool";
+    public override string EnergyColorName => "orange";
+    public override string CardFrameMaterialPath => "card_frame_orange";
+    public override Color DeckEntryCardColor => new("d2a15a");
+    public override bool IsColorless => false;
 }
 
 public class MyRelicPool : TypeListRelicPoolModel
@@ -46,10 +48,11 @@ public class MyRelicPool : TypeListRelicPoolModel
 
 public class MyPotionPool : TypeListPotionPoolModel
 {
-    // Leave empty if the character has no exclusive potions
     protected override IEnumerable<Type> PotionTypes => [];
 }
 ```
+
+**Cards and `CardTypes` (obsolete hook):** do not override `CardTypes` to list cards. Legacy overrides emit **CS0618** and still duplicate `AllCards` if pack registration covers the same pool + card—remove the override and rely on the pack. For relics and potions, avoid pairing `RelicTypes` / `PotionTypes` with `RegisterRelic` / `RegisterPotion` for the same concrete model.
 
 ### Configure Card Frame Color (HSV)
 
@@ -61,11 +64,7 @@ using STS2RitsuLib.Utils;
 
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-    ];
+    // Register cards in CreateContentPack / manifest; do not override CardTypes
 
     // Generate a frame material from HSV: H=0.55, S=0.45, V=0.95
     public override Material? PoolFrameMaterial =>
@@ -85,12 +84,6 @@ If you prefer path-based configuration, simply leave `PoolFrameMaterial` as `nul
 ```csharp
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-    ];
-
     public override string? BigEnergyIconPath => "res://MyMod/ui/energy/my_energy_big.png";
     public override string? TextEnergyIconPath => "res://MyMod/ui/energy/my_energy_text.png";
 }

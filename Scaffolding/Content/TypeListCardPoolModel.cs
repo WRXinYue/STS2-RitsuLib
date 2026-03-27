@@ -7,7 +7,17 @@ namespace STS2RitsuLib.Scaffolding.Content
     public abstract class TypeListCardPoolModel : CardPoolModel, IModBigEnergyIconPool, IModTextEnergyIconPool,
         IModCardPoolFrameMaterial
     {
-        protected abstract IEnumerable<Type> CardTypes { get; }
+        /// <summary>
+        ///     Legacy hook: enumerating card types on the pool class. Prefer registering each card through
+        ///     <c>ModContentRegistry.RegisterCard&lt;TPool, TCard&gt;()</c>, <c>CreateContentPack.Card&lt;TPool, TCard&gt;()</c>,
+        ///     or a manifest <c>CardRegistrationEntry</c> so <c>ModHelper.AddModelToPool</c> injects them without
+        ///     duplicating the same <see cref="CardModel" /> instances when this property also lists those types.
+        ///     Defaults to an empty sequence.
+        /// </summary>
+        [Obsolete(
+            "Prefer ModContentRegistry / CreateContentPack .Card<TPool, TCard>() or manifest CardRegistrationEntry. "
+            + "Listing types here duplicates ModHelper injection. Override only for legacy mods; suppress CS0618 if required.")]
+        protected virtual IEnumerable<Type> CardTypes => [];
 
         /// <summary>
         ///     Path-based fallback for the card frame material.
@@ -30,7 +40,11 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         protected sealed override CardModel[] GenerateAllCards()
         {
-            return CardTypes
+#pragma warning disable CS0618 // Intentional: base invokes legacy CardTypes hook; suppress warning at call site only
+            var types = CardTypes;
+#pragma warning restore CS0618
+
+            return types
                 .Select(type => ModelDb.GetById<CardModel>(ModelDb.GetId(type)))
                 .ToArray();
         }

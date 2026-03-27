@@ -44,9 +44,10 @@ public static class MyMod
         patcher.PatchAll();
 
         RitsuLibFramework.CreateContentPack("MyMod")
-            .Card<MyCardPool, MyCard>()
-            .Relic<MyRelicPool, MyRelic>()
             .Character<MyCharacter>()
+            .Card<MyCardPool, MyCard>()
+            .Card<MyCardPool, MyOtherCard>()
+            .Relic<MyRelicPool, MyRelic>()
             .Apply();
     }
 }
@@ -60,18 +61,24 @@ public static class MyMod
 
 ## 3. 定义卡池
 
-使用 `TypeListCardPoolModel` 并通过 `CardTypes` 列出所有属于该池的卡牌类型：
+使用 `TypeListCardPoolModel` 承载池的视觉与元数据（边框、能量色等）。**属于该池的每张牌**必须在内容包里通过 `.Card<MyCardPool, MyCard>()`、`CardRegistrationEntry<…>` 或等价步骤登记，这样才会写入 `ModContentRegistry` 归属与固定 `ModelId.Entry`，并走 `ModHelper.AddModelToPool`。
+
+基类已为 `CardTypes` 提供**默认空序列**，并已标记 `[Obsolete]`：**新 Mod 不必覆写 `CardTypes`**，也不必再写 `=> []`。与第 2 节一致，以链式 / Manifest 为卡牌清单的唯一来源即可。
 
 ```csharp
+using Godot;
+
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyCard),
-        typeof(MyOtherCard),
-    ];
+    public override string Title => "My Pool";
+    public override string EnergyColorName => "orange";
+    public override string CardFrameMaterialPath => "card_frame_orange";
+    public override Color DeckEntryCardColor => new("d2a15a");
+    public override bool IsColorless => false;
 }
 ```
+
+若旧工程仍**覆写** `CardTypes` 并在其中列举类型，会收到 **CS0618**，且若同时对同一池、同一张牌做了内容包注册，`AllCards` 仍会重复拼接；此时应迁移为「仅内容包注册」或仅为该覆写添加 `#pragma warning disable CS0618`。仅 `CardTypes`、不做卡牌注册时，通常拿不到 RitsuLib 固定 Entry 与归属，不建议。
 
 ---
 

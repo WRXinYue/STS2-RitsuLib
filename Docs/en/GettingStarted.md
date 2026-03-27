@@ -44,9 +44,10 @@ public static class MyMod
         patcher.PatchAll();
 
         RitsuLibFramework.CreateContentPack("MyMod")
-            .Card<MyCardPool, MyCard>()
-            .Relic<MyRelicPool, MyRelic>()
             .Character<MyCharacter>()
+            .Card<MyCardPool, MyCard>()
+            .Card<MyCardPool, MyOtherCard>()
+            .Relic<MyRelicPool, MyRelic>()
             .Apply();
     }
 }
@@ -60,18 +61,24 @@ If your mod uses custom Godot C# scene scripts, keep `EnsureGodotScriptsRegister
 
 ## 3. Define a Card Pool
 
-Use `TypeListCardPoolModel` and declare all card types in the pool:
+Use `TypeListCardPoolModel` for pool visuals and metadata (frame, energy color, etc.). **Each card that belongs in the pool** must be registered via `.Card<MyCardPool, MyCard>()`, `CardRegistrationEntry<…>`, or an equivalent step so `ModContentRegistry` records ownership and fixed `ModelId.Entry`, and `ModHelper.AddModelToPool` runs.
+
+The base class already exposes a **default empty** `CardTypes` sequence and marks it `[Obsolete]`: **new mods should not override `CardTypes`** (no need to write `=> []` either). Match section 2 and keep the content pack / manifest as the **single source of truth** for pool cards.
 
 ```csharp
+using Godot;
+
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyCard),
-        typeof(MyOtherCard),
-    ];
+    public override string Title => "My Pool";
+    public override string EnergyColorName => "orange";
+    public override string CardFrameMaterialPath => "card_frame_orange";
+    public override Color DeckEntryCardColor => new("d2a15a");
+    public override bool IsColorless => false;
 }
 ```
+
+Legacy mods that still **override** `CardTypes` with a type list will get **CS0618**, and pairing that with pack registration for the same pool + card still duplicates `AllCards`—migrate to pack-only registration or add `#pragma warning disable CS0618` for that override. Listing `CardTypes` only (no card registration) generally skips RitsuLib fixed entries and ownership—avoid it.
 
 ---
 

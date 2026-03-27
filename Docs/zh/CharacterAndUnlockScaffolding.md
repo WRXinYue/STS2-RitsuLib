@@ -23,17 +23,19 @@
 
 ## 内容池定义
 
-使用 `TypeList*PoolModel` 通过类型列表声明池内容，无需手动处理 `ModelId`：
+- **卡池**：`TypeListCardPoolModel` 的池成员在 `CreateContentPack` / Manifest 中通过 `.Card<卡池, 卡牌>()` / `CardRegistrationEntry` 登记；基类已提供默认空的 `CardTypes`（`[Obsolete]`），**无需覆写**。
+- **遗物池 / 药水池**：仍通过 `TypeListRelicPoolModel` / `TypeListPotionPoolModel` 的 `RelicTypes` / `PotionTypes` 列举（或配合内容包 `RegisterRelic` / `RegisterPotion`，勿对同一模型重复两种来源）。
 
 ```csharp
+using Godot;
+
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-        typeof(MySignatureCard),
-    ];
+    public override string Title => "My Pool";
+    public override string EnergyColorName => "orange";
+    public override string CardFrameMaterialPath => "card_frame_orange";
+    public override Color DeckEntryCardColor => new("d2a15a");
+    public override bool IsColorless => false;
 }
 
 public class MyRelicPool : TypeListRelicPoolModel
@@ -46,10 +48,11 @@ public class MyRelicPool : TypeListRelicPoolModel
 
 public class MyPotionPool : TypeListPotionPoolModel
 {
-    // 无专属药水时留空
     protected override IEnumerable<Type> PotionTypes => [];
 }
 ```
+
+**卡牌与 `CardTypes`（过时钩子）：** 不要再覆写 `CardTypes` 来列牌；若旧代码仍覆写并列举类型，会得到 **CS0618**，且与内容包注册叠用时 `AllCards` 仍会重复。迁移方式为删除覆写、仅保留内容包注册。遗物池、药水池仍避免「`RelicTypes`/`PotionTypes` + 同一模型的 `RegisterRelic`/`RegisterPotion`」双登记。
 
 ### 配置卡牌边框颜色（HSV）
 
@@ -61,11 +64,7 @@ using STS2RitsuLib.Utils;
 
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-    ];
+    // 卡牌在 CreateContentPack / Manifest 中注册；勿覆写 CardTypes
 
     // 直接用 HSV 生成边框材质：H=0.55, S=0.45, V=0.95
     public override Material? PoolFrameMaterial =>
@@ -85,12 +84,6 @@ public class MyCardPool : TypeListCardPoolModel
 ```csharp
 public class MyCardPool : TypeListCardPoolModel
 {
-    protected override IEnumerable<Type> CardTypes =>
-    [
-        typeof(MyStrike),
-        typeof(MyDefend),
-    ];
-
     public override string? BigEnergyIconPath => "res://MyMod/ui/energy/my_energy_big.png";
     public override string? TextEnergyIconPath => "res://MyMod/ui/energy/my_energy_text.png";
 }
