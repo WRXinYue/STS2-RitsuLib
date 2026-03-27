@@ -1,7 +1,7 @@
 using System.Reflection;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Helpers;
-using MegaCrit.Sts2.Core.Modding;
+using STS2RitsuLib.Compat;
 
 namespace STS2RitsuLib.Interop
 {
@@ -42,7 +42,7 @@ namespace STS2RitsuLib.Interop
         internal static void RunOnce(Harmony harmony)
         {
             var map = new Dictionary<string, Assembly>(StringComparer.Ordinal);
-            foreach (var m in ModManager.LoadedMods)
+            foreach (var m in Sts2ModManagerCompat.EnumerateLoadedModsWithAssembly())
             {
                 var id = m.manifest?.id;
                 if (string.IsNullOrEmpty(id) || m.assembly is null)
