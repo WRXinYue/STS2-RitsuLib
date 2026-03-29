@@ -61,6 +61,16 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEncounter{TAct,TEncounter}" />.
+        /// </summary>
+        public ModContentPackBuilder ActEncounter<TAct, TEncounter>()
+            where TAct : ActModel
+            where TEncounter : EncounterModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEncounter<TAct, TEncounter>());
+        }
+
+        /// <summary>
         ///     Queues <c>RegisterCard&lt;TPool, TCard&gt;()</c> on the content registry with default public entry options.
         /// </summary>
         public ModContentPackBuilder Card<TPool, TCard>()

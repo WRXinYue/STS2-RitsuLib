@@ -123,4 +123,192 @@ namespace STS2RitsuLib.Scaffolding.Content
             registry.RegisterSharedCardPool<TPool>();
         }
     }
+
+    /// <summary>
+    ///     Registers a mod orb model type.
+    /// </summary>
+    /// <typeparam name="TOrb">Concrete <see cref="OrbModel" />.</typeparam>
+    public sealed class OrbRegistrationEntry<TOrb> : IContentRegistrationEntry
+        where TOrb : OrbModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterOrb<TOrb>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers a mod monster model type.
+    /// </summary>
+    /// <typeparam name="TMonster">Concrete <see cref="MonsterModel" />.</typeparam>
+    public sealed class MonsterRegistrationEntry<TMonster> : IContentRegistrationEntry
+        where TMonster : MonsterModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterMonster<TMonster>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers a shared event model type.
+    /// </summary>
+    /// <typeparam name="TEvent">Concrete <see cref="EventModel" />.</typeparam>
+    public sealed class SharedEventRegistrationEntry<TEvent> : IContentRegistrationEntry
+        where TEvent : EventModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterSharedEvent<TEvent>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers an encounter model scoped to <typeparamref name="TAct" />.
+    /// </summary>
+    public sealed class ActEncounterRegistrationEntry<TAct, TEncounter> : IContentRegistrationEntry
+        where TAct : ActModel
+        where TEncounter : EncounterModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterActEncounter<TAct, TEncounter>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers an event model scoped to <typeparamref name="TAct" />.
+    /// </summary>
+    public sealed class ActEventRegistrationEntry<TAct, TEvent> : IContentRegistrationEntry
+        where TAct : ActModel
+        where TEvent : EventModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterActEvent<TAct, TEvent>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers a shared ancient event model type.
+    /// </summary>
+    /// <typeparam name="TAncient">Concrete <see cref="AncientEventModel" />.</typeparam>
+    public sealed class SharedAncientRegistrationEntry<TAncient> : IContentRegistrationEntry
+        where TAncient : AncientEventModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterSharedAncient<TAncient>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers an ancient event model scoped to <typeparamref name="TAct" />.
+    /// </summary>
+    public sealed class ActAncientRegistrationEntry<TAct, TAncient> : IContentRegistrationEntry
+        where TAct : ActModel
+        where TAncient : AncientEventModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterActAncient<TAct, TAncient>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder card from a stable entry stem.
+    /// </summary>
+    public sealed class PlaceholderCardRegistrationEntry<TPool>(
+        string stableEntryStem,
+        PlaceholderCardDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : CardPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderCard<TPool>(stableEntryStem, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder card with explicit public entry options.
+    /// </summary>
+    public sealed class PlaceholderCardFromOptionsRegistrationEntry<TPool>(
+        ModelPublicEntryOptions publicEntry,
+        PlaceholderCardDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : CardPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderCard<TPool>(publicEntry, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder relic from a stable entry stem.
+    /// </summary>
+    public sealed class PlaceholderRelicRegistrationEntry<TPool>(
+        string stableEntryStem,
+        PlaceholderRelicDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : RelicPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderRelic<TPool>(stableEntryStem, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder relic with explicit public entry options.
+    /// </summary>
+    public sealed class PlaceholderRelicFromOptionsRegistrationEntry<TPool>(
+        ModelPublicEntryOptions publicEntry,
+        PlaceholderRelicDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : RelicPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderRelic<TPool>(publicEntry, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder potion from a stable entry stem.
+    /// </summary>
+    public sealed class PlaceholderPotionRegistrationEntry<TPool>(
+        string stableEntryStem,
+        PlaceholderPotionDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : PotionPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderPotion<TPool>(stableEntryStem, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a generated placeholder potion with explicit public entry options.
+    /// </summary>
+    public sealed class PlaceholderPotionFromOptionsRegistrationEntry<TPool>(
+        ModelPublicEntryOptions publicEntry,
+        PlaceholderPotionDescriptor descriptor = default) : IContentRegistrationEntry
+        where TPool : PotionPoolModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterPlaceholderPotion<TPool>(publicEntry, descriptor);
+        }
+    }
 }
