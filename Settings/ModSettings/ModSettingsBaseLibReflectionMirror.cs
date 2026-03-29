@@ -22,6 +22,8 @@ namespace STS2RitsuLib.Settings
         private const string SliderRangeAttributeName = "BaseLib.Config.SliderRangeAttribute";
         private const string SliderLabelFormatAttributeName = "BaseLib.Config.SliderLabelFormatAttribute";
         private const string ConfigTextInputAttributeName = "BaseLib.Config.ConfigTextInputAttribute";
+        private const string ConfigHoverTipAttributeName = "BaseLib.Config.ConfigHoverTipAttribute";
+        private const string HoverTipsByDefaultAttributeName = "BaseLib.Config.HoverTipsByDefaultAttribute";
 
         private static readonly Lock Gate = new();
         private static bool _pagesRegistered;
@@ -92,6 +94,8 @@ namespace STS2RitsuLib.Settings
                 var sliderRangeType = ResolveType(SliderRangeAttributeName);
                 var sliderFormatType = ResolveType(SliderLabelFormatAttributeName);
                 var textInputAttrType = ResolveType(ConfigTextInputAttributeName);
+                var hoverTipAttrType = ResolveType(ConfigHoverTipAttributeName);
+                var hoverTipsByDefaultAttrType = ResolveType(HoverTipsByDefaultAttributeName);
 
                 pageTitle ??= ModSettingsText.I18N(ModSettingsLocalization.Instance, "baselib.mirroredPage.title",
                     "Mod config");
@@ -117,6 +121,8 @@ namespace STS2RitsuLib.Settings
                     if (!TryBuildPage(modId, pageId, sortOrder, pageTitle, pageDescription, host, configProps,
                             sectionAttrType,
                             hideUiAttrType, buttonAttrType, sliderRangeType, sliderFormatType, textInputAttrType,
+                            hoverTipAttrType,
+                            hoverTipsByDefaultAttrType,
                             config.GetType()))
                         continue;
 
@@ -144,6 +150,8 @@ namespace STS2RitsuLib.Settings
             Type? sliderRangeType,
             Type? sliderFormatType,
             Type? textInputAttrType,
+            Type? hoverTipAttrType,
+            Type? hoverTipsByDefaultAttrType,
             Type configConcreteType)
         {
             var members = configConcreteType
@@ -213,10 +221,12 @@ namespace STS2RitsuLib.Settings
                                 {
                                     case PropertyInfo prop:
                                         AppendPropertyEntry(section, modId, prop, host, sliderRangeType,
-                                            sliderFormatType, textInputAttrType);
+                                            sliderFormatType, textInputAttrType, hoverTipAttrType,
+                                            hoverTipsByDefaultAttrType, configConcreteType);
                                         break;
                                     case MethodInfo method:
-                                        AppendButtonEntry(section, modId, method, host, buttonAttrType);
+                                        AppendButtonEntry(section, modId, method, host, buttonAttrType,
+                                            hoverTipAttrType, hoverTipsByDefaultAttrType, configConcreteType);
                                         break;
                                 }
 
@@ -251,17 +261,22 @@ namespace STS2RitsuLib.Settings
             ConfigHost host,
             Type? sliderRangeType,
             Type? sliderFormatType,
-            Type? textInputAttrType)
+            Type? textInputAttrType,
+            Type? hoverTipAttrType,
+            Type? hoverTipsByDefaultAttrType,
+            Type configConcreteType)
         {
             var id = $"bl_{StringHelper.Slugify(prop.Name)}";
             var label = ModSettingsText.Dynamic(() => host.ResolveLabel(prop.Name));
             var dataKey = $"baselib::{prop.Name}";
+            var hoverTipDescription = TryBaseLibHoverTipDescription(prop, configConcreteType, host, hoverTipAttrType,
+                hoverTipsByDefaultAttrType);
 
             var pt = prop.PropertyType;
             if (pt == typeof(bool))
             {
                 var binding = CallbackForStaticProperty<bool>(modId, dataKey, prop, host);
-                section.AddToggle(id, label, binding);
+                section.AddToggle(id, label, binding, hoverTipDescription);
                 return;
             }
 
@@ -288,7 +303,7 @@ namespace STS2RitsuLib.Settings
                         fmt = v => string.Format(format, v);
                 }
 
-                section.AddSlider(id, label, binding, min, max, step, fmt);
+                section.AddSlider(id, label, binding, min, max, step, fmt, hoverTipDescription);
                 return;
             }
 
@@ -304,7 +319,7 @@ namespace STS2RitsuLib.Settings
                         maxLen = ml;
                 }
 
-                section.AddString(id, label, binding, maxLength: maxLen);
+                section.AddString(id, label, binding, maxLength: maxLen, description: hoverTipDescription);
                 return;
             }
 
@@ -326,9 +341,51 @@ namespace STS2RitsuLib.Settings
                 label,
                 bindingObj,
                 null,
-                null,
+                hoverTipDescription,
                 ModSettingsChoicePresentation.Stepper,
             ]);
+        }
+
+        private static ModSettingsText? TryBaseLibHoverTipDescription(MemberInfo member, Type configConcreteType,
+            ConfigHost host, Type? configHoverTipAttrType, Type? hoverTipsByDefaultAttrType)
+        {
+            if (!ShouldShowBaseLibHoverTip(member, configConcreteType, configHoverTipAttrType,
+                    hoverTipsByDefaultAttrType))
+                return null;
+
+            var modPrefix = host.GetModPrefix();
+            if (string.IsNullOrEmpty(modPrefix))
+                return null;
+
+            var slug = StringHelper.Slugify(member.Name);
+            var descKey = modPrefix + slug + ".hover.desc";
+            if (!LocString.Exists("settings_ui", descKey))
+                return null;
+
+            var key = descKey;
+            return ModSettingsText.Dynamic(() =>
+                LocString.GetIfExists("settings_ui", key)?.GetFormattedText() ?? "");
+        }
+
+        private static bool ShouldShowBaseLibHoverTip(MemberInfo member, Type configConcreteType,
+            Type? configHoverTipAttrType, Type? hoverTipsByDefaultAttrType)
+        {
+            object? hoverAttr = null;
+            if (configHoverTipAttrType != null)
+                hoverAttr = member.GetCustomAttribute(configHoverTipAttrType, false);
+
+            bool? explicitEnabled = null;
+            if (hoverAttr != null && configHoverTipAttrType != null)
+            {
+                var enabledProp = configHoverTipAttrType.GetProperty("Enabled");
+                if (enabledProp?.GetValue(hoverAttr) is bool b)
+                    explicitEnabled = b;
+            }
+
+            var hoverTipsByDefault = hoverTipsByDefaultAttrType != null &&
+                                     configConcreteType.GetCustomAttribute(hoverTipsByDefaultAttrType, false) != null;
+
+            return explicitEnabled ?? hoverTipsByDefault;
         }
 
         private static void AppendButtonEntry(
@@ -336,7 +393,10 @@ namespace STS2RitsuLib.Settings
             string modId,
             MethodInfo method,
             ConfigHost host,
-            Type? buttonAttrType)
+            Type? buttonAttrType,
+            Type? hoverTipAttrType,
+            Type? hoverTipsByDefaultAttrType,
+            Type configConcreteType)
         {
             if (buttonAttrType == null)
                 return;
@@ -349,9 +409,13 @@ namespace STS2RitsuLib.Settings
             var id = $"bl_btn_{StringHelper.Slugify(method.Name)}";
             var rowLabel = ModSettingsText.Dynamic(() => host.ResolveLabel(method.Name));
             var buttonLabel = ModSettingsText.Dynamic(() => host.ResolveLabel(key));
+            var hoverTipDescription = TryBaseLibHoverTipDescription(method, configConcreteType, host, hoverTipAttrType,
+                hoverTipsByDefaultAttrType);
 
             section.AddButton(id, rowLabel, buttonLabel,
-                () => InvokeConfigButton(method, host));
+                () => InvokeConfigButton(method, host),
+                ModSettingsButtonTone.Normal,
+                hoverTipDescription);
         }
 
         private static void InvokeConfigButton(MethodInfo method, ConfigHost host)
@@ -370,7 +434,6 @@ namespace STS2RitsuLib.Settings
                         continue;
                     }
 
-                    // BaseLib may request NConfigButton / NConfigOptionRow; those nodes do not exist in the Ritsu mirror.
                     values[i] = t.IsValueType ? Activator.CreateInstance(t) : null;
                 }
 
@@ -544,6 +607,13 @@ namespace STS2RitsuLib.Settings
                     return (string)baseLibLabel.Invoke(null, [name])!;
 
                 return name;
+            }
+
+            public string GetModPrefix()
+            {
+                var p = Instance.GetType().GetProperty("ModPrefix",
+                    BindingFlags.Public | BindingFlags.Instance);
+                return p?.GetValue(Instance) as string ?? "";
             }
         }
     }

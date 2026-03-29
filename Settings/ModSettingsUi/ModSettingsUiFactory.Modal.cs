@@ -1,4 +1,5 @@
 using Godot;
+using MegaCrit.Sts2.Core.ControllerInput;
 
 namespace STS2RitsuLib.Settings
 {
@@ -6,6 +7,35 @@ namespace STS2RitsuLib.Settings
     {
         private const int ModalCanvasLayer = 120;
         private const float ModalDimAlpha = 0.62f;
+
+        private sealed partial class ModSettingsModalShield : Control
+        {
+            private readonly Action _onDismiss;
+
+            public ModSettingsModalShield(Action onDismiss)
+            {
+                _onDismiss = onDismiss;
+                MouseFilter = MouseFilterEnum.Stop;
+            }
+
+            public override void _Ready()
+            {
+                SetProcessUnhandledInput(true);
+            }
+
+            public override void _UnhandledInput(InputEvent @event)
+            {
+                if (!@event.IsEcho() &&
+                    (@event.IsActionPressed(MegaInput.cancel) || @event.IsActionPressed(MegaInput.pauseAndBack)))
+                {
+                    _onDismiss();
+                    GetViewport()?.SetInputAsHandled();
+                    return;
+                }
+
+                base._UnhandledInput(@event);
+            }
+        }
 
         /// <summary>
         ///     Full-viewport dim + centered panel, same chrome as mod settings. Blocks input under the layer.
@@ -37,12 +67,7 @@ namespace STS2RitsuLib.Settings
             };
             attachParent.AddChild(canvasLayer);
 
-            var rootShield = new Control
-            {
-                Name = "ModalShieldRoot",
-                MouseFilter = Control.MouseFilterEnum.Stop,
-            };
-            canvasLayer.AddChild(rootShield);
+            ModSettingsModalShield rootShield = null!;
 
             void OnViewportSized()
             {
@@ -52,6 +77,20 @@ namespace STS2RitsuLib.Settings
                 rootShield.Position = Vector2.Zero;
                 rootShield.Size = sz;
             }
+
+            void CloseDialog()
+            {
+                if (GodotObject.IsInstanceValid(viewport))
+                    viewport.SizeChanged -= OnViewportSized;
+                if (GodotObject.IsInstanceValid(canvasLayer))
+                    canvasLayer.QueueFree();
+            }
+
+            rootShield = new ModSettingsModalShield(CloseDialog)
+            {
+                Name = "ModalShieldRoot",
+            };
+            canvasLayer.AddChild(rootShield);
 
             viewport.SizeChanged += OnViewportSized;
             Callable.From(OnViewportSized).CallDeferred();
@@ -141,6 +180,17 @@ namespace STS2RitsuLib.Settings
             btnRow.AddChild(cancelBtn);
             btnRow.AddChild(confirmBtn);
 
+            var cancelPath = cancelBtn.GetPath();
+            var confirmPath = confirmBtn.GetPath();
+            cancelBtn.FocusNeighborLeft = cancelPath;
+            cancelBtn.FocusNeighborTop = cancelPath;
+            cancelBtn.FocusNeighborBottom = cancelPath;
+            cancelBtn.FocusNeighborRight = confirmPath;
+            confirmBtn.FocusNeighborRight = confirmPath;
+            confirmBtn.FocusNeighborTop = confirmPath;
+            confirmBtn.FocusNeighborBottom = confirmPath;
+            confirmBtn.FocusNeighborLeft = cancelPath;
+
             var escShortcut = new Shortcut();
             escShortcut.Events = [new InputEventKey { Keycode = Key.Escape, Pressed = true }];
             cancelBtn.Shortcut = escShortcut;
@@ -175,15 +225,11 @@ namespace STS2RitsuLib.Settings
                 var w = Mathf.CeilToInt(Mathf.Max(min.X, 400f));
                 var h = Mathf.CeilToInt(Mathf.Max(min.Y, 120f));
                 rootPanel.CustomMinimumSize = new(w, h);
-                viewport.GuiReleaseFocus();
-            }
-
-            void CloseDialog()
-            {
-                if (GodotObject.IsInstanceValid(viewport))
-                    viewport.SizeChanged -= OnViewportSized;
-                if (GodotObject.IsInstanceValid(canvasLayer))
-                    canvasLayer.QueueFree();
+                Callable.From(() =>
+                {
+                    if (GodotObject.IsInstanceValid(cancelBtn) && cancelBtn.IsVisibleInTree())
+                        cancelBtn.GrabFocus();
+                }).CallDeferred();
             }
         }
     }

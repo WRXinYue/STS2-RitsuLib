@@ -31,6 +31,9 @@ namespace STS2RitsuLib.Settings
                     ModSettingsBindings.InMemory(Const.ModId, "preview_int_slider", showcaseState.IntSliderValue);
                 var previewChoiceBinding =
                     ModSettingsBindings.InMemory(Const.ModId, "preview_choice", showcaseState.ChoiceValue);
+                var previewChoiceDropdownBinding =
+                    ModSettingsBindings.InMemory(Const.ModId, "preview_choice_dropdown",
+                        showcaseState.ChoiceDropdownValue);
                 var previewEnumBinding =
                     ModSettingsBindings.InMemory(Const.ModId, "preview_mode", showcaseState.ModeValue);
                 var previewStringBinding =
@@ -93,11 +96,12 @@ namespace STS2RitsuLib.Settings
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(
                                         L("ritsulib.showcase.summary",
-                                            "Toggle: {0} | Double: {1:0.##} | Int: {2} | Choice: {3} | Mode: {4} | Action Count: {5}"),
+                                            "Toggle: {0} | Double: {1:0.##} | Int: {2} | Choice: {3} | Dropdown: {4} | Mode: {5} | Action Count: {6}"),
                                         showcaseState.ToggleValue,
                                         showcaseState.SliderValue,
                                         showcaseState.IntSliderValue,
                                         showcaseState.ChoiceValue,
+                                        showcaseState.ChoiceDropdownValue,
                                         showcaseState.ModeValue,
                                         showcaseState.ActionCount)))
                             .AddImage(
@@ -162,6 +166,22 @@ namespace STS2RitsuLib.Settings
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(L("ritsulib.showcase.choice.description", "Current choice: {0}"),
                                         showcaseState.ChoiceValue)))
+                            .AddChoice(
+                                "preview_choice_dropdown",
+                                T("ritsulib.showcase.choiceDropdown.label", "Preview choice (dropdown)"),
+                                new ShowcaseBinding<string>(previewChoiceDropdownBinding,
+                                    value => showcaseState.ChoiceDropdownValue = value),
+                                [
+                                    new("compact", T("ritsulib.showcase.choice.compact", "Compact")),
+                                    new("balanced", T("ritsulib.showcase.choice.balanced", "Balanced")),
+                                    new("wide", T("ritsulib.showcase.choice.wide", "Wide")),
+                                ],
+                                ModSettingsText.Dynamic(() =>
+                                    string.Format(
+                                        L("ritsulib.showcase.choiceDropdown.description",
+                                            "Same options as the stepper above, using the custom dropdown list. Current: {0}"),
+                                        showcaseState.ChoiceDropdownValue)),
+                                ModSettingsChoicePresentation.Dropdown)
                             .AddEnumChoice(
                                 "preview_mode",
                                 T("ritsulib.showcase.mode.label", "Preview enum choice"),
@@ -224,6 +244,7 @@ namespace STS2RitsuLib.Settings
                                     showcaseState.SliderValue = 35d;
                                     showcaseState.IntSliderValue = 2;
                                     showcaseState.ChoiceValue = "balanced";
+                                    showcaseState.ChoiceDropdownValue = "wide";
                                     showcaseState.ModeValue = ShowcaseMode.Balanced;
                                     showcaseState.ActionCount = 0;
                                     showcaseState.StringValue = "Single line";
@@ -232,6 +253,7 @@ namespace STS2RitsuLib.Settings
                                     previewSliderBinding.Write(showcaseState.SliderValue);
                                     previewIntSliderBinding.Write(showcaseState.IntSliderValue);
                                     previewChoiceBinding.Write(showcaseState.ChoiceValue);
+                                    previewChoiceDropdownBinding.Write(showcaseState.ChoiceDropdownValue);
                                     previewEnumBinding.Write(showcaseState.ModeValue);
                                     previewStringBinding.Write(showcaseState.StringValue);
                                     previewStringMultiBinding.Write(showcaseState.StringMultiValue);
@@ -432,6 +454,7 @@ namespace STS2RitsuLib.Settings
                 edit.ReleaseFocus();
             };
             edit.FocusExited += () => commit(edit.Text);
+            ModSettingsFocusChrome.AttachControllerSelectionReticle(edit);
             return edit;
         }
 
@@ -442,6 +465,7 @@ namespace STS2RitsuLib.Settings
             public double SliderValue { get; set; } = 35d;
             public int IntSliderValue { get; set; } = 2;
             public string ChoiceValue { get; set; } = "balanced";
+            public string ChoiceDropdownValue { get; set; } = "wide";
             public ShowcaseMode ModeValue { get; set; } = ShowcaseMode.Balanced;
             public string StringValue { get; set; } = "Single line";
             public string StringMultiValue { get; set; } = "First line\nSecond line";
