@@ -1,4 +1,5 @@
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Relics;
 using STS2RitsuLib.Content;
 
 namespace STS2RitsuLib.Scaffolding.Content
@@ -309,6 +310,78 @@ namespace STS2RitsuLib.Scaffolding.Content
         public void Register(ModContentRegistry registry)
         {
             registry.RegisterPlaceholderPotion<TPool>(publicEntry, descriptor);
+        }
+    }
+
+    /// <summary>
+    ///     Registers an <see cref="ArchaicTooth" /> transcendence mapping (starter deck card → ancient transform target).
+    /// </summary>
+    /// <typeparam name="TStarterCard">Deck card id to match.</typeparam>
+    /// <typeparam name="TAncientCard">Transform target prototype from <see cref="ModelDb.Card{T}" />.</typeparam>
+    public sealed class
+        ArchaicToothTranscendenceRegistrationEntry<TStarterCard, TAncientCard> : IContentRegistrationEntry
+        where TStarterCard : CardModel
+        where TAncientCard : CardModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            RitsuLibFramework.RegisterArchaicToothTranscendenceMapping<TStarterCard, TAncientCard>(registry.ModId);
+        }
+    }
+
+    /// <summary>
+    ///     Registers an <see cref="ArchaicTooth" /> transcendence mapping with explicit ids/templates.
+    /// </summary>
+    /// <param name="StarterCardId">Deck card model id to match.</param>
+    /// <param name="AncientCardTemplate">Ancient card prototype (same usage as vanilla table values).</param>
+    public sealed record ArchaicToothTranscendenceByIdRegistrationEntry(
+        ModelId StarterCardId,
+        CardModel AncientCardTemplate) : IContentRegistrationEntry
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            RitsuLibFramework.RegisterArchaicToothTranscendenceMapping(
+                StarterCardId,
+                AncientCardTemplate,
+                registry.ModId);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a <see cref="TouchOfOrobas" /> refinement mapping (starter relic → upgraded relic).
+    /// </summary>
+    /// <typeparam name="TStarterRelic">Starter relic id to match.</typeparam>
+    /// <typeparam name="TUpgradedRelic">Replacement relic prototype from <see cref="ModelDb.Relic{T}" />.</typeparam>
+    public sealed class
+        TouchOfOrobasRefinementRegistrationEntry<TStarterRelic, TUpgradedRelic> : IContentRegistrationEntry
+        where TStarterRelic : RelicModel
+        where TUpgradedRelic : RelicModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            RitsuLibFramework.RegisterTouchOfOrobasRefinementMapping<TStarterRelic, TUpgradedRelic>(registry.ModId);
+        }
+    }
+
+    /// <summary>
+    ///     Registers a <see cref="TouchOfOrobas" /> refinement mapping with explicit ids/templates.
+    /// </summary>
+    /// <param name="StarterRelicId">Starter relic id to match.</param>
+    /// <param name="UpgradedRelicTemplate">Replacement relic prototype.</param>
+    public sealed record TouchOfOrobasRefinementByIdRegistrationEntry(
+        ModelId StarterRelicId,
+        RelicModel UpgradedRelicTemplate) : IContentRegistrationEntry
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            RitsuLibFramework.RegisterTouchOfOrobasRefinementMapping(
+                StarterRelicId,
+                UpgradedRelicTemplate,
+                registry.ModId);
         }
     }
 }

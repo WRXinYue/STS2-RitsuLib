@@ -8,6 +8,7 @@ using STS2RitsuLib.Scaffolding.Characters.Patches;
 using STS2RitsuLib.Scaffolding.Content.Patches;
 using STS2RitsuLib.Settings.Patches;
 using STS2RitsuLib.Unlocks.Patches;
+using STS2RitsuLib.Relics.Patches;
 using STS2RitsuLib.Utils.Persistence.Patches;
 
 namespace STS2RitsuLib
@@ -76,6 +77,10 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<EpochLifecyclePatch>();
             patcher.RegisterPatch<UnlockIncrementLifecyclePatch>();
             patcher.RegisterPatch<GameOverScreenLifecyclePatch>();
+            patcher.RegisterPatch<ArchaicToothGetTranscendenceStarterCardPatch>();
+            patcher.RegisterPatch<ArchaicToothGetTranscendenceTransformedCardPatch>();
+            patcher.RegisterPatch<ArchaicToothTranscendenceCardsPatch>();
+            patcher.RegisterPatch<TouchOfOrobasGetUpgradedStarterRelicPatch>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.Core, patcher);
         }
 

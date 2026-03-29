@@ -435,6 +435,12 @@ namespace STS2RitsuLib.Scaffolding.Content
         /// <summary>
         ///     Convenience batch for optional content and keyword manifest enumerables.
         /// </summary>
+        /// <remarks>
+        ///     <see cref="IContentRegistrationEntry" /> may include
+        ///     <see cref="ArchaicToothTranscendenceRegistrationEntry{TStarterCard,TAncientCard}" />,
+        ///     <see cref="TouchOfOrobasRefinementRegistrationEntry{TStarterRelic,TUpgradedRelic}" />, and related Orobas
+        ///     entries alongside cards/relics/etc.
+        /// </remarks>
         public ModContentPackBuilder Manifest(
             IEnumerable<IContentRegistrationEntry>? contentEntries = null,
             IEnumerable<KeywordRegistrationEntry>? keywordEntries = null)
@@ -446,6 +452,58 @@ namespace STS2RitsuLib.Scaffolding.Content
                 Keywords(keywordEntries);
 
             return this;
+        }
+
+        /// <summary>
+        ///     Queues <see cref="RitsuLibFramework.RegisterArchaicToothTranscendenceMapping{TStarterCard,TAncientCard}" />
+        ///     using this pack’s <see cref="ModContentPackContext.ModId" />.
+        /// </summary>
+        public ModContentPackBuilder ArchaicToothTranscendence<TStarterCard, TAncientCard>()
+            where TStarterCard : CardModel
+            where TAncientCard : CardModel
+        {
+            return AddStep(ctx =>
+                RitsuLibFramework.RegisterArchaicToothTranscendenceMapping<TStarterCard, TAncientCard>(ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues ArchaicTooth transcendence registration by starter card id and ancient card template, using this
+        ///     pack’s mod id.
+        /// </summary>
+        public ModContentPackBuilder ArchaicToothTranscendence(ModelId starterCardId, CardModel ancientCardTemplate)
+        {
+            ArgumentNullException.ThrowIfNull(ancientCardTemplate);
+            return AddStep(ctx =>
+                RitsuLibFramework.RegisterArchaicToothTranscendenceMapping(
+                    starterCardId,
+                    ancientCardTemplate,
+                    ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="RitsuLibFramework.RegisterTouchOfOrobasRefinementMapping{TStarterRelic,TUpgradedRelic}" />
+        ///     using this pack’s mod id.
+        /// </summary>
+        public ModContentPackBuilder TouchOfOrobasRefinement<TStarterRelic, TUpgradedRelic>()
+            where TStarterRelic : RelicModel
+            where TUpgradedRelic : RelicModel
+        {
+            return AddStep(ctx =>
+                RitsuLibFramework.RegisterTouchOfOrobasRefinementMapping<TStarterRelic, TUpgradedRelic>(ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues TouchOfOrobas refinement registration by starter relic id and upgraded relic template, using this
+        ///     pack’s mod id.
+        /// </summary>
+        public ModContentPackBuilder TouchOfOrobasRefinement(ModelId starterRelicId, RelicModel upgradedRelicTemplate)
+        {
+            ArgumentNullException.ThrowIfNull(upgradedRelicTemplate);
+            return AddStep(ctx =>
+                RitsuLibFramework.RegisterTouchOfOrobasRefinementMapping(
+                    starterRelicId,
+                    upgradedRelicTemplate,
+                    ctx.ModId));
         }
 
         /// <summary>
