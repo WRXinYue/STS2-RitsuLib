@@ -222,7 +222,7 @@ The profile approach is especially good for keeping portrait, frame, overlay, an
 
 ## Related Documents
 
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Content Authoring Toolkit](ContentAuthoringToolkit.md)
 - [Godot Scene Authoring](GodotSceneAuthoring.md)
 - [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)

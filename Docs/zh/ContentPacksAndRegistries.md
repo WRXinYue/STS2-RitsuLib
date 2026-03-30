@@ -300,7 +300,7 @@ RitsuLibFramework.CreateContentPack("MyMod")
 4. 不要把注册拖到运行期 hook 再做
 5. 使用 `TypeListCardPoolModel` 时，用 `.Card<池, 牌>()` 或 `CardRegistrationEntry` 登记池内牌；**不要**覆写已过时的 `CardTypes`（基类已默认空序列，详见 [快速入门](GettingStarted.md)）
 
-如果 Mod 很大，可以保留一个顶层构建器，再从子模块喂注册条目对象或辅助方法进去。
+如果 Mod 很大，可以保留一个顶层构建器，再由子模块提供注册条目对象或辅助方法。
 
 ---
 

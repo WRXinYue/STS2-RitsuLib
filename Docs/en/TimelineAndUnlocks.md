@@ -5,7 +5,7 @@ This is the reference for timeline registration and unlock semantics.
 RitsuLib splits timeline registration and unlock rules into two systems that are meant to work together. This document covers:
 
 - How `Story` and `Epoch` are registered
-- What the scaffold templates are responsible for
+- What the template types are responsible for
 - How unlock rules are evaluated
 - Limitations of vanilla progression for mod characters and RitsuLib’s compatibility bridges
 
@@ -56,7 +56,7 @@ public class MyStory : ModStoryTemplate
 
 ## Epoch Registration
 
-You can write plain `EpochModel` subclasses, or use RitsuLib scaffold templates:
+You can write plain `EpochModel` subclasses, or use RitsuLib template types:
 
 | Template | Description |
 |---|---|
@@ -233,7 +233,7 @@ RitsuLibFramework.CreateContentPack("MyMod")
 
 ## Related Documents
 
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Content Packs & Registries](ContentPacksAndRegistries.md)
 - [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)
 - [Framework Design](FrameworkDesign.md)

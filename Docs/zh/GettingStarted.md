@@ -157,7 +157,7 @@ RitsuLibFramework.SubscribeLifecycle<CombatStartingEvent>(evt =>
 
 ## 7. 数据持久化
 
-使用 `BeginModDataRegistration` 批量注册存档数据键。持久化条目以 class 为单位注册，同时需要注册 key 和文件名：
+使用 `BeginModDataRegistration` 批量注册存档数据键。持久化条目以类为单位注册，同时需要注册键和文件名：
 
 ```csharp
 public sealed class CounterData
@@ -183,7 +183,7 @@ using (RitsuLibFramework.BeginModDataRegistration("MyMod"))
 ## 继续阅读
 
 - [内容注册规则](ContentAuthoringToolkit.md)
-- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [角色与解锁模板](CharacterAndUnlockScaffolding.md)
 - [卡牌动态变量](CardDynamicVarToolkit.md)
 - [生命周期事件](LifecycleEvents.md)
 - [补丁系统](PatchingGuide.md)

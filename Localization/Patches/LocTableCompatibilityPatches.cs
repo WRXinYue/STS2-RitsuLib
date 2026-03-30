@@ -44,7 +44,7 @@ namespace STS2RitsuLib.Localization.Patches
 
             RitsuLibFramework.Logger.Warn(
                 $"[Localization][DebugCompat] Missing localization key '{key}' in table '{tableName}' during {methodName}. " +
-                "Using key placeholder instead of throwing LocException.");
+                "Resolving to key placeholder (debug compat).");
         }
     }
 

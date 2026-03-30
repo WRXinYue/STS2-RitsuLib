@@ -1,48 +1,43 @@
 # STS2-RitsuLib
 
-A personal shared framework library for Slay the Spire 2 mods.
+Shared framework library for Slay the Spire 2 mods.
 
 Chinese README: [README.zh.md](README.zh.md)
 
-This library is primarily developed for personal use, so development pace is need-driven and not strictly scheduled.
+RitsuLib is maintained as a practical authoring library. API growth is demand-driven and focused on the patterns used by the bundled mods.
 
-It was created as an alternative to [BaseLib](https://github.com/Alchyr/BaseLib-StS2) due to design and coding style
-differences.
-There is currently no conflict between this library and BaseLib.
+The library exists alongside [BaseLib](https://github.com/Alchyr/BaseLib-StS2) and currently does not conflict with it.
 
 Documentation index: [Docs/README.md](Docs/README.md)
 
-## Mod Settings API
+## Mod Settings
 
-RitsuLib now ships with a dedicated mod settings API and a built-in settings submenu.
+RitsuLib includes a settings UI layer for player-editable values.
 
-- settings pages are registered explicitly through `RitsuLibFramework.RegisterModSettings(...)`
-- UI bindings reuse `ModDataStore` instead of inventing a separate config backend
-- text can come from either `I18N` or game-native `LocString`
-- the menu is isolated from BaseLib's config button flow and does not share its registry or file paths
+- register pages explicitly with `RitsuLibFramework.RegisterModSettings(...)`
+- bind controls to `ModDataStore` instead of introducing a separate configuration backend
+- source labels and descriptions from `I18N` or game-native `LocString`
+- keep RitsuLib settings registration independent from BaseLib's config-page registry and file paths
 
 Guide: [Docs/en/ModSettings.md](Docs/en/ModSettings.md)
 
 ## Debug Compatibility Mode
 
-Master switch `debug_compatibility_mode` defaults to **off**: RitsuLib does **not** soften `LocTable` misses, does **not
-** skip invalid epoch grants (vanilla or explicit `InvalidOperationException`), and does **not** inject the
-`THE_ARCHITECT` dialogue stub.
+`debug_compatibility_mode` defaults to **off**. In that state, patched systems keep vanilla behavior.
 
-When the master switch is **on**, the in-game settings page shows **sub-toggles** (each defaults **on** so behavior
-matches the previous single-toggle era):
+When the master toggle is **on**, the settings page exposes per-feature compatibility fallbacks. Sub-toggles default to **on**.
 
-| Sub-setting                    | Effect when on                                                 |
-|--------------------------------|----------------------------------------------------------------|
-| LocTable missing keys          | Placeholders + one-time `[Localization][DebugCompat]` warnings |
-| Invalid unlock epochs          | Skip grant + one-time `[Unlocks][DebugCompat]` warnings        |
-| THE_ARCHITECT missing dialogue | Empty-lines stub for `ModContentRegistry` characters           |
+| Sub-setting | Effect when enabled |
+|---|---|
+| LocTable missing keys | Resolve to placeholder `LocString` values and log one `[Localization][DebugCompat]` warning per key |
+| Invalid unlock epochs | Skip invalid epoch grants and log one `[Unlocks][DebugCompat]` warning per stable key |
+| THE_ARCHITECT missing dialogue | Inject empty `Lines` entries for `ModContentRegistry` characters when vanilla provides no dialogue |
 
-Turning a sub-toggle **off** while the master remains on forces **vanilla-style** behavior for that subsystem only.
+Disabling a sub-toggle removes only that fallback.
 
-Settings file path on Windows:
+Windows settings path:
 
-%appdata%\SlayTheSpire2\steam\<user_id>\mod_data\com.ritsukage.sts2-RitsuLib\settings.json
+`%appdata%\SlayTheSpire2\steam\<user_id>\mod_data\com.ritsukage.sts2-RitsuLib\settings.json`
 
 ## License
 

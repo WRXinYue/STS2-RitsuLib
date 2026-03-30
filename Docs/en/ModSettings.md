@@ -1,84 +1,70 @@
 # Mod Settings
 
-RitsuLib provides a player-facing settings API for values that players should edit in-game.
-It sits on top of `ModDataStore`, but it does not replace persistence.
+RitsuLib provides a settings UI layer for player-editable values.
+It is built on top of `ModDataStore`, but it does not replace the persistence model.
 
-Use this layer when you want to:
-
-- expose a curated subset of persisted values to players
-- organize settings into pages, sections, and subpages
-- localize labels and descriptions cleanly
-- support structured editors such as reorderable lists
-
-Do not use it as an automatic schema-to-UI generator.
-Every setting is registered explicitly on purpose.
+Use this system when you need to expose a selected subset of persisted values, organize them into pages and sections, and localize the visible text. Settings pages are registered explicitly by design.
 
 ---
 
-## Mental Model
+## Architecture
 
 Keep these responsibilities separate:
 
-- `ModDataStore`: persistence, scopes, migrations, defaults
-- `IModSettingsValueBinding<T>`: read/write bridge between UI and data
-- settings page builders: page structure and player-facing presentation
+- `ModDataStore`: persistence, scopes, defaults, migrations
+- `IModSettingsValueBinding<T>`: read/write bridge between UI and stored data
+- page and section builders: UI structure and ordering
 - `ModSettingsText`: text source abstraction for labels and descriptions
 
-That separation keeps internal data, runtime caches, and player configuration from collapsing into one unstructured blob.
+This separation prevents runtime state, internal metadata, and user-editable configuration from collapsing into one model.
 
 ---
 
-## Main APIs
+## Core APIs
 
 | API | Purpose |
 |---|---|
-| `RitsuLibFramework.RegisterModSettings(modId, configure, pageId?)` | Register one page; when `pageId` is omitted it defaults to `modId` |
-| `RitsuLibFramework.GetRegisteredModSettings()` | Returns all registered pages (read-only) |
-| `ModSettingsBindings.Global(...)` / `Profile(...)` | Bind a field to persisted data |
-| `ModSettingsBindings.InMemory(...)` | Create preview-only or transient bindings |
+| `RitsuLibFramework.RegisterModSettings(modId, configure, pageId?)` | Register a settings page; when `pageId` is omitted it defaults to `modId` |
+| `RitsuLibFramework.GetRegisteredModSettings()` | Return all registered pages |
+| `ModSettingsBindings.Global(...)` / `Profile(...)` | Bind a control to persisted data |
+| `ModSettingsBindings.InMemory(...)` | Bind a control to preview-only state |
 | `ModSettingsText.Literal(...)` | Plain text |
-| `ModSettingsText.LocString(...)` | Game localization text |
-| `ModSettingsText.I18N(...)` | `I18N`-backed helper text |
-| `ModSettingsText.Dynamic(...)` | Dynamic string resolved whenever the UI refreshes (useful with preview state) |
-| `WithModDisplayName(...)` | Override the mod name shown in the sidebar |
-| `WithSortOrder(...)` | Ordering when a mod registers multiple root pages (lower sorts earlier) |
-| `AsChildOf(parentPageId)` | Mark this page as a child (must match `AddSubpage` `targetPageId` registration) |
-| `section.Collapsible(startCollapsed?)` | Collapsible section; optional initial collapsed state |
-| `AddToggle(...)`, `AddSlider(...)`, `AddIntSlider(...)`, `AddChoice(...)`, `AddEnumChoice(...)` | Standard value-entry builders |
-| `AddColor(...)`, `AddKeyBinding(...)`, `AddImage(...)` | Color string, key binding, image preview |
-| `AddButton(...)`, `AddHeader(...)`, `AddParagraph(...)` | Action and structure helpers |
-| `AddSubpage(...)` | Navigate to a registered child page |
-| `AddList(...)` | Structured, reorderable, nestable list editor |
-| `ModSettingsUiActionRegistry.Register*ActionAppender(...)` | Append items to the Actions menu for rows, list items, pages, or sections |
-| `page.WithVisibleWhen(() => ...)` | Hide the whole page (sidebar + body) while the predicate is false; re-evaluated on debounced refresh |
-| `section.WithVisibleWhen(() => ...)` | Hide the section and its sidebar shortcut while false |
-| `AddToggle(..., visibleWhen: () => ...)` | Hide a single row while false (optional last parameter) |
-
----
-
-## Dynamic visibility
-
-`WithVisibleWhen` / `visibleWhen` drive Godot `Control.Visible` on each debounced settings refresh (after bindings change). Sidebar section buttons for hidden sections register the same predicate so the left rail stays in sync. Predicates should be cheap and avoid throwing; failures fall back to **visible**.
+| `ModSettingsText.I18N(...)` | `I18N`-backed settings text |
+| `ModSettingsText.LocString(...)` | Game-native localization text |
+| `ModSettingsText.Dynamic(...)` | Re-evaluate text on UI refresh |
+| `WithModDisplayName(...)` | Override the mod label shown in the sidebar |
+| `WithSortOrder(...)` | Sort sibling pages within one mod |
+| `AsChildOf(parentPageId)` | Register a page as a child page |
+| `section.Collapsible(startCollapsed?)` | Make a section collapsible |
+| `page.WithVisibleWhen(...)` / `section.WithVisibleWhen(...)` | Conditional page or section visibility |
+| `AddToggle(...)`, `AddSlider(...)`, `AddIntSlider(...)`, `AddChoice(...)`, `AddEnumChoice(...)` | Standard value editors |
+| `AddColor(...)`, `AddKeyBinding(...)`, `AddImage(...)` | Specialized editors and previews |
+| `AddButton(...)`, `AddHeader(...)`, `AddParagraph(...)` | Structural and action entries |
+| `AddSubpage(...)` | Navigate to a child page |
+| `AddList(...)` | Structured list editor |
+| `ModSettingsUiActionRegistry.Register*ActionAppender(...)` | Extend the actions menu for rows, list items, pages, or sections |
 
 ---
 
 ## Recommended Flow
 
-1. Register the persisted model in `ModDataStore`
-2. Create bindings only for values that should be player-editable
-3. Register pages and sections for those bindings
-4. Localize all visible labels, descriptions, and option names
+1. Register the complete persisted model in `ModDataStore`.
+2. Create bindings only for fields that players should edit.
+3. Register pages and sections around those bindings.
+4. Localize all visible labels, descriptions, and option names.
 
-This gives you explicit control over what players can edit and how it is presented.
+The result is an explicit contract between stored data and the settings UI.
 
 ---
 
-## In-game entry and UI behavior
+## UI Behavior
 
-- **Entry point**: Main menu → **Settings** → **General**. When at least one settings page is registered (`ModSettingsRegistry.HasPages`), the patch adds a **Mod Settings (RitsuLib)** row (divider + button) to that panel; pressing it pushes `RitsuModSettingsSubmenu` onto the main-menu submenu stack. If no mod registers a page, the row is **not** injected (avoids an empty screen).
-- **Left sidebar**: Mod groups; only one mod expanded at a time. When expanded, shows a **root page** tree (parent/child depth). Under the selected page, quick **Section** buttons are listed.
-- **Right pane**: Page header (child pages show a back affordance) and scrollable body. Clicking a section scrolls to its anchor; scrolling updates which section is highlighted on the left based on viewport position.
-- **Persistence timing**: Dirty bindings are saved on a **~0.35s** debounce after edits. Closing the submenu, hiding it, leaving the scene tree, or **changing the game locale** triggers an **immediate** flush so values and layout stay consistent.
+- Entry point: Main menu -> `Settings` -> `General`. When at least one page is registered, RitsuLib injects a `Mod Settings (RitsuLib)` row that opens `RitsuModSettingsSubmenu`.
+- Sidebar: grouped by mod. One mod group is expanded at a time. The selected page also exposes section shortcuts.
+- Content pane: page header, optional back navigation for child pages, and a scrollable section body.
+- Save timing: dirty bindings are flushed on a debounce of about `0.35s`. Closing or hiding the submenu, leaving the tree, or changing the game locale forces an immediate flush.
+
+`WithVisibleWhen(...)` and row-level `visibleWhen` predicates are re-evaluated on debounced refresh. Predicates should stay cheap and should not throw. If evaluation fails, the control remains visible.
 
 ---
 
@@ -164,26 +150,33 @@ RitsuLibFramework.RegisterModSettings("MyMod", page => page
             value => ModSettingsText.I18N(settingsLoc, $"difficulty.{value}", value.ToString()))));
 ```
 
-`WithModDisplayName(...)` controls the mod-group label shown in the left navigation.
-If you omit it, RitsuLib falls back to the manifest name, then to the mod id.
+`WithModDisplayName(...)` controls the label used in the left navigation. If it is omitted, RitsuLib falls back to the manifest name and then the mod id.
 
 ---
 
-## Sidebar ordering
+## Ordering And Navigation
 
-- **Mod groups**: call `WithModSidebarOrder(int)` on the page builder, or `ModSettingsRegistry.RegisterModSidebarOrder` / `RitsuLibFramework.RegisterModSettingsSidebarOrder`. **Lower** values appear earlier. Mods without an explicit value use `0` and sort by **display name** (`WithModDisplayName` → manifest name → mod id).
-- **Pages within one mod** (siblings sharing `ParentPageId`): use `WithSortOrder(int)` when building; after registration you can call `RegisterPageSortOrder`, `TryRegisterPageSortOrderAfter`, or `TryRegisterPageSortOrderBefore` (or the `RitsuLibFramework` wrappers) to pin a page before/after another.
+- **Mod groups**: call `WithModSidebarOrder(int)` on the page builder, or `ModSettingsRegistry.RegisterModSidebarOrder` / `RitsuLibFramework.RegisterModSettingsSidebarOrder`. Lower values appear earlier.
+- **Pages within one mod**: use `WithSortOrder(int)` for sibling pages that share the same `ParentPageId`.
+- **Child pages**: register the child separately with `AsChildOf(parentPageId)`, then link to it from the parent with `AddSubpage(...)`.
+
+### Multiple Pages And Subpages
+
+- **Default page id**: `RegisterModSettings("MyMod", configure)` uses `PageId == "MyMod"`.
+- **Extra root pages**: call `RegisterModSettings("MyMod", configure, pageId: "audio")` and use `WithSortOrder(...)` to order multiple root pages.
+- **Child page registration**: register the child in its own call and chain `AsChildOf("parentPageId")`.
+- **Child UI**: child pages show a back control in the header; the sidebar tree still reflects the hierarchy.
 
 ---
 
 ## Text Sources
 
-Use `ModSettingsText` so your page definition stays independent from how text is loaded.
+Use `ModSettingsText` so the page definition stays independent from how text is loaded.
 
 - `Literal(...)`: simple hardcoded text or quick prototypes
-- `I18N(...)`: mod-owned helper text and settings UI copy
+- `I18N(...)`: mod-owned settings text
 - `LocString(...)`: text already managed by the game localization pipeline
-- `Dynamic(...)`: delegate resolved on each UI rebuild (for descriptions that track live control state; see the built-in Debug Showcase)
+- `Dynamic(...)`: delegate resolved on each UI rebuild
 
 Recommended split:
 
@@ -192,26 +185,26 @@ Recommended split:
 
 ---
 
-## Supported Entry Types
+## Supported Controls
 
 - `AddToggle(...)` for `bool`
 - `AddSlider(...)` for `double`
 - `AddIntSlider(...)` for `int`
-- `AddChoice(...)` / `AddEnumChoice(...)` for option lists; optional `ModSettingsChoicePresentation`: **Stepper** or **Dropdown**
-- `AddColor(...)` for color strings (parsed and shown by the UI)
-- `AddKeyBinding(...)` for binding strings (modifier combos, modifier-only, and left/right distinction are configurable)
+- `AddChoice(...)` / `AddEnumChoice(...)` for option lists; optional `ModSettingsChoicePresentation`: `Stepper` or `Dropdown`
+- `AddColor(...)` for color strings
+- `AddKeyBinding(...)` for binding strings
 - `AddImage(...)` for a `Func<Texture2D?>` preview with height
-- `AddButton(...)` for custom actions (optional `ModSettingsButtonTone`)
-- `AddSubpage(...)` to navigate to a registered child page (see **Multiple pages and subpages** below)
+- `AddButton(...)` for custom actions
+- `AddSubpage(...)` to navigate to a registered child page
 - `AddList(...)` for reorderable structured collections
 - `AddHeader(...)` / `AddParagraph(...)` for explanatory structure
-- **Collapsible sections**: inside `AddSection`, call `.Collapsible(startCollapsed: false)` (or `true` to start collapsed) on the section builder
+- collapsible sections via `.Collapsible(startCollapsed: false)` on the section builder
 
 ---
 
 ## Structured Lists
 
-`AddList(...)` is the framework entry point for structured list editing.
+`AddList(...)` is the entry point for structured list editing.
 
 It supports:
 
@@ -220,28 +213,20 @@ It supports:
 - item-level structured copy / paste / duplicate
 - custom item editors via `ModSettingsListItemContext<TItem>`
 
-Typical use cases:
-
-- weighted pools
-- ordered rule chains
-- per-item configuration blocks
-- nested presets or tag lists
-
-If your item type is structured, provide an item adapter so copy/paste and duplication can clone and serialize reliably.
+If the item type is structured, provide an item adapter so copy/paste and duplication can clone and serialize reliably.
 
 ---
 
-## Page Structure Guidance
+## Page Structure
 
-The UI is organized as:
+The UI hierarchy is:
 
 - mod group
 - page
 - section
 - entry
 
-In most mods, one root page with several sections is enough.
-Reach for additional pages only when content is genuinely separate.
+For most mods, one root page with several sections is sufficient. Introduce additional pages only when the content represents a distinct feature area.
 
 Use:
 
@@ -249,27 +234,6 @@ Use:
 - `AddSubpage(...)` for drill-down flows
 - collapsible sections for low-frequency settings
 - lists when players edit collections rather than single values
-
-### Multiple pages and subpages
-
-- **Default page id**: `RegisterModSettings("MyMod", configure)` without a third argument uses `PageId == "MyMod"` (same as `ModSettingsPageBuilder`).
-- **Extra root pages**: call again with `RegisterModSettings("MyMod", configure, pageId: "audio")` and use `WithSortOrder` to order multiple roots for the same mod in the sidebar.
-- **Child page registration**: register the child in its own call and chain `AsChildOf("parentPageId")`, e.g. when the parent id is the default `"MyMod"`:  
-  `RegisterModSettings("MyMod", p => p.AsChildOf("MyMod").WithTitle(...).AddSection(...), "my-child")`.  
-  The parent links with `AddSubpage(..., targetPageId: "my-child", ...)`.
-- **Child UI**: Child pages show a back control in the header; the sidebar tree still reflects the full hierarchy.
-
----
-
-## Extending the Actions menu
-
-Built-in copy/paste/reset flows are injected by the framework. To add commands for specific value types, list items, whole pages, or sections, use `ModSettingsUiActionRegistry`:
-
-- `RegisterBindingActionAppender<TValue>(...)`
-- `RegisterListItemActionAppender<TItem>(...)`
-- `RegisterPageActionAppender(...)` / `RegisterSectionActionAppender(...)`
-
-Callbacks receive `IModSettingsUiActionHost` so you can call `RequestRefresh()` and `MarkDirty(...)` to drive UI and saves.
 
 ---
 
@@ -280,14 +244,14 @@ Bindings preserve the scope of the underlying persisted value.
 - `SaveScope.Global`: shared across all profiles
 - `SaveScope.Profile`: varies by player profile
 
-Typical examples:
+Typical usage:
 
 - `Global`: graphics, accessibility, debug toggles, machine-level defaults
 - `Profile`: profile-specific gameplay preferences or campaign-adjacent options
 
 ---
 
-## What Should Be Exposed
+## What To Expose
 
 Good candidates for the settings UI:
 
@@ -303,23 +267,13 @@ Poor candidates for the settings UI:
 - runtime mirrors
 - purely internal implementation state
 
-The intended pattern is to persist a complete model, then expose only the player-facing subset.
+The intended pattern is to persist a complete model, then expose only the user-editable subset.
 
 ---
 
-## Built-In Reference
+## Built-In Reference Page
 
-RitsuLib registers its own page as a live reference implementation.
-
-The built-in reference currently demonstrates:
-
-- persisted framework options
-- transient preview controls
-- collapsible sections
-- nested structured list editing
-- copy / paste / duplicate item workflows
-
-Use it as a behavior reference when designing your own settings pages.
+RitsuLib registers its own page as a reference implementation. It demonstrates persisted settings, preview-only bindings, collapsible sections, nested list editing, and item copy/paste workflows.
 
 ---
 
@@ -328,4 +282,4 @@ Use it as a behavior reference when designing your own settings pages.
 - [Persistence Guide](PersistenceGuide.md)
 - [Localization & Keywords](LocalizationAndKeywords.md)
 - [Lifecycle Events](LifecycleEvents.md)
-- [Patching Guide](PatchingGuide.md) (settings entry and submenu injection live in `Settings/Patches/ModSettingsUiPatches.cs`, including General panel height refresh)
+- [Patching Guide](PatchingGuide.md) (`Settings/Patches/ModSettingsUiPatches.cs` contains the menu entry and submenu injection)

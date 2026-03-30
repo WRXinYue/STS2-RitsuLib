@@ -94,11 +94,9 @@ This behavior is independent of base-game `LocString` resolution.
 
 ## Debug Compatibility Mode
 
-> Master `debug_compatibility_mode` plus per-area sub-toggles in RitsuLib settings. See [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md).
+`LocTable` placeholder resolution is part of RitsuLib’s debug compatibility fallbacks. See [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md) for the master toggle, the **LocTable missing keys** toggle, and one-time `[Localization][DebugCompat]` warnings.
 
-When the **master** switch is off, `LocTable` keeps vanilla throw-on-miss. When master is on and the **LocTable** sub-toggle is on, missing keys resolve to placeholders with one-time `[Localization][DebugCompat]` warnings.
-
-The goal is to help troubleshoot issues, not to replace correct localization authoring.
+Use this for troubleshooting, not as a substitute for authoring real keys.
 
 ---
 
@@ -153,7 +151,7 @@ RitsuLib includes `AncientDialogueLocalization`. It serves two roles:
 - helper API for scanning dialogue from localization keys
 - automatic append of localization-defined mod-character ancient dialogues before `AncientDialogueSet.PopulateLocKeys` runs
 
-The key shape matches the base game:
+The key format matches the base game:
 
 | Key component | Description |
 |---|---|
@@ -166,7 +164,7 @@ The key shape matches the base game:
 
 Authors only need to write localization entries to add ancient dialogue for custom characters, without manually patching each `AncientDialogueSet`.
 
-If **no** keys exist for an ancient, vanilla may still show PROCEED for `THE_ARCHITECT` while `WinRun` assumes `Dialogue` is non-null. RitsuLib adds a narrow fallback (empty lines, safe attackers) for `ModContentRegistry` characters **only** when debug compat **master** and the **THE_ARCHITECT** sub-toggle are on, with a one-time `[Ancient]` warning.
+If **no** keys exist for an ancient, vanilla may still show `PROCEED` for `THE_ARCHITECT` while `WinRun` assumes `Dialogue` is non-null. RitsuLib adds a narrow compatibility fallback (empty `Lines`, safe attackers) for `ModContentRegistry` characters **only** when the debug compatibility master toggle and the **THE_ARCHITECT missing dialogue** toggle are enabled, with a one-time `[Ancient]` warning.
 
 ---
 
@@ -184,7 +182,7 @@ If **no** keys exist for an ancient, vanilla may still show PROCEED for `THE_ARC
 ## Related Documents
 
 - [Content Authoring Toolkit](ContentAuthoringToolkit.md)
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)
 - [LocString Placeholder Resolution](LocStringPlaceholderResolution.md)
 - [Mod Settings UI](ModSettings.md)

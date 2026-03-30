@@ -222,7 +222,7 @@ RitsuLib 现在通过 `AssetPathDiagnostics` 统一校验资源路径覆写。
 
 ## 相关文档
 
-- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [角色与解锁模板](CharacterAndUnlockScaffolding.md)
 - [内容注册规则](ContentAuthoringToolkit.md)
 - [Godot 场景编写说明](GodotSceneAuthoring.md)
 - [诊断与兼容层](DiagnosticsAndCompatibility.md)

@@ -21,8 +21,8 @@ namespace STS2RitsuLib.Data.Models
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
         /// <summary>
-        ///     Master switch: when false, all debug-compatibility shims are inactive and sub-flags are ignored (vanilla
-        ///     behavior for <c>LocTable</c>, no RitsuLib epoch skip path, no <c>THE_ARCHITECT</c> dialogue stub).
+        ///     Master switch: when false, sub-flags are ignored and shim logic no-ops so patched targets follow vanilla
+        ///     code paths (<c>LocTable</c>, epoch grants, <c>THE_ARCHITECT</c> load, etc.).
         /// </summary>
         [JsonPropertyName("debug_compatibility_mode")]
         public bool DebugCompatibilityMode { get; set; }
@@ -35,8 +35,9 @@ namespace STS2RitsuLib.Data.Models
         public bool DebugCompatLocTable { get; set; } = true;
 
         /// <summary>
-        ///     When master is on: skip invalid epoch grants with one-time <c>[Unlocks][DebugCompat]</c> warnings instead of
-        ///     throwing. When master is off, this flag is ignored. Default true.
+        ///     When master and this flag are on: skip invalid epoch grants on framework bridges with one-time
+        ///     <c>[Unlocks][DebugCompat]</c> warnings. Otherwise invalid ids use the original grant path (vanilla).
+        ///     Default true.
         /// </summary>
         [JsonPropertyName("debug_compat_unlock_epoch")]
         public bool DebugCompatUnlockEpoch { get; set; } = true;

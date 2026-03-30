@@ -67,74 +67,74 @@ namespace STS2RitsuLib.Settings
                     .WithModSidebarOrder(-10_000)
                     .WithTitle(T("ritsulib.page.title", "Settings"))
                     .WithDescription(T("ritsulib.page.description",
-                        "Shared framework options and API reference examples."))
+                        "Framework settings and settings UI reference entries."))
                     .WithSortOrder(-1000)
                     .AddSection("general", section => section
                         .WithTitle(T("ritsulib.section.general.title", "General"))
                         .WithDescription(T("ritsulib.section.general.description",
-                            "Player-facing framework options that are actually persisted."))
+                            "Persisted framework settings exposed to players."))
                         .AddToggle(
                             "debug_compatibility_mode",
                             T("ritsulib.debugCompatibility.label", "Debug compatibility mode"),
                             debugCompatibilityBinding,
                             T("ritsulib.debugCompatibility.description",
-                                "Master switch: when off, RitsuLib uses vanilla LocTable errors, no unlock-epoch skip path, and no THE_ARCHITECT dialogue stub. When on, each sub-option below controls a specific shim (all default on).")))
+                                "Enable compatibility fallbacks for localization, unlock, and ancient-dialogue edge cases. Sub-toggles default to on.")))
                     .AddSection(
                         "debug_compat_shims",
                         section => section
                             .WithVisibleWhen(RitsuLibSettingsStore.IsDebugCompatibilityMasterEnabled)
-                            .WithTitle(T("ritsulib.section.debugCompatShims.title", "Compatibility shims"))
+                            .WithTitle(T("ritsulib.section.debugCompatShims.title", "Compatibility fallbacks"))
                             .WithDescription(T("ritsulib.section.debugCompatShims.description",
-                                "Only active while debug compatibility mode is on. Turn a shim off to force vanilla behavior for that subsystem."))
+                                "Shown only when debug compatibility mode is enabled. Each toggle controls one fallback."))
                             .AddToggle(
                                 "debug_compat_loc_table",
                                 T("ritsulib.debugCompatLocTable.label", "LocTable missing keys"),
                                 debugCompatLocTableBinding,
                                 T("ritsulib.debugCompatLocTable.description",
-                                    "Placeholder LocString + one-time [Localization][DebugCompat] warnings instead of throwing."))
+                                    "Resolve missing keys to placeholder LocString values and log one [Localization][DebugCompat] warning per key."))
                             .AddToggle(
                                 "debug_compat_unlock_epoch",
-                                T("ritsulib.debugCompatUnlockEpoch.label", "Invalid unlock epochs"),
+                                T("ritsulib.debugCompatUnlockEpoch.label", "Invalid unlock Epochs"),
                                 debugCompatUnlockEpochBinding,
                                 T("ritsulib.debugCompatUnlockEpoch.description",
-                                    "Skip invalid epoch grants with one-time [Unlocks][DebugCompat] warnings instead of throwing."))
+                                    "Skip invalid epoch grants on RitsuLib-registered unlock paths and log one [Unlocks][DebugCompat] warning per stable key."))
                             .AddToggle(
                                 "debug_compat_ancient_architect",
                                 T("ritsulib.debugCompatAncientArchitect.label", "THE_ARCHITECT missing dialogue"),
                                 debugCompatAncientArchitectBinding,
                                 T("ritsulib.debugCompatAncientArchitect.description",
-                                    "Empty-lines dialogue stub for ModContentRegistry characters when vanilla resolves none (avoids WinRun NRE).")))
+                                    "Inject empty Lines entries for ModContentRegistry ancients when vanilla provides no dialogue.")))
                     .AddSection("reference", section => section
                         .WithTitle(T("ritsulib.section.reference.title", "Reference"))
                         .WithDescription(T("ritsulib.section.reference.description",
-                            "Preview all currently available settings controls."))
+                            "Reference controls available in the settings UI."))
                         .Collapsible()
                         .AddParagraph(
                             "reference_intro",
                             T("ritsulib.reference.intro",
-                                "Open the debug gallery below to inspect available controls and layout behavior."))
+                                "Open the control preview page to inspect available controls and layout behavior."))
                         .AddSubpage(
                             "reference_gallery",
-                            T("ritsulib.reference.gallery.label", "Component gallery"),
+                            T("ritsulib.reference.gallery.label", "Control preview"),
                             "debug-showcase",
                             T("button.open", "Open"),
                             T("ritsulib.reference.gallery.description",
-                                "This page is for preview and reference only. None of its values are persisted."))));
+                                "Reference page only. Values on this page are not persisted."))));
 
                 RitsuLibFramework.RegisterModSettings(
                     Const.ModId,
                     page => page
                         .AsChildOf(Const.ModId)
-                        .WithTitle(T("ritsulib.showcase.title", "Debug Showcase"))
+                        .WithTitle(T("ritsulib.showcase.title", "Control Preview"))
                         .WithDescription(T("ritsulib.showcase.description",
-                            "Preview every control type and observe live description updates without saving any values."))
+                            "Demonstrates supported controls and dynamic descriptions without persisting values."))
                         .AddSection("overview", section => section
                             .WithTitle(T("ritsulib.showcase.overview.title", "Overview"))
                             .AddHeader(
                                 "showcase_header",
                                 T("ritsulib.showcase.header", "Preview-only controls"),
                                 T("ritsulib.showcase.header.description",
-                                    "These examples are intentionally transient and exist only as implementation references."))
+                                    "Reference controls backed by preview-only bindings."))
                             .AddParagraph(
                                 "showcase_paragraph",
                                 ModSettingsText.Dynamic(() =>
@@ -150,18 +150,18 @@ namespace STS2RitsuLib.Settings
                                         showcaseState.ActionCount)))
                             .AddImage(
                                 "showcase_image",
-                                T("ritsulib.showcase.image.label", "Preview image"),
+                                T("ritsulib.showcase.image.label", "Reference image"),
                                 () => ModSettingsUiResources.SettingsButtonTexture,
                                 120f,
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(
                                         L("ritsulib.showcase.image.description",
-                                            "Image preview updates can be paired with dynamic descriptive text. Current mode: {0}"),
+                                            "Image previews can participate in dynamic descriptions. Current mode: {0}"),
                                         showcaseState.ModeValue))))
                         .AddSection("inputs", section => section
                             .WithTitle(T("ritsulib.showcase.inputs.title", "Inputs"))
                             .WithDescription(T("ritsulib.showcase.inputs.description",
-                                "All values update the descriptive text immediately, but are never written to disk."))
+                                "Editing these controls updates the preview state only."))
                             .Collapsible()
                             .AddToggle(
                                 "preview_toggle",
@@ -223,7 +223,7 @@ namespace STS2RitsuLib.Settings
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(
                                         L("ritsulib.showcase.choiceDropdown.description",
-                                            "Same options as the stepper above, using the custom dropdown list. Current: {0}"),
+                                            "Same options as the stepper control, rendered as a dropdown. Current: {0}"),
                                         showcaseState.ChoiceDropdownValue)),
                                 ModSettingsChoicePresentation.Dropdown)
                             .AddEnumChoice(
@@ -240,14 +240,14 @@ namespace STS2RitsuLib.Settings
                                 T("ritsulib.showcase.string.label", "Preview string field"),
                                 new ShowcaseBinding<string>(previewStringBinding,
                                     value => showcaseState.StringValue = value),
-                                T("ritsulib.showcase.string.placeholder", "Plain string binding (LineEdit)"),
+                                T("ritsulib.showcase.string.placeholder", "Single-line string binding"),
                                 null,
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(L("ritsulib.showcase.string.description", "Current text: {0}"),
                                         showcaseState.StringValue)))
                             .AddMultilineString(
                                 "preview_string_multi",
-                                T("ritsulib.showcase.stringMulti.label", "Preview multiline string"),
+                                T("ritsulib.showcase.stringMulti.label", "Preview multiline field"),
                                 new ShowcaseBinding<string>(previewStringMultiBinding,
                                     value => showcaseState.StringMultiValue = value),
                                 T("ritsulib.showcase.stringMulti.placeholder",
@@ -264,23 +264,23 @@ namespace STS2RitsuLib.Settings
                                         lineCount);
                                 })))
                         .AddSection("actions", section => section
-                            .WithTitle(T("ritsulib.showcase.actions.title", "Actions"))
+                            .WithTitle(T("ritsulib.showcase.actions.title", "Commands"))
                             .WithDescription(T("ritsulib.showcase.actions.description",
-                                "Buttons can mutate preview state and update the surrounding text immediately."))
+                                "Buttons can mutate preview state and refresh adjacent descriptions."))
                             .Collapsible()
                             .AddButton(
                                 "preview_action",
-                                T("ritsulib.showcase.action.label", "Preview action button"),
+                                T("ritsulib.showcase.action.label", "Preview command button"),
                                 T("ritsulib.showcase.action.button", "Trigger"),
                                 () => showcaseState.ActionCount++,
                                 ModSettingsButtonTone.Accent,
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(
-                                        L("ritsulib.showcase.action.description", "Action triggered {0} times."),
+                                        L("ritsulib.showcase.action.description", "Command invoked {0} times."),
                                         showcaseState.ActionCount)))
                             .AddButton(
                                 "preview_reset",
-                                T("ritsulib.showcase.reset.label", "Reset preview state"),
+                                T("ritsulib.showcase.reset.label", "Reset preview bindings"),
                                 T("ritsulib.showcase.reset.button", "Reset"),
                                 () =>
                                 {
@@ -304,19 +304,19 @@ namespace STS2RitsuLib.Settings
                                 },
                                 ModSettingsButtonTone.Danger,
                                 T("ritsulib.showcase.reset.description",
-                                    "Restore all preview values to their defaults without persisting anything."))
+                                    "Restore all preview bindings to default values without persisting data."))
                             .AddParagraph(
                                 "showcase_footer",
                                 T("ritsulib.showcase.footer",
-                                    "Use this page as a quick implementation reference when building settings for other mods.")))
+                                    "Use this page as a reference when implementing settings pages.")))
                         .AddSection("list", section => section
-                            .WithTitle(T("ritsulib.showcase.list.title", "List Editor"))
+                            .WithTitle(T("ritsulib.showcase.list.title", "Structured List"))
                             .WithDescription(T("ritsulib.showcase.list.description",
-                                "A structured list can be displayed, reordered, added, and deleted inside the settings UI."))
+                                "Structured collections can be edited, reordered, added, and removed inside the settings UI."))
                             .Collapsible()
                             .AddList(
                                 "preview_list",
-                                T("ritsulib.showcase.list.label", "Preview structured list"),
+                                T("ritsulib.showcase.list.label", "Preview structured collection"),
                                 new ShowcaseBinding<List<ShowcaseListItem>>(previewListBinding,
                                     value => showcaseState.ListItems = value.ToList()),
                                 () => showcaseState.CreateListItem(),
@@ -414,7 +414,7 @@ namespace STS2RitsuLib.Settings
                 CreateShowcaseDetailEditor,
                 ModSettingsText.I18N(ModSettingsLocalization.Instance, "ritsulib.showcase.details.add", "Add Detail"),
                 ModSettingsText.I18N(ModSettingsLocalization.Instance, "ritsulib.showcase.details.description",
-                    "Nested list editor example inside each item.")));
+                    "Nested structured list editor for each item.")));
 
             return content;
         }

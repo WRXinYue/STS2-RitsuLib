@@ -5,7 +5,7 @@
 RitsuLib 将时间线注册和解锁规则拆成两个系统，配合使用。本文说明：
 
 - `Story` / `Epoch` 的注册方式
-- 脚手架模板的职责
+- 模板类型的职责
 - 解锁规则的判定机制
 - 原版进度逻辑对 Mod 角色的局限性与 RitsuLib 的兼容桥接
 
@@ -56,7 +56,7 @@ public class MyStory : ModStoryTemplate
 
 ## `Epoch` 注册
 
-可以直接写原生 `EpochModel` 子类，也可以使用 RitsuLib 的脚手架模板：
+可以直接写原生 `EpochModel` 子类，也可以使用 RitsuLib 提供的模板类型：
 
 | 模板 | 说明 |
 |---|---|
@@ -178,7 +178,7 @@ unlocks.RegisterPostRunRule(
 
 > 以下解释原版进度系统对 Mod 角色的局限性，以及 RitsuLib 的桥接策略。
 
-原版的若干进度检查是按原版角色设计的，不会自然支持 Mod 角色。RitsuLib 通过以下窄桥接补丁，让注册的解锁规则在这些检查点上生效：
+原版的若干进度检查是按原版角色设计的，不会自然支持 Mod 角色。RitsuLib 通过以下桥接补丁，让注册的解锁规则在这些检查点上生效：
 
 - 精英击杀计数的纪元判定桥接
 - Boss 击杀计数的纪元判定桥接
@@ -233,7 +233,7 @@ RitsuLibFramework.CreateContentPack("MyMod")
 
 ## 相关文档
 
-- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [角色与解锁模板](CharacterAndUnlockScaffolding.md)
 - [内容包与注册器](ContentPacksAndRegistries.md)
 - [诊断与兼容层](DiagnosticsAndCompatibility.md)
 - [框架设计](FrameworkDesign.md)
