@@ -1,81 +1,69 @@
 # Mod 设置界面
 
-RitsuLib 提供了一套面向玩家的设置 API，用来把“玩家应该在游戏里修改的配置”从 `ModDataStore` 持久化层中清晰地抽出来。
+RitsuLib 提供一套用于玩家可编辑值的设置 UI。它构建在 `ModDataStore` 之上，但不替代底层持久化模型。
 
-这套系统适合用来：
-
-- 暴露一小部分真正面向玩家的配置
-- 按 page / section / subpage 组织设置内容
-- 统一处理标签、描述与本地化文本
-- 支持结构化列表、嵌套列表与可排序编辑器
-
-它不是一个“自动把数据模型生成 UI”的系统。
-每个设置项都需要显式注册，这是有意设计。
+这套系统适合用于暴露一部分持久化字段、按页面和分区组织设置项，并统一管理界面文案。所有设置项都需要显式注册，这一限制是有意设计。
 
 ---
 
-## 心智模型
+## 架构分层
 
-建议始终把这几层职责分开：
+建议保持以下职责分离：
 
-- `ModDataStore`：持久化、作用域、迁移、默认值
-- `IModSettingsValueBinding<T>`：UI 与数据之间的读写桥接
-- 设置页 builder：页面结构与玩家看到的组织方式
+- `ModDataStore`：持久化、作用域、默认值、迁移
+- `IModSettingsValueBinding<T>`：UI 与存储值之间的读写桥接
+- 页面 / 分区构建器：页面结构、层级与排序
 - `ModSettingsText`：标签与描述的文本来源抽象
 
-这样可以避免把内部状态、缓存、运行时镜像和玩家配置混成一团。
+这样可以避免把运行时状态、内部元数据与玩家配置混入同一个模型。
 
 ---
 
-## 主要 API
+## 核心 API
 
 | API | 作用 |
 |---|---|
-| `RitsuLibFramework.RegisterModSettings(modId, configure, pageId?)` | 注册一页；`pageId` 省略时默认为 `modId` |
-| `RitsuLibFramework.GetRegisteredModSettings()` | 返回当前已注册的全部设置页（只读） |
-| `ModSettingsBindings.Global(...)` / `Profile(...)` | 将字段绑定到持久化数据 |
-| `ModSettingsBindings.InMemory(...)` | 创建仅预览或临时 binding |
+| `RitsuLibFramework.RegisterModSettings(modId, configure, pageId?)` | 注册设置页；省略 `pageId` 时默认为 `modId` |
+| `RitsuLibFramework.GetRegisteredModSettings()` | 返回当前所有已注册设置页 |
+| `ModSettingsBindings.Global(...)` / `Profile(...)` | 将控件绑定到持久化数据 |
+| `ModSettingsBindings.InMemory(...)` | 绑定到仅预览状态 |
 | `ModSettingsText.Literal(...)` | 纯文本 |
+| `ModSettingsText.I18N(...)` | 基于 `I18N` 的设置界面文本 |
 | `ModSettingsText.LocString(...)` | 游戏原生本地化文本 |
-| `ModSettingsText.I18N(...)` | 基于 `I18N` 的辅助文本 |
-| `ModSettingsText.Dynamic(...)` | 每次刷新 UI 时重新求值的动态字符串（适合与预览状态联动） |
-| `WithModDisplayName(...)` | 覆盖左侧 sidebar 中显示的 Mod 名称 |
-| `WithSortOrder(...)` | 同一 mod 多根页时的排序（数值越小越靠前） |
-| `AsChildOf(parentPageId)` | 将本页声明为子页（与 `AddSubpage` 的 `targetPageId` 对应） |
-| `section.Collapsible(startCollapsed?)` | 可折叠区块；可选初始为收起 |
-| `AddToggle(...)`、`AddSlider(...)`、`AddIntSlider(...)`、`AddChoice(...)`、`AddEnumChoice(...)` | 标准值编辑项 |
-| `AddColor(...)`、`AddKeyBinding(...)`、`AddImage(...)` | 颜色（字符串）、按键绑定、图片预览 |
-| `AddButton(...)`、`AddHeader(...)`、`AddParagraph(...)` | 动作项与说明结构 |
-| `AddSubpage(...)` | 进入子页面 |
-| `AddList(...)` | 结构化、可排序、可嵌套的列表编辑器 |
-| `ModSettingsUiActionRegistry.Register*ActionAppender(...)` | 为行、列表项、页、区块追加「Actions」菜单项 |
-| `page.WithVisibleWhen(() => ...)` | 谓词为 false 时隐藏整页（侧栏与正文）；在防抖刷新时重算 |
-| `section.WithVisibleWhen(() => ...)` | 谓词为 false 时隐藏该章节及其侧栏快捷入口 |
-| `AddToggle(..., visibleWhen: () => ...)` | 隐藏单行（可选末尾参数） |
-
-### 动态可见性
-
-`WithVisibleWhen` / `visibleWhen` 在设置 UI 防抖刷新后更新 Godot `Control.Visible`。隐藏章节的侧栏按钮会注册同一谓词以保持左右一致。谓词应轻量、尽量不抛异常；异常时回退为**显示**。
+| `ModSettingsText.Dynamic(...)` | 在 UI 刷新时重新求值 |
+| `WithModDisplayName(...)` | 覆盖侧栏中的 Mod 名称 |
+| `WithSortOrder(...)` | 控制同级页面排序 |
+| `AsChildOf(parentPageId)` | 将页面注册为子页 |
+| `section.Collapsible(startCollapsed?)` | 声明可折叠分区 |
+| `page.WithVisibleWhen(...)` / `section.WithVisibleWhen(...)` | 按条件显示或隐藏页面、分区 |
+| `AddToggle(...)`、`AddSlider(...)`、`AddIntSlider(...)`、`AddChoice(...)`、`AddEnumChoice(...)` | 标准值编辑控件 |
+| `AddColor(...)`、`AddKeyBinding(...)`、`AddImage(...)` | 专用编辑控件与预览 |
+| `AddButton(...)`、`AddHeader(...)`、`AddParagraph(...)` | 结构项与动作项 |
+| `AddSubpage(...)` | 导航到子页 |
+| `AddList(...)` | 结构化列表编辑器 |
+| `ModSettingsUiActionRegistry.Register*ActionAppender(...)` | 扩展行、列表项、页面或分区的 Actions 菜单 |
 
 ---
 
 ## 推荐流程
 
-1. 先在 `ModDataStore` 注册完整持久化模型
-2. 只为真正要暴露给玩家的字段建立 binding
-3. 用 page / section / entry 注册设置页
-4. 为所有可见标签、描述和选项名称补全本地化
+1. 在 `ModDataStore` 中注册完整持久化模型。
+2. 仅为需要暴露给玩家的字段创建绑定。
+3. 围绕这些绑定注册页面和分区。
+4. 补齐所有可见标签、描述与选项名称的本地化。
 
-这样做可以明确控制“哪些值能改”和“这些值该怎么呈现”。
+这样可以把存储结构与设置 UI 的公开范围明确分开。
 
 ---
 
-## 游戏内入口与界面行为
+## 界面行为
 
-- **入口**：主菜单 → **设置** → **常规 (General)**。若当前存在至少一页已注册设置（`ModSettingsRegistry.HasPages`），会在该面板列表中追加一行 **Mod Settings (RitsuLib)**（分割线 + 按钮）；点击后压入主菜单子菜单栈中的 `RitsuModSettingsSubmenu`。若没有任何 Mod 注册设置页，**不会**注入该行（避免空菜单）。
-- **左侧边栏**：按 Mod 分组；同一时间只展开一个 Mod。展开后显示该 Mod 的**根页面**树（支持父子层级），当前选中页面下方会列出各 **Section** 快捷按钮。
-- **右侧内容区**：顶部为当前页标题栏（子页会显示返回父页）；下方可滚动正文。点击某一 Section 会将滚动位置对齐到对应区块；用户滚动正文时，会根据视口位置自动更新左侧 Section 高亮。
-- **写入时机**：控件通过 binding 标记为脏后，约 **0.35 秒**防抖调用 `Save()`；关闭子菜单、子菜单隐藏、控件退出场景树或**切换游戏语言**时也会**立即**刷写脏 binding，避免丢失或未保存状态。
+- **入口**：主菜单 -> `设置` -> `General`。当至少存在一个已注册页面时，RitsuLib 会注入 `Mod Settings (RitsuLib)` 入口并打开 `RitsuModSettingsSubmenu`。
+- **侧栏**：按 Mod 分组，同一时间只展开一个分组。当前页下方会显示对应分区快捷入口。
+- **内容区**：顶部显示页面标题；子页提供返回导航；正文按分区滚动显示。
+- **保存时机**：绑定被标记为脏后，约 `0.35s` 防抖保存；关闭或隐藏子菜单、退出场景树、切换游戏语言时会立即刷写。
+
+`WithVisibleWhen(...)` 与行级 `visibleWhen` 谓词会在防抖刷新时重新计算。谓词应保持轻量且避免抛异常；如果求值失败，控件保持显示。
 
 ---
 
@@ -107,7 +95,7 @@ using (RitsuLibFramework.BeginModDataRegistration("MyMod"))
 }
 ```
 
-然后创建 binding 并注册设置页：
+然后创建绑定并注册设置页：
 
 ```csharp
 using STS2RitsuLib.Settings;
@@ -161,162 +149,130 @@ RitsuLibFramework.RegisterModSettings("MyMod", page => page
             value => ModSettingsText.I18N(settingsLoc, $"difficulty.{value}", value.ToString()))));
 ```
 
-`WithModDisplayName(...)` 控制左侧导航里 mod 分组显示的名称。
-如果不设置，RitsuLib 会依次回退到 manifest 名称，再回退到 mod id。
+`WithModDisplayName(...)` 控制左侧导航中的 Mod 标签。若未设置，RitsuLib 会回退到 manifest 名称，再回退到 mod id。
 
 ---
 
-## 侧边栏排序
+## 排序与导航
 
-- **Mod 分组顺序**：在注册页时使用 `WithModSidebarOrder(int)`，或调用 `ModSettingsRegistry.RegisterModSidebarOrder` / `RitsuLibFramework.RegisterModSettingsSidebarOrder`。数值**越小**越靠上。未显式注册的 mod 使用 `0`，在同一档内按**显示名称**（`WithModDisplayName` → manifest 名称 → mod id）排序。
-- **同一 mod 内的页面**（相同 `ParentPageId` 的兄弟页）：默认用 `WithSortOrder(int)`；注册后仍可用 `RegisterPageSortOrder`、`TryRegisterPageSortOrderAfter` / `TryRegisterPageSortOrderBefore`（或 `RitsuLibFramework` 上同名封装）把某一页插到指定页之前/之后。
+- **Mod 分组**：在页面构建器上调用 `WithModSidebarOrder(int)`，或使用 `ModSettingsRegistry.RegisterModSidebarOrder` / `RitsuLibFramework.RegisterModSettingsSidebarOrder`。数值越小越靠前。
+- **同一 Mod 内的页面**：对共享 `ParentPageId` 的兄弟页使用 `WithSortOrder(int)`。
+- **子页**：子页需单独注册，并通过 `AsChildOf(parentPageId)` 绑定父页，再在父页中使用 `AddSubpage(...)` 跳转。
+
+### 多页面与子页面
+
+- **默认页面 id**：`RegisterModSettings("MyMod", configure)` 的 `PageId` 默认为 `"MyMod"`。
+- **额外根页**：调用 `RegisterModSettings("MyMod", configure, pageId: "audio")`，并通过 `WithSortOrder(...)` 控制多个根页的顺序。
+- **子页注册**：子页必须单独注册，并链式调用 `AsChildOf("parentPageId")`。
+- **子页 UI**：子页标题栏提供返回控件，侧栏树仍保留完整层级。
 
 ---
 
 ## 文本来源
 
-`ModSettingsText` 的意义，是让页面定义本身不依赖具体文本加载方式。
+使用 `ModSettingsText`，可以让页面定义不依赖具体文本加载方式。
 
 - `Literal(...)`：简单硬编码文本或快速原型
-- `I18N(...)`：Mod 自己维护的设置说明文本
-- `LocString(...)`：已经属于游戏原生本地化管线的文本
-- `Dynamic(...)`：用委托在每次界面重建时生成字符串（例如展示随控件变化的说明，参考 RitsuLib 内置 Debug Showcase）
+- `I18N(...)`：Mod 自有的设置界面文本
+- `LocString(...)`：已纳入游戏本地化管线的文本
+- `Dynamic(...)`：在每次 UI 刷新时通过委托重新生成文本
 
 推荐分工：
 
-- 游戏内容和表格名称 -> `LocString`
-- 设置页专用的标签与描述 -> `I18N`
+- 游戏内容和内容名称 -> `LocString`
+- 设置页专用标签与描述 -> `I18N`
 
 ---
 
-## 当前支持的设置项类型
+## 支持的控件类型
 
 - `AddToggle(...)`：`bool`
 - `AddSlider(...)`：`double`
 - `AddIntSlider(...)`：`int`
-- `AddChoice(...)` / `AddEnumChoice(...)`：候选列表；可选 `ModSettingsChoicePresentation`：**Stepper**（步进切换）或 **Dropdown**（下拉）
-- `AddColor(...)`：颜色字符串（由 UI 解析与展示）
-- `AddKeyBinding(...)`：按键绑定字符串，可配置是否允许组合键、纯修饰键、左右区分等
-- `AddImage(...)`：通过 `Func<Texture2D?>` 提供预览图与高度
-- `AddButton(...)`：自定义动作按钮（可选 `ModSettingsButtonTone`）
-- `AddSubpage(...)`：导航到已注册的子页面（见下文「多页面与子页面」）
+- `AddChoice(...)` / `AddEnumChoice(...)`：候选列表；可选 `ModSettingsChoicePresentation`：`Stepper` 或 `Dropdown`
+- `AddColor(...)`：颜色字符串
+- `AddKeyBinding(...)`：按键绑定字符串
+- `AddImage(...)`：通过 `Func<Texture2D?>` 提供图像预览
+- `AddButton(...)`：自定义动作按钮
+- `AddSubpage(...)`：跳转到已注册子页
 - `AddList(...)`：可排序结构化集合
 - `AddHeader(...)` / `AddParagraph(...)`：说明与结构辅助项
-- **可折叠 Section**：在 `AddSection` 的 lambda 里对 builder 调用 `.Collapsible(startCollapsed: false)`（或 `true` 初始收起）
+- 可折叠分区：在分区构建器上调用 `.Collapsible(startCollapsed: false)`
 
 ---
 
 ## 结构化列表
 
-`AddList(...)` 是结构化列表编辑器的框架入口。
+`AddList(...)` 是结构化列表编辑入口。
 
 它支持：
 
 - 新增 / 删除 / 排序
 - 嵌套列表编辑
-- item 级结构化复制 / 粘贴 / 创建副本
-- 通过 `ModSettingsListItemContext<TItem>` 自定义 item 编辑器
+- 列表项级复制 / 粘贴 / 创建副本
+- 通过 `ModSettingsListItemContext<TItem>` 自定义列表项编辑器
 
-典型场景：
-
-- 权重池
-- 有序规则链
-- 多条目配置块
-- 嵌套预设或标签集合
-
-如果 item 是结构化类型，建议提供 item adapter，保证复制粘贴和副本操作能正确克隆与序列化。
+如果列表项类型是结构化数据，建议提供 item adapter，以保证复制、粘贴和副本操作可以正确克隆与序列化。
 
 ---
 
-## 页面结构建议
+## 页面结构
 
-当前 UI 结构是：
+当前 UI 层级为：
 
 - mod 分组
 - page
 - section
 - entry
 
-对大多数 Mod 来说，一个 root page 配多个 section 就足够清晰。
-只有在内容确实属于不同主题时，才建议继续拆 page。
+对于大多数 Mod，一个根页面配多个分区就足够。只有在功能区域明确分离时，才建议拆出额外页面。
 
 适合使用的场景：
 
-- 多个 page：大型功能区分离
-- `AddSubpage(...)`：钻取式设置流程
-- 可折叠 section：低频选项收纳
-- 列表：编辑集合而不是单个值
-
-### 多页面与子页面
-
-- **默认页 id**：`RegisterModSettings("MyMod", configure)` 未传第三参数时，该页 `PageId` 等于 `"MyMod"`（与 `ModSettingsPageBuilder` 行为一致）。
-- **额外根页**：再次调用 `RegisterModSettings("MyMod", configure, pageId: "audio")`，并可用 `WithSortOrder` 控制左侧同 Mod 下多根页的先后顺序。
-- **子页注册**：子页需单独注册，并在 builder 上链式调用 `AsChildOf("父页Id")`，例如父页 id 为默认的 `"MyMod"` 时：  
-  `RegisterModSettings("MyMod", p => p.AsChildOf("MyMod").WithTitle(...).AddSection(...), "my-child")`。  
-  父页中通过 `AddSubpage(..., targetPageId: "my-child", ...)` 跳转。
-- **子页 UI**：进入子页后，内容区标题栏提供返回，左侧树仍展示完整层级。
-
----
-
-## 扩展 Actions 菜单
-
-内置的复制/粘贴/重置等命令由框架注入。若要为特定值类型、列表项、整页或整个 Section 追加菜单项，可使用 `ModSettingsUiActionRegistry`：
-
-- `RegisterBindingActionAppender<TValue>(...)`：按 binding 的值类型追加
-- `RegisterListItemActionAppender<TItem>(...)`：列表项上下文
-- `RegisterPageActionAppender(...)` / `RegisterSectionActionAppender(...)`：页或 Section 级
-
-回调中会收到 `IModSettingsUiActionHost`，可调用 `RequestRefresh()`、`MarkDirty(...)` 驱动 UI 与保存。
+- 多页面：大型功能区分离
+- `AddSubpage(...)`：钻取式设置流
+- 可折叠 section：收纳低频选项
+- 列表：编辑集合而非单个值
 
 ---
 
 ## 作用域建议
 
-binding 会继承底层持久化值的作用域。
+绑定会保留底层持久化值的作用域。
 
 - `SaveScope.Global`：所有档位共享
 - `SaveScope.Profile`：按玩家档位区分
 
-常见例子：
+常见用途：
 
 - `Global`：画面、辅助功能、调试开关、机器级默认项
 - `Profile`：按档位变化的玩法偏好或流程相关设置
 
 ---
 
-## 哪些内容适合暴露给玩家
+## 适合暴露到设置页的内容
 
-适合进入设置界面的：
+适合放入设置界面的内容：
 
 - 功能开关
-- 外观与表现偏好
+- 外观偏好
 - 辅助功能调整项
-- 玩家本来就应该能调的玩法参数
+- 玩家预期可调的玩法参数
 
-不适合直接进入设置界面的：
+不适合放入设置界面的内容：
 
 - 缓存
-- 迁移和 schema 元数据
+- 迁移元数据
 - 运行时镜像状态
 - 纯内部实现字段
 
-推荐模式始终是：先完整持久化，再有选择地暴露真正面向玩家的那部分。
+推荐模式是先持久化完整模型，再选择性暴露玩家真正需要调整的那部分。
 
 ---
 
-## 内置参考
+## 内置参考页
 
-RitsuLib 自己注册了一页参考设置，作为实际行为示例。
-
-当前内置参考会演示：
-
-- 会持久化的前置库选项
-- 仅预览的临时控件
-- 可折叠 section
-- 嵌套结构化列表编辑
-- copy / paste / duplicate 的 item 工作流
-
-如果你在设计自己的设置页，建议直接把它当成行为参考来对照。
+RitsuLib 自身注册了一页参考设置，用于展示已持久化设置、仅预览绑定、可折叠分区、嵌套列表编辑以及列表项复制粘贴工作流。
 
 ---
 
@@ -325,4 +281,4 @@ RitsuLib 自己注册了一页参考设置，作为实际行为示例。
 - [持久化设计](PersistenceGuide.md)
 - [本地化与关键词](LocalizationAndKeywords.md)
 - [生命周期事件](LifecycleEvents.md)
-- [补丁系统](PatchingGuide.md)（设置入口与子菜单由 `Settings/Patches/ModSettingsUiPatches.cs` 注入，含 General 面板动态增高）
+- [补丁系统](PatchingGuide.md)（`Settings/Patches/ModSettingsUiPatches.cs` 包含菜单入口与子菜单注入逻辑）

@@ -89,11 +89,9 @@ user://mod-configs/<modId>/localization
 
 ## 调试兼容模式
 
-> 总开关 `debug_compatibility_mode` 与分项子开关；详见 [诊断与兼容层](DiagnosticsAndCompatibility.md)。
+`LocTable` 占位值解析属于 RitsuLib 调试兼容回退之一：总开关、**LocTable** 子项与一次性 `[Localization][DebugCompat]` 警告见 [诊断与兼容层](DiagnosticsAndCompatibility.md)。
 
-**总开关关闭**时，`LocTable` 保持原版缺键抛异常。总开关开启且 **LocTable 子项**开启时，缺键改为占位并各键至多一次 `[Localization][DebugCompat]` 警告。
-
-目标是帮助排查问题，不是替代正确的本地化编写。
+用于排障，不能代替补全真实键。
 
 ---
 
@@ -159,9 +157,9 @@ RitsuLib 内置了 `AncientDialogueLocalization`，它有两个作用：
 | 可选后缀 `-visit` | 访问覆盖 |
 | 可选后缀 `-attack` | Architect 专用攻击者覆盖 |
 
-作者只需编写本地化条目，即可为自定义角色补充 Ancient 对话，无需手动为每个 `AncientDialogueSet` 打补丁。
+作者只需编写本地化条目，即可为自定义角色补充 Ancient 对话，无需手动为每个 `AncientDialogueSet` 添加补丁。
 
-若某个 Ancient **完全没有**对应 key，原版仍可能在 `THE_ARCHITECT` 显示 PROCEED，但 `WinRun` 会假定 `Dialogue` 非空。RitsuLib 仅在调试**总开关 + 建筑师子项**开启时，对 `ModContentRegistry` 角色注入窄兜底（空 `Lines`、安全的攻击方枚举），并打一次性 `[Ancient]` 警告。
+若某个 Ancient **完全没有**对应键，原版仍可能在 `THE_ARCHITECT` 显示 `PROCEED`，但 `WinRun` 会假定 `Dialogue` 非空。RitsuLib 仅在调试**总开关 + 建筑师子项**开启时，对 `ModContentRegistry` 角色注入窄范围兼容回退（空 `Lines`、安全的攻击方枚举），并记录一次 `[Ancient]` 警告。
 
 ---
 
@@ -172,14 +170,14 @@ RitsuLib 内置了 `AncientDialogueLocalization`，它有两个作用：
 | 游戏模型的文本（标题、描述） | 游戏原版 `LocString` 表 |
 | Mod 自有辅助文本（设置页、说明） | `I18N` |
 | 可复用关键词定义 | `ModKeywordRegistry` |
-| Ancient 对话 | 本地化 key + `AncientDialogueLocalization` |
+| Ancient 对话 | 本地化键 + `AncientDialogueLocalization` |
 
 ---
 
 ## 相关文档
 
 - [内容注册规则](ContentAuthoringToolkit.md)
-- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [角色与解锁模板](CharacterAndUnlockScaffolding.md)
 - [诊断与兼容层](DiagnosticsAndCompatibility.md)
 - [LocString 占位符解析](LocStringPlaceholderResolution.md)
 - [Mod 设置界面](ModSettings.md)

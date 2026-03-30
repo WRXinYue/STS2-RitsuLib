@@ -77,7 +77,7 @@ public sealed class MyFirstEvent : ModEventTemplate
 
 - 实现 `GenerateInitialOptions()`
 - 在选项回调里推进或结束事件
-- 本地化 key 与最终 `ModelId.Entry` 保持一致
+- 本地化键与最终 `ModelId.Entry` 保持一致
 
 ---
 
@@ -144,7 +144,7 @@ MY_MOD_EVENT_MY_FIRST_EVENT
 }
 ```
 
-关键要求是一致性：事件标题、页面文本和选项 key 都应基于同一个最终的 `Id.Entry` 生成。
+关键要求是一致性：事件标题、页面文本和选项键都应基于同一个最终的 `Id.Entry` 生成。
 
 ---
 
@@ -156,7 +156,7 @@ MY_MOD_EVENT_MY_FIRST_EVENT
 
 对原版事件，这两者通常一致。但对通过 RitsuLib 注册的事件，`GetType().Name` 和 `Id.Entry` 不同，会导致部分文本查找落在不同的键前缀上。
 
-`ModEventTemplate` 和 `ModAncientEventTemplate` 通过 `protected new` 隐藏了基类的 `InitialOptionKey`，统一基于最终注册后的 `Id.Entry` 生成选项 key，从而消除这种不一致。
+`ModEventTemplate` 和 `ModAncientEventTemplate` 通过 `protected new` 隐藏了基类的 `InitialOptionKey`，统一基于最终注册后的 `Id.Entry` 生成选项键，从而消除这种不一致。
 
 ---
 
@@ -253,7 +253,7 @@ public sealed class MyAncient : ModAncientEventTemplate
 }
 ```
 
-选项 key、页面 key 与最终注册后的 `Id.Entry` 保持一致的原则同样适用。
+选项键、页面键与最终注册后的 `Id.Entry` 保持一致的原则同样适用。
 
 ---
 

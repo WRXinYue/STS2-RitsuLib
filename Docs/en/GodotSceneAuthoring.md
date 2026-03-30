@@ -129,6 +129,6 @@ This document is only about Godot scenes and script binding.
 ## Related Documents
 
 - [Getting Started](GettingStarted.md)
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)
 - [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md)

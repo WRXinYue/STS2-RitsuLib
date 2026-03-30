@@ -1,22 +1,22 @@
 # Diagnostics & Compatibility
 
-This document describes the safety and compatibility mechanisms RitsuLib adds on top of the base game.
+This document describes the diagnostic policy and compatibility layers that RitsuLib adds on top of the base game.
 
 It focuses on:
 
-- One-time warnings that help authors catch mistakes early
-- Debug-oriented behavior for missing localization and missing epochs
-- Narrow bridge patches where vanilla systems do not support mod content
+- one-time warnings for recurring authoring errors
+- debug-oriented fallbacks for missing localization and invalid unlock data
+- narrow bridge patches where vanilla systems do not process mod content
 
 ---
 
 ## Design Intent
 
-RitsuLib does not hide every engine issue behind implicit magic. It follows these rules:
+RitsuLib does not try to hide every engine limitation. It follows these rules:
 
 - Surface real errors as early as possible
-- Where vanilla offers no safe extension point, the framework may add a bridge
-- When a shim would hide too much, prefer staying explicit
+- where vanilla offers no safe extension point, the framework may add a bridge
+- if a fallback would conceal too much behavior, keep the system explicit
 
 This layer is deliberately narrow and only handles edge cases.
 
@@ -27,11 +27,11 @@ This layer is deliberately narrow and only handles edge cases.
 Some RitsuLib diagnostics warn only once per issue (or once per stable key), including:
 
 - Missing resource paths (`AssetPathDiagnostics`)
-- Missing `LocTable` keys when **master + LocTable** sub-toggle are on (`[Localization][DebugCompat]`)
-- **`THE_ARCHITECT`** stub when debug compat master + ancient sub-toggle are on (`[Ancient]`)
+- Missing `LocTable` keys when the master toggle and the **LocTable missing keys** toggle are enabled (`[Localization][DebugCompat]`)
+- `THE_ARCHITECT` empty-`Lines` fallback when the debug compatibility master toggle and the **THE_ARCHITECT missing dialogue** toggle are enabled (`[Ancient]`)
 - Other unlock-related one-shots (for example `ModUnlockMissingRuleWarnings`)
 
-The goal is actionable logs: noticeable enough to act on, without spamming every frame.
+Each stable key or issue class logs at most once so traces stay readable.
 
 ---
 
@@ -52,27 +52,23 @@ See [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md).
 
 ## Debug Compatibility Mode
 
-> **Master** switch `debug_compatibility_mode` plus **per-subsystem** toggles in mod settings. When the master switch is off, **all** compatibility shims are inactive (vanilla `LocTable` throws, invalid epochs throw from `EpochRuntimeCompatibility`, no `THE_ARCHITECT` stub).
+Optional compatibility fallbacks are grouped under `debug_compatibility_mode` and per-area toggles in mod settings.
 
-### Master off (default)
+**Default (master toggle off):** vanilla behavior for the patched systems described here.
 
-- No `LocTable` placeholder patches run.
-- `EpochRuntimeCompatibility` throws `InvalidOperationException` when a compatibility path would use an invalid epoch id (explicit failure).
-- No `THE_ARCHITECT` empty-dialogue injection.
+**Master toggle on:** the settings UI shows a **Compatibility fallbacks** section. Per-feature toggles default to **on**. Turning a toggle **off** removes only that fallback.
 
-### Master on
-
-The settings UI expands a **Compatibility shims** section. Each sub-toggle defaults to **on** (preserving the old “single global toggle” behavior). A sub-toggle **off** restores vanilla behavior for that area only.
-
-| Sub-toggle | When on |
+| Toggle | Effect when enabled |
 |---|---|
 | **LocTable missing keys** | Placeholder resolution + one-time `[Localization][DebugCompat]` warnings |
-| **Invalid unlock epochs** | Skip the grant + one-time `[Unlocks][DebugCompat]` warnings (RitsuLib-owned unlock bridges only) |
-| **THE_ARCHITECT missing dialogue** | Empty-lines stub for `ModContentRegistry` characters + one-time `[Ancient]` warning |
+| **Invalid unlock epochs** | Skip the grant + one-time `[Unlocks][DebugCompat]` warnings |
+| **THE_ARCHITECT missing dialogue** | Inject empty `Lines` entries for `ModContentRegistry` characters + one-time `[Ancient]` warning |
 
-Scope for epoch handling remains RitsuLib-owned bridges (e.g. mod `ObtainCharUnlockEpoch` flow, registered boss/elite/post-run rules). **`ModUnlockMissingRuleWarnings`** (e.g. missing boss-win rule) still logs independently.
+Except for LocTable missing-key handling, each toggle typically applies only to content registered through RitsuLib.
 
-This mode does not replace correct localization or timeline registration.
+**`ModUnlockMissingRuleWarnings`** (e.g. missing boss-win rule registration): separate diagnostic path from the debug compatibility toggles.
+
+**Released content:** ship complete localization, timeline data, and dialogue. Treat the table above as an iteration aid.
 
 Windows settings path:
 
@@ -98,28 +94,19 @@ When detected, the framework throws or logs errors — it does not accept ambigu
 
 ## Ancient Dialogue Compatibility Layer
 
-> This runs before vanilla `AncientDialogueSet.PopulateLocKeys`, extending vanilla behavior.
-
-RitsuLib automatically appends localization-defined ancient dialogues for registered mod characters.
-
-It is positioned as a compatibility convenience:
-
-- Authors still author dialogue keys
-- The framework discovers and appends them so mod characters follow the same ancient-dialogue pattern as vanilla
+Before `AncientDialogueSet.PopulateLocKeys`, the framework appends localization-defined ancient dialogue rows for registered mod characters. Authors own the keys; the framework discovers and injects them so mod characters use the same ancient-dialogue pipeline as vanilla.
 
 ### `THE_ARCHITECT` dialogue fallback
 
-Same as the **Ancient / THE_ARCHITECT** sub-toggle under debug compatibility (master must be on). If vanilla `TheArchitect.LoadDialogue` resolves **no** dialogue, RitsuLib injects an empty-lines stub for `ModContentRegistry` characters and logs **`[Ancient]`** once.
+Gated on the debug compatibility master toggle and the **THE_ARCHITECT missing dialogue** toggle. If vanilla `TheArchitect.LoadDialogue` yields no dialogue, RitsuLib injects empty `Lines` entries for `ModContentRegistry` characters and logs **`[Ancient]`** once.
 
-For key structure, see [Localization & Keywords](LocalizationAndKeywords.md).
+For key format, see [Localization & Keywords](LocalizationAndKeywords.md).
 
 ---
 
 ## Unlock Compatibility Bridges
 
-> This section explains vanilla progression limits for mod characters and RitsuLib’s bridging strategy.
-
-Several vanilla progression checks assume vanilla characters. RitsuLib uses narrow bridge patches so registered unlock rules apply at those nodes for mod characters:
+Several vanilla progression checks only iterate vanilla characters. RitsuLib applies narrow patches so registered unlock rules participate at the same checkpoints for mod characters:
 
 | Bridge | Description |
 |---|---|
@@ -129,7 +116,7 @@ Several vanilla progression checks assume vanilla characters. RitsuLib uses narr
 | Post-run character unlock | Post-run character-unlock epochs |
 | Ascension reveal | Ascension reveal unlock checks |
 
-These patches do not invent a second progression system; they forward RitsuLib-registered rules into vanilla checkpoints that would otherwise ignore mod characters.
+Bridge patches forward RitsuLib-registered rules into vanilla progression checkpoints that otherwise skip mod characters. They do not introduce a separate progression store.
 
 See [Timeline & Unlocks](TimelineAndUnlocks.md).
 
@@ -143,14 +130,12 @@ That is intentional: late registration often means ModelDb caches are already bu
 
 ---
 
-## Recommended Debugging Mindset
+## Troubleshooting notes
 
-1. Treat warnings as configuration issues first, not random instability
-2. Fix missing assets and localization at the source
-3. Use debug compatibility mode only while iterating
-4. Do not rely on compatibility layers when a clean explicit API exists
-
-The framework is meant to make problems visible, not hide them permanently.
+1. Warnings usually point to mod data or configuration (paths, keys, rules), not random engine failure.
+2. Fix missing assets and localization in source data rather than relying on placeholders long term.
+3. Debug compatibility fallbacks are for iteration; release builds should ship with the master toggle off, or with per-feature toggles disabled and complete data.
+4. Prefer explicit registration APIs; compatibility fallbacks are not a long-term architecture substitute.
 
 ---
 

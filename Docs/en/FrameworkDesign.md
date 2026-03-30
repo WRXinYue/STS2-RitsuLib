@@ -1,20 +1,20 @@
 # Framework Design
 
-This document explains the high-level design choices behind RitsuLib so authors can understand not only what the APIs do, but why they are shaped this way.
+This document explains the architectural decisions behind RitsuLib and the constraints those decisions impose on mod code.
 
 ---
 
 ## Core Goals
 
-RitsuLib is built around a few strong preferences:
+RitsuLib is built around a small set of explicit design priorities:
 
-- explicit registration over hidden magic
-- fixed model identity over runtime name guessing
-- composable templates over giant inheritance trees
-- clean Godot scene replacement over patching vanilla assets in place
-- compatibility shims only where the base game genuinely lacks safe extension points
+- explicit registration instead of implicit discovery
+- fixed model identity instead of runtime name inference
+- composable asset records instead of large inheritance hierarchies
+- scene replacement instead of in-place mutation of vanilla assets
+- compatibility fallbacks only where the base game has no safe extension point
 
-In practice, that means the framework tries to make common work shorter without turning the whole mod into implicit behavior.
+The framework reduces repetitive authoring work, but it does not convert the mod into an implicit runtime graph.
 
 ---
 
@@ -31,73 +31,73 @@ Why this matters:
 - localization keys stay stable and predictable
 - refactors are easier to reason about
 - content registration conflicts are easier to detect
-- migration from one project structure to another does not depend on reflection order or class discovery quirks
+- migration between project structures does not depend on reflection order or class discovery behavior
 
-The tradeoff is deliberate: renaming a published CLR type is now a compatibility decision, not a harmless cleanup.
+The tradeoff is deliberate: renaming a published CLR type becomes a compatibility change.
 
 ---
 
 ## Registration Before Use
 
-RitsuLib is built around explicit early registration.
+RitsuLib relies on explicit registration during early boot.
 
-`CreateContentPack(modId)` is the ergonomic entry point, but the underlying registries stay first-class and explicit.
+`CreateContentPack(modId)` is the convenience entry point, but the underlying registries remain first-class.
 
-The framework freezes registration during early boot because it wants:
+Registration is frozen during early boot to preserve:
 
 - stable model identity
 - stable model lists
 - deterministic lookup and unlock behavior
 
-So the design prefers early failure over silently mutating the model graph after the game has started using it.
+The framework therefore fails fast instead of mutating the model graph after runtime systems have started consuming it.
 
 See [Content Packs & Registries](ContentPacksAndRegistries.md) for the concrete registration model.
 
 ---
 
-## Asset Profiles Instead Of Giant Character Bases
+## Asset Profiles Instead Of Large Character Bases
 
-One of the clearest design choices is the asset-profile approach.
+Character authoring is organized around asset profiles.
 
-Instead of forcing every author into a monolithic custom-character base type with many unrelated virtual members, RitsuLib groups assets into records such as:
+Instead of requiring a monolithic custom-character base type with unrelated virtual members, RitsuLib groups assets into records such as:
 
 - `CharacterSceneAssetSet`
 - `CharacterUiAssetSet`
 - `CharacterVfxAssetSet`
 - `CharacterAudioAssetSet`
 
-That structure is meant to make intent obvious:
+This keeps responsibility boundaries explicit:
 
 - scenes live together
 - UI assets live together
 - VFX tuning lives together
 - audio overrides live together
 
-This is more verbose than a single placeholder property, but it scales better as a framework because it keeps categories separated and easier to extend.
+This is more verbose than a single placeholder property, but it scales better because each asset category can evolve independently.
 
 ---
 
-## Asset Safety Rails
+## Asset Safety Mechanisms
 
-The asset-profile system is intentionally paired with a few safety rails:
+The asset-profile system is paired with a small set of safety mechanisms:
 
 - character placeholder fallback for missing character resources
 - separate APIs for full energy-counter scenes versus pool-linked icons
 - one-time warnings when explicit resource paths are missing
 
-These are not separate design accidents. They exist so a structured asset API stays practical during real mod authoring and migration.
+These behaviors are part of the same design: a structured asset API must remain usable during migration and partial-content development.
 
 See [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md) for the detailed behavior and API surface.
 
 ---
 
-## Compatibility Shims Live At The Edges
+## Compatibility Layers Stay Narrow
 
-RitsuLib does include compatibility-oriented helpers, but they are kept narrow.
+RitsuLib includes compatibility-oriented patches, but they are intentionally narrow.
 
-The framework tries not to make every system magical by default. Instead, it adds shims where the game or modding surface would otherwise be unsafe or needlessly repetitive.
+The framework does not hide every engine limitation behind automation. It adds fallbacks only where the game or modding surface would otherwise be unsafe or excessively repetitive.
 
-Representative examples include optional `LocTable` soft-fail (`debug_compatibility_mode`), ancient dialogue append plus the narrow `THE_ARCHITECT` stub for registry characters (independent of that flag), and unlock bridge patches for vanilla progression hooks that ignore mod characters.
+Examples include `LocTable` and `THE_ARCHITECT` fallbacks under `debug_compatibility_mode`, ancient dialogue key injection, and unlock bridge patches for vanilla progression checks that skip mod characters.
 
 See [Diagnostics & Compatibility](DiagnosticsAndCompatibility.md) for the concrete compatibility layers.
 
@@ -113,7 +113,7 @@ Harmony is still the underlying patch engine, but RitsuLib wraps it with:
 - grouped registration helpers
 - dynamic patch application support
 
-The goal is not to hide Harmony. The goal is to standardize patch shape and failure handling so large mods stay maintainable.
+The goal is not to abstract Harmony away. The goal is to standardize patch declaration and failure handling so large mods remain maintainable.
 
 See [Patching Guide](PatchingGuide.md) for the patching workflow.
 
@@ -130,7 +130,7 @@ That choice enables:
 - future expansion without breaking call sites
 - safer serialization boundaries
 
-It is slightly more ceremony up front, but it avoids the long-term pain of primitive save keys that outgrow their original shape.
+This adds some upfront structure, but avoids primitive save keys that later need to carry schema growth.
 
 See [Persistence Guide](PersistenceGuide.md) for the full data model.
 
@@ -141,7 +141,7 @@ See [Persistence Guide](PersistenceGuide.md) for the full data model.
 - [Getting Started](GettingStarted.md)
 - [Content Authoring Toolkit](ContentAuthoringToolkit.md)
 - [Content Packs & Registries](ContentPacksAndRegistries.md)
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Timeline & Unlocks](TimelineAndUnlocks.md)
 - [Asset Profiles & Fallbacks](AssetProfilesAndFallbacks.md)
 - [Patching Guide](PatchingGuide.md)

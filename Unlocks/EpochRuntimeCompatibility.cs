@@ -16,11 +16,9 @@ namespace STS2RitsuLib.Unlocks
             if (EpochModel.IsValid(epochId))
                 return true;
 
+            // No compat: callers proceed to ObtainEpoch / original patched methods—failures are vanilla, not a RitsuLib-specific throw.
             if (!RitsuLibSettingsStore.IsUnlockEpochCompatEnabled())
-                throw new InvalidOperationException(
-                    $"Missing or invalid epoch id '{epochId}' during {context}. " +
-                    "Enable RitsuLib debug compatibility (master + Unlock epoch) to skip this grant with a warning, " +
-                    "or register/fix the epoch in your timeline/unlock rules.");
+                return true;
 
             WarnMissingEpochOnce(epochId, context);
             return false;

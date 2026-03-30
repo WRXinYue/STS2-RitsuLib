@@ -185,7 +185,7 @@ See [Persistence Guide](PersistenceGuide.md) for scopes, reload timing, and migr
 ## Next Steps
 
 - [Content Authoring Toolkit](ContentAuthoringToolkit.md)
-- [Character & Unlock Scaffolding](CharacterAndUnlockScaffolding.md)
+- [Character & Unlock Templates](CharacterAndUnlockScaffolding.md)
 - [Card Dynamic Variables](CardDynamicVarToolkit.md)
 - [Lifecycle Events](LifecycleEvents.md)
 - [Patching Guide](PatchingGuide.md)

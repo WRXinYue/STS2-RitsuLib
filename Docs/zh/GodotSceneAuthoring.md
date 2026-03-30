@@ -129,6 +129,6 @@ RitsuLibFramework.EnsureGodotScriptsRegistered(
 ## 相关文档
 
 - [快速入门](GettingStarted.md)
-- [角色与解锁脚手架](CharacterAndUnlockScaffolding.md)
+- [角色与解锁模板](CharacterAndUnlockScaffolding.md)
 - [资源配置与回退规则](AssetProfilesAndFallbacks.md)
 - [诊断与兼容层](DiagnosticsAndCompatibility.md)

@@ -1,4 +1,4 @@
-# Character & Unlock Scaffolding
+# Character & Unlock Templates
 
 This document is the practical assembly guide for a character mod: character templates, content pools, epoch templates, and unlock registration, with full examples.
 
