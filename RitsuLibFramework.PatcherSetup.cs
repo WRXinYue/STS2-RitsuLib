@@ -136,6 +136,12 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<ActGenerateBackgroundAssetsPatch>();
             patcher.RegisterPatch<ActAssetPathsBackgroundLayersPatch>();
 
+            patcher.RegisterPatch<EncounterCreateScenePatch>();
+            patcher.RegisterPatch<EncounterCreateBackgroundAssetsForCustomPatch>();
+            patcher.RegisterPatch<EncounterBossNodePathPatch>();
+            patcher.RegisterPatch<EncounterMapNodeAssetPathsPatch>();
+            patcher.RegisterPatch<EncounterGetAssetPathsPatch>();
+
             patcher.RegisterPatch<EventLayoutScenePatch>();
             patcher.RegisterPatch<EventInitialPortraitPatch>();
             patcher.RegisterPatch<EventBackgroundScenePatch>();

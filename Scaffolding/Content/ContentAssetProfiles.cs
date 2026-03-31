@@ -1,4 +1,5 @@
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Models;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
@@ -146,6 +147,36 @@ namespace STS2RitsuLib.Scaffolding.Content
         ///     Default empty profile (no custom paths).
         /// </summary>
         public static ActAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional encounter combat scene, background (main scene + parallax layers dir), boss map node spine, and extra
+    ///     preload paths (vanilla <c>EncounterModel</c> pipeline).
+    /// </summary>
+    /// <param name="EncounterScenePath">
+    ///     Packed scene for <c>EncounterModel.CreateScene</c> when
+    ///     <see cref="EncounterModel.HasScene" /> is used.
+    /// </param>
+    /// <param name="BackgroundScenePath">Main combat background scene when using encounter-specific backgrounds.</param>
+    /// <param name="BackgroundLayersDirectoryPath"><c>res://</c> layers directory (<c>_bg_</c> / <c>_fg_</c> file names).</param>
+    /// <param name="BossNodeSpinePath">
+    ///     Spine skeleton resource for boss/elite map node (see <c>EncounterModel.BossNodePath</c>
+    ///     ).
+    /// </param>
+    /// <param name="ExtraAssetPaths">Additional paths merged into <c>GetAssetPaths</c> preload.</param>
+    /// <param name="MapNodeAssetPaths">When non-empty, replaces <c>MapNodeAssetPaths</c> enumeration for this encounter.</param>
+    public sealed record EncounterAssetProfile(
+        string? EncounterScenePath = null,
+        string? BackgroundScenePath = null,
+        string? BackgroundLayersDirectoryPath = null,
+        string? BossNodeSpinePath = null,
+        string[]? ExtraAssetPaths = null,
+        string[]? MapNodeAssetPaths = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static EncounterAssetProfile Empty { get; } = new();
     }
 
     /// <summary>
