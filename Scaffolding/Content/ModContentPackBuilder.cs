@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Timeline;
+using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Keywords;
 using STS2RitsuLib.Timeline;
@@ -196,6 +197,15 @@ namespace STS2RitsuLib.Scaffolding.Content
         public ModContentPackBuilder Power<TPower>() where TPower : PowerModel
         {
             return AddStep(ctx => ctx.Content.RegisterPower<TPower>());
+        }
+
+        /// <summary>
+        ///     Queues <see cref="RitsuLibFramework.RegisterHealthBarForecast{TSource}" /> for a non-power forecast source.
+        /// </summary>
+        public ModContentPackBuilder HealthBarForecast<TSource>(string? sourceId = null)
+            where TSource : IHealthBarForecastSource, new()
+        {
+            return AddStep(ctx => RitsuLibFramework.RegisterHealthBarForecast<TSource>(ctx.ModId, sourceId));
         }
 
         /// <summary>

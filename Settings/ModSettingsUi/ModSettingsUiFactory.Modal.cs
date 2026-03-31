@@ -8,35 +8,6 @@ namespace STS2RitsuLib.Settings
         private const int ModalCanvasLayer = 120;
         private const float ModalDimAlpha = 0.62f;
 
-        private sealed partial class ModSettingsModalShield : Control
-        {
-            private readonly Action _onDismiss;
-
-            public ModSettingsModalShield(Action onDismiss)
-            {
-                _onDismiss = onDismiss;
-                MouseFilter = MouseFilterEnum.Stop;
-            }
-
-            public override void _Ready()
-            {
-                SetProcessUnhandledInput(true);
-            }
-
-            public override void _UnhandledInput(InputEvent @event)
-            {
-                if (!@event.IsEcho() &&
-                    (@event.IsActionPressed(MegaInput.cancel) || @event.IsActionPressed(MegaInput.pauseAndBack)))
-                {
-                    _onDismiss();
-                    GetViewport()?.SetInputAsHandled();
-                    return;
-                }
-
-                base._UnhandledInput(@event);
-            }
-        }
-
         /// <summary>
         ///     Full-viewport dim + centered panel, same chrome as mod settings. Blocks input under the layer.
         /// </summary>
@@ -69,24 +40,7 @@ namespace STS2RitsuLib.Settings
 
             ModSettingsModalShield rootShield = null!;
 
-            void OnViewportSized()
-            {
-                if (!GodotObject.IsInstanceValid(rootShield))
-                    return;
-                var sz = viewport.GetVisibleRect().Size;
-                rootShield.Position = Vector2.Zero;
-                rootShield.Size = sz;
-            }
-
-            void CloseDialog()
-            {
-                if (GodotObject.IsInstanceValid(viewport))
-                    viewport.SizeChanged -= OnViewportSized;
-                if (GodotObject.IsInstanceValid(canvasLayer))
-                    canvasLayer.QueueFree();
-            }
-
-            rootShield = new ModSettingsModalShield(CloseDialog)
+            rootShield = new(CloseDialog)
             {
                 Name = "ModalShieldRoot",
             };
@@ -202,7 +156,27 @@ namespace STS2RitsuLib.Settings
                     return;
                 Callable.From(ApplyPanelSizePass2).CallDeferred();
             }).CallDeferred();
+
             return;
+
+            void CloseDialog()
+            {
+                if (GodotObject.IsInstanceValid(viewport))
+                    viewport.SizeChanged -= OnViewportSized;
+                if (GodotObject.IsInstanceValid(canvasLayer))
+                    canvasLayer.QueueFree();
+            }
+
+            void OnViewportSized()
+            {
+                // ReSharper disable AccessToModifiedClosure
+                if (!GodotObject.IsInstanceValid(rootShield))
+                    return;
+                var sz = viewport.GetVisibleRect().Size;
+                rootShield.Position = Vector2.Zero;
+                rootShield.Size = sz;
+                // ReSharper restore AccessToModifiedClosure
+            }
 
             void ApplyPanelSizePass2()
             {
@@ -230,6 +204,39 @@ namespace STS2RitsuLib.Settings
                     if (GodotObject.IsInstanceValid(cancelBtn) && cancelBtn.IsVisibleInTree())
                         cancelBtn.GrabFocus();
                 }).CallDeferred();
+            }
+        }
+
+        private sealed partial class ModSettingsModalShield : Control
+        {
+            private readonly Action? _onDismiss;
+
+            public ModSettingsModalShield(Action onDismiss)
+            {
+                _onDismiss = onDismiss;
+                MouseFilter = MouseFilterEnum.Stop;
+            }
+
+            public ModSettingsModalShield()
+            {
+            }
+
+            public override void _Ready()
+            {
+                SetProcessUnhandledInput(true);
+            }
+
+            public override void _UnhandledInput(InputEvent @event)
+            {
+                if (!@event.IsEcho() &&
+                    (@event.IsActionPressed(MegaInput.cancel) || @event.IsActionPressed(MegaInput.pauseAndBack)))
+                {
+                    _onDismiss?.Invoke();
+                    GetViewport()?.SetInputAsHandled();
+                    return;
+                }
+
+                base._UnhandledInput(@event);
             }
         }
     }

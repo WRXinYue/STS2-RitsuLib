@@ -1,4 +1,5 @@
 using STS2RitsuLib.Cards.Patches;
+using STS2RitsuLib.Combat.HealthBars.Patches;
 using STS2RitsuLib.Content.Patches;
 using STS2RitsuLib.Interop.Patches;
 using STS2RitsuLib.Lifecycle.Patches;
@@ -78,6 +79,10 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<EpochLifecyclePatch>();
             patcher.RegisterPatch<UnlockIncrementLifecyclePatch>();
             patcher.RegisterPatch<GameOverScreenLifecyclePatch>();
+            patcher.RegisterPatch<NHealthBarReadyForecastPatch>();
+            patcher.RegisterPatch<NHealthBarRefreshForegroundForecastPatch>();
+            patcher.RegisterPatch<NHealthBarRefreshMiddlegroundForecastPatch>();
+            patcher.RegisterPatch<NHealthBarRefreshTextForecastPatch>();
             patcher.RegisterPatch<ArchaicToothGetTranscendenceStarterCardPatch>();
             patcher.RegisterPatch<ArchaicToothGetTranscendenceTransformedCardPatch>();
             patcher.RegisterPatch<ArchaicToothTranscendenceCardsPatch>();

@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Relics;
+using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 
 namespace STS2RitsuLib.Scaffolding.Content
@@ -108,6 +109,22 @@ namespace STS2RitsuLib.Scaffolding.Content
         public void Register(ModContentRegistry registry)
         {
             registry.RegisterPower<TPower>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers a non-power health bar forecast source type.
+    /// </summary>
+    /// <typeparam name="TSource">Concrete forecast source type.</typeparam>
+    /// <param name="sourceId">Optional stable id; defaults to the source type name.</param>
+    public sealed class HealthBarForecastRegistrationEntry<TSource>(string? sourceId = null)
+        : IContentRegistrationEntry
+        where TSource : IHealthBarForecastSource, new()
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            RitsuLibFramework.RegisterHealthBarForecast<TSource>(registry.ModId, sourceId);
         }
     }
 

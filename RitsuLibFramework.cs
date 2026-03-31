@@ -4,6 +4,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using STS2RitsuLib.Content;
+using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Data;
 using STS2RitsuLib.Interop;
 using STS2RitsuLib.Keywords;
@@ -282,6 +283,15 @@ namespace STS2RitsuLib
         public static ModUnlockRegistry GetUnlockRegistry(string modId)
         {
             return ModUnlockRegistry.For(modId);
+        }
+
+        /// <summary>
+        ///     Registers a non-power health bar forecast source type through the framework.
+        /// </summary>
+        public static void RegisterHealthBarForecast<TSource>(string modId, string? sourceId = null)
+            where TSource : IHealthBarForecastSource, new()
+        {
+            HealthBarForecastRegistry.Register<TSource>(modId, sourceId);
         }
 
         /// <summary>
