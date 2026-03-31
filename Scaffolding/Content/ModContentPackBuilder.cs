@@ -3,6 +3,8 @@ using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Keywords;
+using STS2RitsuLib.Scaffolding.Cards.HandGlow;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline;
 using STS2RitsuLib.Timeline;
 using STS2RitsuLib.Unlocks;
 
@@ -107,6 +109,22 @@ namespace STS2RitsuLib.Scaffolding.Content
             where TCard : CardModel
         {
             return AddStep(ctx => ctx.Content.RegisterCard<TPool, TCard>(publicEntry));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterCardHandGlow{TCard}" /> for hand gold/red highlight rules.
+        /// </summary>
+        public ModContentPackBuilder CardHandGlow<TCard>(ModCardHandGlowRules rules) where TCard : CardModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterCardHandGlow<TCard>(rules));
+        }
+
+        /// <summary>
+        ///     Queues <c>ModContentRegistry.RegisterCardHandOutline&lt;TCard&gt;(...)</c> for custom hand-highlight colors.
+        /// </summary>
+        public ModContentPackBuilder CardHandOutline<TCard>(ModCardHandOutlineRule rule) where TCard : CardModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterCardHandOutline<TCard>(rule));
         }
 
         /// <summary>
