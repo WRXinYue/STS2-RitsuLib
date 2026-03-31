@@ -1,4 +1,5 @@
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Models;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
@@ -128,18 +129,120 @@ namespace STS2RitsuLib.Scaffolding.Content
     /// <param name="MapMidBgPath">Middle layer of the act map background image.</param>
     /// <param name="MapBotBgPath">Bottom layer of the act map background image.</param>
     /// <param name="ChestSpineResourcePath">Treasure room chest Spine data resource path.</param>
+    /// <param name="BackgroundLayersDirectoryPath">
+    ///     Optional <c>res://</c> directory scanned like vanilla <c>scenes/backgrounds/&lt;act&gt;/layers</c> (files must
+    ///     contain
+    ///     <c>_bg_</c> or <c>_fg_</c> in the name).
+    /// </param>
     public sealed record ActAssetProfile(
         string? BackgroundScenePath = null,
         string? RestSiteBackgroundPath = null,
         string? MapTopBgPath = null,
         string? MapMidBgPath = null,
         string? MapBotBgPath = null,
-        string? ChestSpineResourcePath = null)
+        string? ChestSpineResourcePath = null,
+        string? BackgroundLayersDirectoryPath = null)
     {
         /// <summary>
         ///     Default empty profile (no custom paths).
         /// </summary>
         public static ActAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional creature visuals scene path for <see cref="MegaCrit.Sts2.Core.Models.MonsterModel" /> (<c>VisualsPath</c>
+    ///     ).
+    /// </summary>
+    /// <param name="VisualsScenePath">Packed scene root under <c>creature_visuals/</c> convention.</param>
+    public sealed record MonsterAssetProfile(string? VisualsScenePath = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static MonsterAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional encounter combat scene, background (main scene + parallax layers dir), boss map node spine, and extra
+    ///     preload paths (vanilla <c>EncounterModel</c> pipeline).
+    /// </summary>
+    /// <param name="EncounterScenePath">
+    ///     Packed scene for <c>EncounterModel.CreateScene</c> when
+    ///     <see cref="EncounterModel.HasScene" /> is used.
+    /// </param>
+    /// <param name="BackgroundScenePath">Main combat background scene when using encounter-specific backgrounds.</param>
+    /// <param name="BackgroundLayersDirectoryPath"><c>res://</c> layers directory (<c>_bg_</c> / <c>_fg_</c> file names).</param>
+    /// <param name="BossNodeSpinePath">
+    ///     Spine skeleton resource for boss/elite map node (see <c>EncounterModel.BossNodePath</c>
+    ///     ).
+    /// </param>
+    /// <param name="ExtraAssetPaths">Additional paths merged into <c>GetAssetPaths</c> preload.</param>
+    /// <param name="MapNodeAssetPaths">When non-empty, replaces <c>MapNodeAssetPaths</c> enumeration for this encounter.</param>
+    public sealed record EncounterAssetProfile(
+        string? EncounterScenePath = null,
+        string? BackgroundScenePath = null,
+        string? BackgroundLayersDirectoryPath = null,
+        string? BossNodeSpinePath = null,
+        string[]? ExtraAssetPaths = null,
+        string[]? MapNodeAssetPaths = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static EncounterAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional event layout scene, portrait, background scene, and VFX scene paths (vanilla <c>EventModel</c> pipeline).
+    /// </summary>
+    /// <param name="LayoutScenePath">Packed scene for the event layout root (<c>CreateScene</c>).</param>
+    /// <param name="InitialPortraitPath">Texture path for the initial portrait (<c>CreateInitialPortrait</c>).</param>
+    /// <param name="BackgroundScenePath">Packed scene path for the background (<c>CreateBackgroundScene</c>).</param>
+    /// <param name="VfxScenePath">Packed scene path for optional event VFX (<c>CreateVfx</c>).</param>
+    public sealed record EventAssetProfile(
+        string? LayoutScenePath = null,
+        string? InitialPortraitPath = null,
+        string? BackgroundScenePath = null,
+        string? VfxScenePath = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static EventAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional ancient map node and run-history icon paths (vanilla <c>AncientEventModel</c> presentation).
+    /// </summary>
+    /// <param name="MapIconPath">Compressed texture for map node icon.</param>
+    /// <param name="MapIconOutlinePath">Compressed texture for map node outline.</param>
+    /// <param name="RunHistoryIconPath">Run history main icon texture.</param>
+    /// <param name="RunHistoryIconOutlinePath">Run history outline texture.</param>
+    public sealed record AncientEventPresentationAssetProfile(
+        string? MapIconPath = null,
+        string? MapIconOutlinePath = null,
+        string? RunHistoryIconPath = null,
+        string? RunHistoryIconOutlinePath = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static AncientEventPresentationAssetProfile Empty { get; } = new();
+    }
+
+    /// <summary>
+    ///     Optional timeline epoch portrait paths (vanilla <c>EpochModel.PackedPortraitPath</c> / <c>BigPortraitPath</c>).
+    /// </summary>
+    /// <param name="PackedPortraitPath">Atlas sprite resource path for the small timeline portrait.</param>
+    /// <param name="BigPortraitPath">Large epoch portrait texture path.</param>
+    public sealed record EpochAssetProfile(
+        string? PackedPortraitPath = null,
+        string? BigPortraitPath = null)
+    {
+        /// <summary>
+        ///     Default empty profile (no custom paths).
+        /// </summary>
+        public static EpochAssetProfile Empty { get; } = new();
     }
 
     /// <summary>
@@ -256,6 +359,100 @@ namespace STS2RitsuLib.Scaffolding.Content
                 ImageHelper.GetImagePath($"packed/map/map_bgs/{normalized}/map_middle_{normalized}.png"),
                 ImageHelper.GetImagePath($"packed/map/map_bgs/{normalized}/map_bottom_{normalized}.png"),
                 $"res://animations/backgrounds/treasure_room/chest_room_act_{normalized}_skel_data.tres");
+        }
+
+        /// <summary>
+        ///     Vanilla combat background layers directory for <paramref name="actEntry" />
+        ///     (<c>res://scenes/backgrounds/&lt;act&gt;/layers</c>).
+        /// </summary>
+        public static string ActVanillaBackgroundLayersDirectory(string actEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(actEntry);
+            return $"res://scenes/backgrounds/{Normalize(actEntry)}/layers";
+        }
+
+        /// <summary>
+        ///     Builds default encounter asset paths for <paramref name="encounterEntry" /> (vanilla <c>EncounterModel</c> layout).
+        /// </summary>
+        public static EncounterAssetProfile Encounter(string encounterEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(encounterEntry);
+
+            var normalized = Normalize(encounterEntry);
+            return new(
+                SceneHelper.GetScenePath($"encounters/{normalized}"),
+                SceneHelper.GetScenePath($"backgrounds/{normalized}/{normalized}_background"),
+                $"res://scenes/backgrounds/{normalized}/layers",
+                $"res://animations/map/{normalized}/{normalized}_node_skel_data.tres");
+        }
+
+        /// <summary>
+        ///     Vanilla per-encounter combat layers directory (<c>res://scenes/backgrounds/&lt;encounter&gt;/layers</c>).
+        /// </summary>
+        public static string EncounterVanillaBackgroundLayersDirectory(string encounterEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(encounterEntry);
+            return $"res://scenes/backgrounds/{Normalize(encounterEntry)}/layers";
+        }
+
+        /// <summary>
+        ///     Builds default creature visuals scene path for <paramref name="monsterEntry" />.
+        /// </summary>
+        public static MonsterAssetProfile Monster(string monsterEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(monsterEntry);
+            return new(SceneHelper.GetScenePath($"creature_visuals/{Normalize(monsterEntry)}"));
+        }
+
+        /// <summary>
+        ///     Builds default event asset paths for <paramref name="eventEntry" /> (default / combat style events).
+        /// </summary>
+        public static EventAssetProfile Event(string eventEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(eventEntry);
+
+            var normalized = Normalize(eventEntry);
+            return new(
+                InitialPortraitPath: ImageHelper.GetImagePath($"events/{normalized}.png"),
+                BackgroundScenePath: SceneHelper.GetScenePath($"events/background_scenes/{normalized}"),
+                VfxScenePath: SceneHelper.GetScenePath($"vfx/events/{normalized}_vfx"));
+        }
+
+        /// <summary>
+        ///     Builds the vanilla custom-layout scene path for <paramref name="eventEntry" /> (custom event layout type).
+        /// </summary>
+        public static string EventCustomLayoutScenePath(string eventEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(eventEntry);
+            return SceneHelper.GetScenePath($"events/custom/{Normalize(eventEntry)}");
+        }
+
+        /// <summary>
+        ///     Builds default ancient presentation paths for <paramref name="ancientEntry" />.
+        /// </summary>
+        public static AncientEventPresentationAssetProfile AncientPresentation(string ancientEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(ancientEntry);
+
+            var normalized = Normalize(ancientEntry);
+            return new(
+                ImageHelper.GetImagePath($"packed/map/ancients/ancient_node_{normalized}.png"),
+                ImageHelper.GetImagePath($"packed/map/ancients/ancient_node_{normalized}_outline.png"),
+                ImageHelper.GetImagePath($"ui/run_history/{normalized}.png"),
+                ImageHelper.GetImagePath($"ui/run_history/{normalized}_outline.png"));
+        }
+
+        /// <summary>
+        ///     Builds default epoch portrait paths for <paramref name="epochId" /> (matches <c>EpochModel</c> conventions).
+        /// </summary>
+        public static EpochAssetProfile Epoch(string epochId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(epochId);
+
+            var normalized = Normalize(epochId);
+            return new(
+                ImageHelper.GetImagePath($"atlases/epoch_atlas.sprites/{normalized}.tres"),
+                ImageHelper.GetImagePath($"timeline/epoch_portraits/{normalized}.png"));
         }
 
         private static string Normalize(string value)

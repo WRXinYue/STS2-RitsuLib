@@ -389,10 +389,8 @@ namespace STS2RitsuLib.Settings
                 && !string.Equals(envelope.TargetSignature, CreateTargetSignature(binding), StringComparison.Ordinal))
                 return false;
 
-            if (!CanCoerceClipboardEnvelopeScalarTo(typeof(TValue), envelope.TypeName))
-                return false;
-
-            return TryCoerceJsonPayloadToValue(envelope.Payload, out value);
+            return CanCoerceClipboardEnvelopeScalarTo(typeof(TValue), envelope.TypeName) &&
+                   TryCoerceJsonPayloadToValue(envelope.Payload, out value);
         }
 
         /// <summary>

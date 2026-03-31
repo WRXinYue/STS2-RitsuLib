@@ -2,13 +2,19 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Keywords;
+using STS2RitsuLib.Scaffolding.Cards.HandGlow;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline;
 using STS2RitsuLib.Scaffolding.Content.Patches;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
     /// <summary>
     ///     Base <see cref="CardModel" /> for mods: hooks extra hover tips (keywords) and optional asset overrides via
-    ///     <see cref="IModCardAssetOverrides" />.
+    ///     <see cref="IModCardAssetOverrides" />. For gold/red hand highlights (Evil Eye / Osty-style), override
+    ///     <c>ShouldGlowGoldInternal</c> / <c>ShouldGlowRedInternal</c> or use <see cref="ModCardHandGlowRegistry" /> /
+    ///     <c>ModContentRegistry.RegisterCardHandGlow&lt;TCard&gt;()</c> with <see cref="CardModelHandGlowExtensions" />.
+    ///     For arbitrary hand-highlight colors use <see cref="ModCardHandOutlineRegistry" /> /
+    ///     <c>ModContentRegistry.RegisterCardHandOutline&lt;TCard&gt;()</c>.
     /// </summary>
     public abstract class ModCardTemplate(
         int baseCost,

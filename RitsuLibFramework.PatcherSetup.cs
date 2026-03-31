@@ -5,11 +5,13 @@ using STS2RitsuLib.Interop.Patches;
 using STS2RitsuLib.Lifecycle.Patches;
 using STS2RitsuLib.Localization.Patches;
 using STS2RitsuLib.Patching.Core;
+using STS2RitsuLib.Relics.Patches;
+using STS2RitsuLib.Scaffolding.Cards.HandGlow.Patches;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline.Patches;
 using STS2RitsuLib.Scaffolding.Characters.Patches;
 using STS2RitsuLib.Scaffolding.Content.Patches;
 using STS2RitsuLib.Settings.Patches;
 using STS2RitsuLib.Unlocks.Patches;
-using STS2RitsuLib.Relics.Patches;
 using STS2RitsuLib.Utils.Persistence.Patches;
 
 namespace STS2RitsuLib
@@ -80,6 +82,10 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<UnlockIncrementLifecyclePatch>();
             patcher.RegisterPatch<GameOverScreenLifecyclePatch>();
             patcher.RegisterPatch<NHealthBarReadyForecastPatch>();
+            patcher.RegisterPatch<CardModelShouldGlowGoldRegistryPatch>();
+            patcher.RegisterPatch<CardModelShouldGlowRedRegistryPatch>();
+            patcher.RegisterPatch<NHandCardHolderUpdateCardHandOutlinePatch>();
+            patcher.RegisterPatch<NHandCardHolderFlashHandOutlinePatch>();
             patcher.RegisterPatch<NHealthBarRefreshForegroundForecastPatch>();
             patcher.RegisterPatch<NHealthBarRefreshMiddlegroundForecastPatch>();
             patcher.RegisterPatch<NHealthBarRefreshTextForecastPatch>();
@@ -93,6 +99,7 @@ namespace STS2RitsuLib
         private static void RegisterContentAssetPatches()
         {
             var patcher = CreatePatcher(Const.ModId, "framework-content-assets", "content assets");
+            patcher.RegisterPatch<EpochPortraitPathPatch>();
             patcher.RegisterPatch<CardPortraitPathPatch>();
             patcher.RegisterPatch<CardPortraitAvailabilityPatch>();
             patcher.RegisterPatch<CardTextureOverridePatch>();
@@ -132,6 +139,26 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<ActBackgroundScenePathPatch>();
             patcher.RegisterPatch<ActRestSiteBackgroundPathPatch>();
             patcher.RegisterPatch<ActMapBackgroundPathPatch>();
+            patcher.RegisterPatch<ActGenerateBackgroundAssetsPatch>();
+            patcher.RegisterPatch<ActAssetPathsBackgroundLayersPatch>();
+
+            patcher.RegisterPatch<EncounterCreateScenePatch>();
+            patcher.RegisterPatch<EncounterCreateBackgroundAssetsForCustomPatch>();
+            patcher.RegisterPatch<EncounterBossNodePathPatch>();
+            patcher.RegisterPatch<EncounterMapNodeAssetPathsPatch>();
+            patcher.RegisterPatch<EncounterGetAssetPathsPatch>();
+
+            patcher.RegisterPatch<MonsterVisualsPathPatch>();
+
+            patcher.RegisterPatch<EventLayoutScenePatch>();
+            patcher.RegisterPatch<EventInitialPortraitPatch>();
+            patcher.RegisterPatch<EventBackgroundScenePatch>();
+            patcher.RegisterPatch<EventHasVfxPatch>();
+            patcher.RegisterPatch<EventCreateVfxPatch>();
+            patcher.RegisterPatch<EventGetAssetPathsPatch>();
+            patcher.RegisterPatch<AncientMapIconTexturePatch>();
+            patcher.RegisterPatch<AncientRunHistoryIconTexturePatch>();
+            patcher.RegisterPatch<AncientMapNodeAssetPathsPatch>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.ContentAssets, patcher);
         }
 
@@ -175,6 +202,7 @@ namespace STS2RitsuLib
         {
             var patcher = CreatePatcher(Const.ModId, "framework-content-registry", "content registry");
             patcher.RegisterPatch<AllCharactersPatch>();
+            patcher.RegisterPatch<AllMonstersPatch>();
             patcher.RegisterPatch<ActsPatch>();
             patcher.RegisterPatch<AllPowersPatch>();
             patcher.RegisterPatch<AllOrbsPatch>();

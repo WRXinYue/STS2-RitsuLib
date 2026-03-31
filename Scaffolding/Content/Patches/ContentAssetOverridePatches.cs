@@ -1,6 +1,9 @@
 using System.Reflection;
 using Godot;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Patching.Models;
 using STS2RitsuLib.Utils;
 
@@ -121,6 +124,51 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
             path = candidate;
             return true;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        internal static bool TryUsePackedSceneCacheOverride<TOverrides>(
+            object instance,
+            ref PackedScene __result,
+            Func<TOverrides, string?> selector,
+            string memberName)
+            where TOverrides : class
+        {
+            if (!TryGetPath(instance, selector, memberName, out var path))
+                return true;
+
+            __result = PreloadManager.Cache.GetScene(path);
+            return false;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        internal static bool TryUseTexture2DFromCacheOverride<TOverrides>(
+            object instance,
+            ref Texture2D __result,
+            Func<TOverrides, string?> selector,
+            string memberName)
+            where TOverrides : class
+        {
+            if (!TryGetPath(instance, selector, memberName, out var path))
+                return true;
+
+            __result = PreloadManager.Cache.GetTexture2D(path);
+            return false;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        internal static bool TryUseCompressedTextureAsTexture2DOverride<TOverrides>(
+            object instance,
+            ref Texture2D __result,
+            Func<TOverrides, string?> selector,
+            string memberName)
+            where TOverrides : class
+        {
+            if (!TryGetPath(instance, selector, memberName, out var path))
+                return true;
+
+            __result = ResourceLoader.Load<CompressedTexture2D>(path);
+            return false;
         }
     }
 
@@ -302,6 +350,149 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         ///     Treasure chest Spine resource path override.
         /// </summary>
         string? CustomChestSpineResourcePath => AssetProfile.ChestSpineResourcePath;
+
+        /// <summary>
+        ///     Optional <c>res://</c> directory for combat background parallax layers (same <c>_bg_</c> / <c>_fg_</c> naming as
+        ///     vanilla). When set, <see cref="ActModel.GenerateBackgroundAssets" /> scans this folder instead of
+        ///     <c>scenes/backgrounds/&lt;act&gt;/layers</c>.
+        /// </summary>
+        string? CustomBackgroundLayersDirectoryPath => AssetProfile.BackgroundLayersDirectoryPath;
+    }
+
+    /// <summary>
+    ///     Optional event layout, portrait, background, and VFX scene paths; use <see cref="ModEventTemplate" /> or implement
+    ///     on a mod <see cref="EventModel" />.
+    /// </summary>
+    public interface IModEventAssetOverrides
+    {
+        /// <summary>
+        ///     Path bundle; <c>Custom*</c> properties mirror these fields unless overridden.
+        /// </summary>
+        EventAssetProfile AssetProfile => EventAssetProfile.Empty;
+
+        /// <summary>
+        ///     Override packed scene for <c>EventModel.CreateScene</c> (full layout root).
+        /// </summary>
+        string? CustomLayoutScenePath => AssetProfile.LayoutScenePath;
+
+        /// <summary>
+        ///     Override texture path for <c>EventModel.CreateInitialPortrait</c>.
+        /// </summary>
+        string? CustomInitialPortraitPath => AssetProfile.InitialPortraitPath;
+
+        /// <summary>
+        ///     Override packed scene path for <c>EventModel.CreateBackgroundScene</c>.
+        /// </summary>
+        string? CustomBackgroundScenePath => AssetProfile.BackgroundScenePath;
+
+        /// <summary>
+        ///     Override packed scene path for <c>EventModel.CreateVfx</c> / <c>HasVfx</c>.
+        /// </summary>
+        string? CustomVfxScenePath => AssetProfile.VfxScenePath;
+    }
+
+    /// <summary>
+    ///     Extends <see cref="IModEventAssetOverrides" /> with ancient map and run-history icon paths; use
+    ///     <see cref="ModAncientEventTemplate" /> or implement on a mod <see cref="AncientEventModel" />.
+    /// </summary>
+    public interface IModAncientEventAssetOverrides : IModEventAssetOverrides
+    {
+        /// <summary>
+        ///     Ancient-only presentation paths (map node + run history).
+        /// </summary>
+        AncientEventPresentationAssetProfile AncientPresentationAssetProfile =>
+            AncientEventPresentationAssetProfile.Empty;
+
+        /// <summary>
+        ///     Override for <c>AncientEventModel.MapIcon</c>.
+        /// </summary>
+        string? CustomMapIconPath => AncientPresentationAssetProfile.MapIconPath;
+
+        /// <summary>
+        ///     Override for <c>AncientEventModel.MapIconOutline</c>.
+        /// </summary>
+        string? CustomMapIconOutlinePath => AncientPresentationAssetProfile.MapIconOutlinePath;
+
+        /// <summary>
+        ///     Override for <c>AncientEventModel.RunHistoryIcon</c>.
+        /// </summary>
+        string? CustomRunHistoryIconPath => AncientPresentationAssetProfile.RunHistoryIconPath;
+
+        /// <summary>
+        ///     Override for <c>AncientEventModel.RunHistoryIconOutline</c>.
+        /// </summary>
+        string? CustomRunHistoryIconOutlinePath => AncientPresentationAssetProfile.RunHistoryIconOutlinePath;
+    }
+
+    /// <summary>
+    ///     Optional epoch timeline portrait paths; use <see cref="STS2RitsuLib.Timeline.Scaffolding.ModEpochTemplate" /> or
+    ///     implement on a mod <see cref="MegaCrit.Sts2.Core.Timeline.EpochModel" />.
+    /// </summary>
+    public interface IModEpochAssetOverrides
+    {
+        /// <summary>
+        ///     Path bundle; <c>Custom*</c> properties mirror these fields unless overridden.
+        /// </summary>
+        EpochAssetProfile AssetProfile => EpochAssetProfile.Empty;
+
+        /// <summary>
+        ///     Override for <c>EpochModel.PackedPortraitPath</c> (atlas sprite entry).
+        /// </summary>
+        string? CustomPackedPortraitPath => AssetProfile.PackedPortraitPath;
+
+        /// <summary>
+        ///     Override for <c>EpochModel.BigPortraitPath</c> (large portrait texture).
+        /// </summary>
+        string? CustomBigPortraitPath => AssetProfile.BigPortraitPath;
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EpochModel" /> portrait path getters for <see cref="IModEpochAssetOverrides" />.
+    /// </summary>
+    public class EpochPortraitPathPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_epoch_portrait_path";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod epochs to override PackedPortraitPath and BigPortraitPath";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return
+            [
+                new(typeof(EpochModel), "get_PackedPortraitPath"),
+                new(typeof(EpochModel), "get_BigPortraitPath"),
+            ];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Dispatches string overrides for packed atlas vs large portrait paths.
+        /// </summary>
+        public static bool Prefix(MethodBase __originalMethod, EpochModel __instance, ref string __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return __originalMethod.Name switch
+            {
+                "get_PackedPortraitPath" => ContentAssetOverridePatchHelper
+                    .TryUseStringOverride<IModEpochAssetOverrides>(
+                        __instance,
+                        ref __result,
+                        o => o.CustomPackedPortraitPath,
+                        nameof(IModEpochAssetOverrides.CustomPackedPortraitPath)),
+                "get_BigPortraitPath" => ContentAssetOverridePatchHelper.TryUseStringOverride<IModEpochAssetOverrides>(
+                    __instance,
+                    ref __result,
+                    o => o.CustomBigPortraitPath,
+                    nameof(IModEpochAssetOverrides.CustomBigPortraitPath)),
+                _ => true,
+            };
+        }
     }
 
     /// <summary>
@@ -1245,6 +1436,396 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
                     nameof(IModActAssetOverrides.CustomMapBotBgPath)),
                 _ => true,
             };
+        }
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EventModel.CreateScene" /> for <see cref="IModEventAssetOverrides" />.
+    /// </summary>
+    public class EventLayoutScenePatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_layout_scene";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod events to override layout packed scene";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), nameof(EventModel.CreateScene))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Supplies <see cref="IModEventAssetOverrides.CustomLayoutScenePath" /> when the resource exists.
+        /// </summary>
+        public static bool Prefix(EventModel __instance, ref PackedScene __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return ContentAssetOverridePatchHelper.TryUsePackedSceneCacheOverride<IModEventAssetOverrides>(
+                __instance,
+                ref __result,
+                o => o.CustomLayoutScenePath,
+                nameof(IModEventAssetOverrides.CustomLayoutScenePath));
+        }
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EventModel.CreateInitialPortrait" /> for <see cref="IModEventAssetOverrides" />.
+    /// </summary>
+    public class EventInitialPortraitPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_initial_portrait";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod events to override initial portrait texture";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), nameof(EventModel.CreateInitialPortrait))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Loads portrait from <see cref="IModEventAssetOverrides.CustomInitialPortraitPath" /> when valid.
+        /// </summary>
+        public static bool Prefix(EventModel __instance, ref Texture2D __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return ContentAssetOverridePatchHelper.TryUseTexture2DFromCacheOverride<IModEventAssetOverrides>(
+                __instance,
+                ref __result,
+                o => o.CustomInitialPortraitPath,
+                nameof(IModEventAssetOverrides.CustomInitialPortraitPath));
+        }
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EventModel.CreateBackgroundScene" /> for <see cref="IModEventAssetOverrides" />.
+    /// </summary>
+    public class EventBackgroundScenePatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_background_scene";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod events to override background packed scene";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), nameof(EventModel.CreateBackgroundScene))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Supplies <see cref="IModEventAssetOverrides.CustomBackgroundScenePath" /> when the resource exists.
+        /// </summary>
+        public static bool Prefix(EventModel __instance, ref PackedScene __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return ContentAssetOverridePatchHelper.TryUsePackedSceneCacheOverride<IModEventAssetOverrides>(
+                __instance,
+                ref __result,
+                o => o.CustomBackgroundScenePath,
+                nameof(IModEventAssetOverrides.CustomBackgroundScenePath));
+        }
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EventModel.HasVfx" /> for mod VFX scene overrides.
+    /// </summary>
+    public class EventHasVfxPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_has_vfx";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod events to advertise custom VFX scene availability";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), "get_HasVfx")];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Returns true when <see cref="IModEventAssetOverrides.CustomVfxScenePath" /> resolves to an existing resource.
+        /// </summary>
+        public static bool Prefix(EventModel __instance, ref bool __result)
+            // ReSharper restore InconsistentNaming
+        {
+            if (__instance is not IModEventAssetOverrides overrides)
+                return true;
+
+            var path = overrides.CustomVfxScenePath;
+            if (string.IsNullOrWhiteSpace(path))
+                return true;
+
+            if (!AssetPathDiagnostics.Exists(path, __instance, nameof(IModEventAssetOverrides.CustomVfxScenePath)))
+                return true;
+
+            __result = true;
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     Patches <see cref="EventModel.CreateVfx" /> for <see cref="IModEventAssetOverrides" />.
+    /// </summary>
+    public class EventCreateVfxPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_create_vfx";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod events to instantiate custom VFX scenes";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), nameof(EventModel.CreateVfx))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Instantiates <see cref="IModEventAssetOverrides.CustomVfxScenePath" /> when the packed scene exists.
+        /// </summary>
+        public static bool Prefix(EventModel __instance, ref Node2D __result)
+            // ReSharper restore InconsistentNaming
+        {
+            if (__instance is not IModEventAssetOverrides overrides)
+                return true;
+
+            var path = overrides.CustomVfxScenePath;
+            if (string.IsNullOrWhiteSpace(path) ||
+                !AssetPathDiagnostics.Exists(path, __instance, nameof(IModEventAssetOverrides.CustomVfxScenePath)))
+                return true;
+
+            __result = PreloadManager.Cache.GetScene(path).Instantiate<Node2D>();
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     Appends custom event asset paths to <see cref="EventModel.GetAssetPaths" /> for preloading.
+    /// </summary>
+    public class EventGetAssetPathsPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_event_get_asset_paths";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Merge mod event custom paths into GetAssetPaths preload lists";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(EventModel), nameof(EventModel.GetAssetPaths))];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Concatenates resolved override paths after the vanilla enumeration.
+        /// </summary>
+        public static void Postfix(EventModel __instance, IRunState runState, ref IEnumerable<string> __result)
+            // ReSharper restore InconsistentNaming
+        {
+            _ = runState;
+
+            if (__instance is not IModEventAssetOverrides eventOverrides)
+                return;
+
+            var merged = AssetPathDiagnostics.CollectExistingPaths(
+                __instance,
+                (eventOverrides.CustomLayoutScenePath, nameof(IModEventAssetOverrides.CustomLayoutScenePath)),
+                (eventOverrides.CustomInitialPortraitPath, nameof(IModEventAssetOverrides.CustomInitialPortraitPath)),
+                (eventOverrides.CustomBackgroundScenePath, nameof(IModEventAssetOverrides.CustomBackgroundScenePath)),
+                (eventOverrides.CustomVfxScenePath, nameof(IModEventAssetOverrides.CustomVfxScenePath)));
+
+            if (__instance is IModAncientEventAssetOverrides ancientOverrides)
+            {
+                var ancientMerged = AssetPathDiagnostics.CollectExistingPaths(
+                    __instance,
+                    (ancientOverrides.CustomMapIconPath, nameof(IModAncientEventAssetOverrides.CustomMapIconPath)),
+                    (ancientOverrides.CustomMapIconOutlinePath,
+                        nameof(IModAncientEventAssetOverrides.CustomMapIconOutlinePath)),
+                    (ancientOverrides.CustomRunHistoryIconPath,
+                        nameof(IModAncientEventAssetOverrides.CustomRunHistoryIconPath)),
+                    (ancientOverrides.CustomRunHistoryIconOutlinePath,
+                        nameof(IModAncientEventAssetOverrides.CustomRunHistoryIconOutlinePath)));
+                if (ancientMerged.Length > 0)
+                    merged = [.. merged, .. ancientMerged];
+            }
+
+            if (merged.Length == 0)
+                return;
+
+            __result = __result.Concat(merged);
+        }
+    }
+
+    /// <summary>
+    ///     Patches ancient map icon textures for <see cref="IModAncientEventAssetOverrides" />.
+    /// </summary>
+    public class AncientMapIconTexturePatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_ancient_map_icon_texture";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod ancients to override map node icon textures";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return
+            [
+                new(typeof(AncientEventModel), "get_MapIcon"),
+                new(typeof(AncientEventModel), "get_MapIconOutline"),
+            ];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Dispatches compressed texture loading to the matching ancient override path.
+        /// </summary>
+        public static bool Prefix(MethodBase __originalMethod, AncientEventModel __instance, ref Texture2D __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return __originalMethod.Name switch
+            {
+                "get_MapIcon" => ContentAssetOverridePatchHelper.TryUseCompressedTextureAsTexture2DOverride<
+                    IModAncientEventAssetOverrides>(
+                    __instance,
+                    ref __result,
+                    o => o.CustomMapIconPath,
+                    nameof(IModAncientEventAssetOverrides.CustomMapIconPath)),
+                "get_MapIconOutline" => ContentAssetOverridePatchHelper.TryUseCompressedTextureAsTexture2DOverride<
+                    IModAncientEventAssetOverrides>(
+                    __instance,
+                    ref __result,
+                    o => o.CustomMapIconOutlinePath,
+                    nameof(IModAncientEventAssetOverrides.CustomMapIconOutlinePath)),
+                _ => true,
+            };
+        }
+    }
+
+    /// <summary>
+    ///     Patches ancient run-history icon textures for <see cref="IModAncientEventAssetOverrides" />.
+    /// </summary>
+    public class AncientRunHistoryIconTexturePatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_ancient_run_history_icon_texture";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod ancients to override run history icon textures";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return
+            [
+                new(typeof(AncientEventModel), "get_RunHistoryIcon"),
+                new(typeof(AncientEventModel), "get_RunHistoryIconOutline"),
+            ];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Dispatches compressed texture loading to the matching ancient override path.
+        /// </summary>
+        public static bool Prefix(MethodBase __originalMethod, AncientEventModel __instance, ref Texture2D __result)
+            // ReSharper restore InconsistentNaming
+        {
+            return __originalMethod.Name switch
+            {
+                "get_RunHistoryIcon" => ContentAssetOverridePatchHelper.TryUseCompressedTextureAsTexture2DOverride<
+                    IModAncientEventAssetOverrides>(
+                    __instance,
+                    ref __result,
+                    o => o.CustomRunHistoryIconPath,
+                    nameof(IModAncientEventAssetOverrides.CustomRunHistoryIconPath)),
+                "get_RunHistoryIconOutline" => ContentAssetOverridePatchHelper
+                    .TryUseCompressedTextureAsTexture2DOverride<
+                        IModAncientEventAssetOverrides>(
+                        __instance,
+                        ref __result,
+                        o => o.CustomRunHistoryIconOutlinePath,
+                        nameof(IModAncientEventAssetOverrides.CustomRunHistoryIconOutlinePath)),
+                _ => true,
+            };
+        }
+    }
+
+    /// <summary>
+    ///     Merges custom map node asset paths into <see cref="AncientEventModel.MapNodeAssetPaths" />.
+    /// </summary>
+    public class AncientMapNodeAssetPathsPatch : IPatchMethod
+    {
+        /// <inheritdoc cref="IPatchMethod.PatchId" />
+        public static string PatchId => "content_asset_override_ancient_map_node_asset_paths";
+
+        /// <inheritdoc cref="IPatchMethod.Description" />
+        public static string Description => "Allow mod ancients to include custom paths in MapNodeAssetPaths";
+
+        /// <inheritdoc cref="IPatchMethod.IsCritical" />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc cref="IPatchMethod.GetTargets" />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return [new(typeof(AncientEventModel), "get_MapNodeAssetPaths")];
+        }
+
+        // ReSharper disable InconsistentNaming
+        /// <summary>
+        ///     Appends resolved custom map icon paths after the vanilla pair.
+        /// </summary>
+        public static void Postfix(AncientEventModel __instance, ref IEnumerable<string> __result)
+            // ReSharper restore InconsistentNaming
+        {
+            if (__instance is not IModAncientEventAssetOverrides overrides)
+                return;
+
+            var extra = AssetPathDiagnostics.CollectExistingPaths(
+                __instance,
+                (overrides.CustomMapIconPath, nameof(IModAncientEventAssetOverrides.CustomMapIconPath)),
+                (overrides.CustomMapIconOutlinePath, nameof(IModAncientEventAssetOverrides.CustomMapIconOutlinePath)));
+            if (extra.Length == 0)
+                return;
+
+            __result = __result.Concat(extra);
         }
     }
 

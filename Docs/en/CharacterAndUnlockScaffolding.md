@@ -133,18 +133,12 @@ Override `PlaceholderCharacterId` with another base character such as `silent` o
 
 ## Story Template
 
-Inherit `ModStoryTemplate` to define a story node and the epoch sequence it exposes on the timeline:
+Inherit `ModStoryTemplate` for the story id (`StoryKey` → slug). Bind epochs in registration order via `RegisterStoryEpoch<TStory, TEpoch>()`, `StoryEpochPackEntry<,>`, or `.StoryEpoch<,>()` — see `TimelineAndUnlocks.md`.
 
 ```csharp
 public class MyStory : ModStoryTemplate
 {
     protected override string StoryKey => "my-character";
-
-    protected override IEnumerable<Type> EpochTypes =>
-    [
-        typeof(MyCharacterEpoch),
-        typeof(MyEpoch2),
-    ];
 }
 ```
 

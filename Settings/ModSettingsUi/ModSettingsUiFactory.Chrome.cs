@@ -370,6 +370,10 @@ namespace STS2RitsuLib.Settings
             };
             host.AddChild(inner);
 
+            Apply();
+            RegisterRefreshWhenAlive(context, host, Apply);
+            return host;
+
             void Apply()
             {
                 if (!GodotObject.IsInstanceValid(host))
@@ -383,10 +387,6 @@ namespace STS2RitsuLib.Settings
                     host.Visible = true;
                 }
             }
-
-            Apply();
-            RegisterRefreshWhenAlive(context, host, Apply);
-            return host;
         }
 
         private static Control CreateSection(ModSettingsUiContext context, ModSettingsPage page,

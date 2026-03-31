@@ -1,13 +1,30 @@
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
+using STS2RitsuLib.Scaffolding.Content.Patches;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
     /// <summary>
-    ///     Base <see cref="EventModel" /> with helpers for stable localization keys and relic options owned by the event.
+    ///     Base <see cref="EventModel" /> with helpers for stable localization keys, relic options owned by the event, and
+    ///     optional <see cref="IModEventAssetOverrides" /> paths.
     /// </summary>
-    public abstract class ModEventTemplate : EventModel
+    public abstract class ModEventTemplate : EventModel, IModEventAssetOverrides
     {
+        /// <inheritdoc />
+        public virtual EventAssetProfile AssetProfile => EventAssetProfile.Empty;
+
+        /// <inheritdoc />
+        public virtual string? CustomLayoutScenePath => AssetProfile.LayoutScenePath;
+
+        /// <inheritdoc />
+        public virtual string? CustomInitialPortraitPath => AssetProfile.InitialPortraitPath;
+
+        /// <inheritdoc />
+        public virtual string? CustomBackgroundScenePath => AssetProfile.BackgroundScenePath;
+
+        /// <inheritdoc />
+        public virtual string? CustomVfxScenePath => AssetProfile.VfxScenePath;
+
         /// <summary>
         ///     Builds a namespaced option key for <paramref name="pageName" /> / <paramref name="optionName" /> under this event
         ///     id.

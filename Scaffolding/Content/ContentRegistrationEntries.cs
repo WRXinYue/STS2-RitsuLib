@@ -2,6 +2,8 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Relics;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
+using STS2RitsuLib.Scaffolding.Cards.HandGlow;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
@@ -59,6 +61,34 @@ namespace STS2RitsuLib.Scaffolding.Content
         public void Register(ModContentRegistry registry)
         {
             registry.RegisterCard<TPool, TCard>(publicEntry);
+        }
+    }
+
+    /// <summary>
+    ///     Registers <see cref="ModCardHandGlowRegistry" /> rules for a card type (gold/red hand highlights).
+    /// </summary>
+    /// <typeparam name="TCard">Concrete <see cref="CardModel" />.</typeparam>
+    /// <param name="rules">Predicate rules; merged with <see cref="ModCardHandGlowRules.Or" /> if registered twice.</param>
+    public sealed class CardHandGlowRegistrationEntry<TCard>(ModCardHandGlowRules rules) : IContentRegistrationEntry
+        where TCard : CardModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterCardHandGlow<TCard>(rules);
+        }
+    }
+
+    /// <summary>
+    ///     Registers <see cref="ModCardHandOutlineRegistry" /> tint rules for a card type (arbitrary hand-highlight colors).
+    /// </summary>
+    public sealed class CardHandOutlineRegistrationEntry<TCard>(ModCardHandOutlineRule rule) : IContentRegistrationEntry
+        where TCard : CardModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterCardHandOutline<TCard>(rule);
         }
     }
 
@@ -307,6 +337,21 @@ namespace STS2RitsuLib.Scaffolding.Content
         public void Register(ModContentRegistry registry)
         {
             registry.RegisterActEncounter<TAct, TEncounter>();
+        }
+    }
+
+    /// <summary>
+    ///     Registers an encounter model merged into every act’s encounter list (see
+    ///     <c>ModContentRegistry.RegisterGlobalEncounter&lt;TEncounter&gt;()</c>).
+    /// </summary>
+    /// <typeparam name="TEncounter">Concrete <see cref="EncounterModel" />.</typeparam>
+    public sealed class GlobalEncounterRegistrationEntry<TEncounter> : IContentRegistrationEntry
+        where TEncounter : EncounterModel
+    {
+        /// <inheritdoc />
+        public void Register(ModContentRegistry registry)
+        {
+            registry.RegisterGlobalEncounter<TEncounter>();
         }
     }
 

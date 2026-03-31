@@ -4,8 +4,8 @@ using STS2RitsuLib.Scaffolding.Content.Patches;
 namespace STS2RitsuLib.Scaffolding.Content
 {
     /// <summary>
-    ///     Base <see cref="ActModel" /> for mods: chest Spine path override and <see cref="IModActAssetOverrides" />
-    ///     scene/map paths.
+    ///     Base <see cref="ActModel" /> for mods: chest Spine path override, <see cref="IModActAssetOverrides" /> scene/map
+    ///     paths, and optional custom combat background layers directory (<c>_bg_</c> / <c>_fg_</c> scenes).
     /// </summary>
     public abstract class ModActTemplate : ActModel, IModActAssetOverrides
     {
@@ -33,5 +33,8 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         /// <inheritdoc />
         public virtual string? CustomChestSpineResourcePath => AssetProfile.ChestSpineResourcePath;
+
+        /// <inheritdoc />
+        public virtual string? CustomBackgroundLayersDirectoryPath => AssetProfile.BackgroundLayersDirectoryPath;
     }
 }

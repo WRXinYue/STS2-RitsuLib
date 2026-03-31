@@ -142,7 +142,6 @@ namespace STS2RitsuLib.Combat.HealthBars
 
             const long externalSourceOrderOffset = 1_000_000L;
             foreach (var entry in snapshot)
-            {
                 AppendSegments(
                     entry.Source,
                     entry.SourceId,
@@ -150,7 +149,6 @@ namespace STS2RitsuLib.Combat.HealthBars
                     externalSourceOrderOffset + entry.RegistrationOrder,
                     segments,
                     entry.ModId);
-            }
 
             return segments;
         }
@@ -166,13 +164,9 @@ namespace STS2RitsuLib.Combat.HealthBars
             try
             {
                 var providedSegments = source.GetHealthBarForecastSegments(context);
-                foreach (var segment in providedSegments)
-                {
-                    if (segment.Amount <= 0)
-                        continue;
-
-                    segments.Add(new(segment, sequenceOrder));
-                }
+                segments.AddRange(from segment in providedSegments
+                    where segment.Amount > 0
+                    select new RegisteredHealthBarForecastSegment(segment, sequenceOrder));
             }
             catch (Exception ex)
             {

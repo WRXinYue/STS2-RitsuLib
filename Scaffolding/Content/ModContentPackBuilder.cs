@@ -3,6 +3,8 @@ using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Keywords;
+using STS2RitsuLib.Scaffolding.Cards.HandGlow;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline;
 using STS2RitsuLib.Timeline;
 using STS2RitsuLib.Unlocks;
 
@@ -62,13 +64,31 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
-        ///     Queues <see cref="ModContentRegistry.RegisterActEncounter{TAct,TEncounter}" />.
+        ///     Queues <see cref="ModContentRegistry.RegisterActEncounter{TAct,TEncounter}" /> (encounter only in that act).
         /// </summary>
         public ModContentPackBuilder ActEncounter<TAct, TEncounter>()
             where TAct : ActModel
             where TEncounter : EncounterModel
         {
             return AddStep(ctx => ctx.Content.RegisterActEncounter<TAct, TEncounter>());
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterGlobalEncounter{TEncounter}" /> (encounter merged into every act’s
+        ///     encounter pool).
+        /// </summary>
+        public ModContentPackBuilder GlobalEncounter<TEncounter>() where TEncounter : EncounterModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterGlobalEncounter<TEncounter>());
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterMonster{TMonster}" /> (standalone monster type + patched
+        ///     <c>ModelDb.Monsters</c> merge).
+        /// </summary>
+        public ModContentPackBuilder Monster<TMonster>() where TMonster : MonsterModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterMonster<TMonster>());
         }
 
         /// <summary>
@@ -89,6 +109,22 @@ namespace STS2RitsuLib.Scaffolding.Content
             where TCard : CardModel
         {
             return AddStep(ctx => ctx.Content.RegisterCard<TPool, TCard>(publicEntry));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterCardHandGlow{TCard}" /> for hand gold/red highlight rules.
+        /// </summary>
+        public ModContentPackBuilder CardHandGlow<TCard>(ModCardHandGlowRules rules) where TCard : CardModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterCardHandGlow<TCard>(rules));
+        }
+
+        /// <summary>
+        ///     Queues <c>ModContentRegistry.RegisterCardHandOutline&lt;TCard&gt;(...)</c> for custom hand-highlight colors.
+        /// </summary>
+        public ModContentPackBuilder CardHandOutline<TCard>(ModCardHandOutlineRule rule) where TCard : CardModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterCardHandOutline<TCard>(rule));
         }
 
         /// <summary>
@@ -356,6 +392,16 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
+        ///     Queues <see cref="ModTimelineRegistry.RegisterStoryEpoch{TStory, TEpoch}" /> (epoch + story column order).
+        /// </summary>
+        public ModContentPackBuilder StoryEpoch<TStory, TEpoch>()
+            where TStory : StoryModel, new()
+            where TEpoch : EpochModel, new()
+        {
+            return AddStep(ctx => ctx.Timeline.RegisterStoryEpoch<TStory, TEpoch>());
+        }
+
+        /// <summary>
         ///     Queues <see cref="ModTimelineRegistry.RegisterStory{TStory}" />.
         /// </summary>
         public ModContentPackBuilder Story<TStory>() where TStory : StoryModel, new()
@@ -507,13 +553,41 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
+        ///     Registers <see cref="ModContentRegistry" /> entries (character, cards, relics, powers, …).
+        /// </summary>
+        public ModContentPackBuilder ContentManifest(IEnumerable<IContentRegistrationEntry>? entries)
+        {
+            return entries != null ? Entries(entries) : this;
+        }
+
+        /// <summary>
+        ///     Registers <see cref="ModKeywordRegistry" /> entries (separate from ModelDb content).
+        /// </summary>
+        public ModContentPackBuilder KeywordManifest(IEnumerable<KeywordRegistrationEntry>? entries)
+        {
+            return entries != null ? Keywords(entries) : this;
+        }
+
+        /// <summary>
+        ///     Registers <see cref="ModTimelineRegistry" /> / <see cref="ModUnlockRegistry" /> via
+        ///     <see cref="IModContentPackEntry" /> (story–epoch bindings, unlock rules). Usually applied after content so
+        ///     <c>RequireEpoch</c> can resolve character ids.
+        /// </summary>
+        public ModContentPackBuilder PackManifest(IEnumerable<IModContentPackEntry>? entries)
+        {
+            return PackEntries(entries);
+        }
+
+        /// <summary>
         ///     Convenience batch for optional content and keyword manifest enumerables.
         /// </summary>
         /// <remarks>
         ///     <see cref="IContentRegistrationEntry" /> may include
         ///     <see cref="ArchaicToothTranscendenceRegistrationEntry{TStarterCard,TAncientCard}" />,
         ///     <see cref="TouchOfOrobasRefinementRegistrationEntry{TStarterRelic,TUpgradedRelic}" />, and related Orobas
-        ///     entries alongside cards/relics/etc.
+        ///     entries alongside cards/relics/etc. Keywords use a different registry; prefer
+        ///     <see cref="ContentManifest" /> / <see cref="KeywordManifest" /> / <see cref="PackManifest" /> when you want
+        ///     that split to be explicit.
         /// </remarks>
         public ModContentPackBuilder Manifest(
             IEnumerable<IContentRegistrationEntry>? contentEntries = null,
@@ -524,6 +598,44 @@ namespace STS2RitsuLib.Scaffolding.Content
 
             if (keywordEntries != null)
                 Keywords(keywordEntries);
+
+            return this;
+        }
+
+        /// <summary>
+        ///     Convenience batch including optional <see cref="IModContentPackEntry" /> steps (timeline bindings, unlocks).
+        /// </summary>
+        public ModContentPackBuilder Manifest(
+            IEnumerable<IContentRegistrationEntry>? contentEntries,
+            IEnumerable<KeywordRegistrationEntry>? keywordEntries,
+            IEnumerable<IModContentPackEntry>? packEntries)
+        {
+            Manifest(contentEntries, keywordEntries);
+            if (packEntries != null)
+                PackEntries(packEntries);
+
+            return this;
+        }
+
+        /// <summary>
+        ///     Appends a <see cref="IModContentPackEntry" /> (timeline / unlock / other pack surface).
+        /// </summary>
+        public ModContentPackBuilder PackEntry(IModContentPackEntry entry)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            return AddStep(entry.Apply);
+        }
+
+        /// <summary>
+        ///     Appends each <see cref="IModContentPackEntry" /> in order.
+        /// </summary>
+        public ModContentPackBuilder PackEntries(IEnumerable<IModContentPackEntry>? entries)
+        {
+            if (entries == null)
+                return this;
+
+            foreach (var entry in entries)
+                PackEntry(entry);
 
             return this;
         }

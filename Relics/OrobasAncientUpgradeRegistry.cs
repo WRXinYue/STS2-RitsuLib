@@ -72,7 +72,6 @@ namespace STS2RitsuLib.Relics
         /// </summary>
         internal static IReadOnlyList<CardModel> GetRegisteredTranscendenceAncientTemplates()
         {
-            List<CardModel> list;
             Type[] types;
             lock (Sync)
             {
@@ -80,7 +79,7 @@ namespace STS2RitsuLib.Relics
             }
 
             var seen = new HashSet<ModelId>();
-            list = [];
+            List<CardModel> list = [];
             list.AddRange(types.Select(ancientType => ModelDb.GetByIdOrNull<CardModel>(ModelDb.GetId(ancientType)))
                 .OfType<CardModel>().Where(card => seen.Add(card.Id)));
 

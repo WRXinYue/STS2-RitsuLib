@@ -362,9 +362,8 @@ namespace STS2RitsuLib.Settings
             if (!LocString.Exists("settings_ui", descKey))
                 return null;
 
-            var key = descKey;
             return ModSettingsText.Dynamic(() =>
-                LocString.GetIfExists("settings_ui", key)?.GetFormattedText() ?? "");
+                LocString.GetIfExists("settings_ui", descKey)?.GetFormattedText() ?? "");
         }
 
         private static bool ShouldShowBaseLibHoverTip(MemberInfo member, Type configConcreteType,

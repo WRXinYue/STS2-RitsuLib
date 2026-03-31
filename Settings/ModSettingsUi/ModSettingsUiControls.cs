@@ -993,8 +993,7 @@ namespace STS2RitsuLib.Settings
                 _rowButtons.Add(row);
             }
 
-            if (_dropPanel != null)
-                _dropPanel.CustomMinimumSize = new(panelMinW, 0f);
+            _dropPanel?.CustomMinimumSize = new(panelMinW, 0f);
         }
 
         private void ActivateRow(int index)
@@ -1737,12 +1736,11 @@ namespace STS2RitsuLib.Settings
 
         private void GrabFirstEnabledRow()
         {
-            foreach (var row in _rowButtons)
-                if (!row.Disabled && row.IsVisibleInTree())
-                {
-                    row.GrabFocus();
-                    return;
-                }
+            foreach (var row in _rowButtons.Where(row => !row.Disabled && row.IsVisibleInTree()))
+            {
+                row.GrabFocus();
+                return;
+            }
         }
 
         private void LayoutDropdownInViewport()
