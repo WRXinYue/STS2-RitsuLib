@@ -128,13 +128,19 @@ namespace STS2RitsuLib.Scaffolding.Content
     /// <param name="MapMidBgPath">Middle layer of the act map background image.</param>
     /// <param name="MapBotBgPath">Bottom layer of the act map background image.</param>
     /// <param name="ChestSpineResourcePath">Treasure room chest Spine data resource path.</param>
+    /// <param name="BackgroundLayersDirectoryPath">
+    ///     Optional <c>res://</c> directory scanned like vanilla <c>scenes/backgrounds/&lt;act&gt;/layers</c> (files must
+    ///     contain
+    ///     <c>_bg_</c> or <c>_fg_</c> in the name).
+    /// </param>
     public sealed record ActAssetProfile(
         string? BackgroundScenePath = null,
         string? RestSiteBackgroundPath = null,
         string? MapTopBgPath = null,
         string? MapMidBgPath = null,
         string? MapBotBgPath = null,
-        string? ChestSpineResourcePath = null)
+        string? ChestSpineResourcePath = null,
+        string? BackgroundLayersDirectoryPath = null)
     {
         /// <summary>
         ///     Default empty profile (no custom paths).
@@ -309,6 +315,16 @@ namespace STS2RitsuLib.Scaffolding.Content
                 ImageHelper.GetImagePath($"packed/map/map_bgs/{normalized}/map_middle_{normalized}.png"),
                 ImageHelper.GetImagePath($"packed/map/map_bgs/{normalized}/map_bottom_{normalized}.png"),
                 $"res://animations/backgrounds/treasure_room/chest_room_act_{normalized}_skel_data.tres");
+        }
+
+        /// <summary>
+        ///     Vanilla combat background layers directory for <paramref name="actEntry" />
+        ///     (<c>res://scenes/backgrounds/&lt;act&gt;/layers</c>).
+        /// </summary>
+        public static string ActVanillaBackgroundLayersDirectory(string actEntry)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(actEntry);
+            return $"res://scenes/backgrounds/{Normalize(actEntry)}/layers";
         }
 
         /// <summary>

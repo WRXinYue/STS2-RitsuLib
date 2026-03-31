@@ -133,6 +133,8 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<ActBackgroundScenePathPatch>();
             patcher.RegisterPatch<ActRestSiteBackgroundPathPatch>();
             patcher.RegisterPatch<ActMapBackgroundPathPatch>();
+            patcher.RegisterPatch<ActGenerateBackgroundAssetsPatch>();
+            patcher.RegisterPatch<ActAssetPathsBackgroundLayersPatch>();
 
             patcher.RegisterPatch<EventLayoutScenePatch>();
             patcher.RegisterPatch<EventInitialPortraitPatch>();

@@ -350,6 +350,13 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         ///     Treasure chest Spine resource path override.
         /// </summary>
         string? CustomChestSpineResourcePath => AssetProfile.ChestSpineResourcePath;
+
+        /// <summary>
+        ///     Optional <c>res://</c> directory for combat background parallax layers (same <c>_bg_</c> / <c>_fg_</c> naming as
+        ///     vanilla). When set, <see cref="ActModel.GenerateBackgroundAssets" /> scans this folder instead of
+        ///     <c>scenes/backgrounds/&lt;act&gt;/layers</c>.
+        /// </summary>
+        string? CustomBackgroundLayersDirectoryPath => AssetProfile.BackgroundLayersDirectoryPath;
     }
 
     /// <summary>
