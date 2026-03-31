@@ -32,25 +32,31 @@ Core distinction:
 
 ## Story Registration
 
-The recommended approach is `ModStoryTemplate`:
+Use `ModStoryTemplate` for the story **type** (slug id from `StoryKey` only). Epoch **order** is not a hard-coded list on the story class; register each epoch against the story in manifest order:
 
 ```csharp
 public class MyStory : ModStoryTemplate
 {
     protected override string StoryKey => "my-story";
-
-    protected override IEnumerable<Type> EpochTypes =>
-    [
-        typeof(MyCharacterEpoch),
-        typeof(MyCardEpoch),
-    ];
 }
+
+// Fluent (order = column order):
+// .StoryEpoch<MyStory, MyCharacterEpoch>()
+// .StoryEpoch<MyStory, MyCardEpoch>()
+// .Story<MyStory>()
+
+// Or IModContentPackEntry list (same idea as card manifest entries):
+// new StoryEpochPackEntry<MyStory, MyCharacterEpoch>(),
+// new StoryEpochPackEntry<MyStory, MyCardEpoch>(),
+// new StoryPackEntry<MyStory>(),
 ```
 
 `ModStoryTemplate` is responsible for:
 
 - Deriving a normalized story identity from `StoryKey`
-- Resolving `EpochTypes` into the `Epochs` array the game expects
+- Building `Epochs` from `ModStoryEpochBindings` (filled by `ModTimelineRegistry.RegisterStoryEpoch<TStory, TEpoch>()`)
+
+`RegisterStoryEpoch` registers the epoch with vanilla discovery **and** appends it to that story’s column. Use `.Epoch<TEpoch>()` only for epochs that are **not** part of a mod story column.
 
 ---
 

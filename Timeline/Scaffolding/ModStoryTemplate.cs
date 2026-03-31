@@ -1,10 +1,14 @@
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Timeline;
+using STS2RitsuLib.Scaffolding.Content;
 
 namespace STS2RitsuLib.Timeline.Scaffolding
 {
     /// <summary>
-    ///     Base <see cref="StoryModel" /> that derives its id from <see cref="StoryKey" /> and composes epochs from CLR types.
+    ///     Base <see cref="StoryModel" /> that derives its id from <see cref="StoryKey" />. Epoch order comes from
+    ///     <see cref="ModTimelineRegistry.RegisterStoryEpoch{TStory, TEpoch}" /> (or
+    ///     <see cref="StoryEpochPackEntry{TStory,TEpoch}" />),
+    ///     not from an overridden type list.
     /// </summary>
     public abstract class ModStoryTemplate : StoryModel
     {
@@ -12,7 +16,8 @@ namespace STS2RitsuLib.Timeline.Scaffolding
         protected sealed override string Id => StringHelper.Slugify(StoryKey);
 
         /// <inheritdoc />
-        public sealed override EpochModel[] Epochs => EpochTypes
+        public sealed override EpochModel[] Epochs => ModStoryEpochBindings
+            .GetOrderedEpochTypes(GetType())
             .Select(ResolveEpoch)
             .ToArray();
 
@@ -20,11 +25,6 @@ namespace STS2RitsuLib.Timeline.Scaffolding
         ///     Human-readable story key slugified into the model id.
         /// </summary>
         protected abstract string StoryKey { get; }
-
-        /// <summary>
-        ///     Ordered CLR types of epochs belonging to this story; each must resolve via <see cref="EpochModel.GetId(Type)" />.
-        /// </summary>
-        protected abstract IEnumerable<Type> EpochTypes { get; }
 
         private static EpochModel ResolveEpoch(Type epochType)
         {

@@ -1,4 +1,5 @@
 using System.Reflection;
+using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Diagnostics;
 
@@ -6,7 +7,8 @@ namespace STS2RitsuLib.Timeline
 {
     /// <summary>
     ///     Per-mod registry for custom <c>EpochModel</c> and <c>StoryModel</c> types wired into the game's static
-    ///     timeline dictionaries.
+    ///     timeline dictionaries. Epochs are individual unlock slots; a <see cref="StoryModel" /> groups them into one
+    ///     timeline column (story title + ordered epoch list in the progression UI).
     /// </summary>
     public sealed class ModTimelineRegistry
     {
@@ -18,6 +20,7 @@ namespace STS2RitsuLib.Timeline
         private static readonly HashSet<Type> RegisteredEpochTypes = [];
 
         private static readonly HashSet<Type> RegisteredStoryTypes = [];
+        private readonly Logger _logger;
 
         private readonly string _modId;
         private string? _freezeReason;
@@ -25,6 +28,7 @@ namespace STS2RitsuLib.Timeline
         private ModTimelineRegistry(string modId)
         {
             _modId = modId;
+            _logger = RitsuLibFramework.CreateLogger(modId);
         }
 
         /// <summary>
@@ -66,6 +70,33 @@ namespace STS2RitsuLib.Timeline
             RegisterStory(typeof(TStory));
         }
 
+        /// <summary>
+        ///     Registers <typeparamref name="TEpoch" /> with vanilla epoch discovery and appends it to
+        ///     <typeparamref name="TStory" />'s ordered column via <see cref="ModStoryEpochBindings" /> (manifest / pack order).
+        /// </summary>
+        public void RegisterStoryEpoch<TStory, TEpoch>()
+            where TStory : StoryModel, new()
+            where TEpoch : EpochModel, new()
+        {
+            RegisterStoryEpoch(typeof(TStory), typeof(TEpoch));
+        }
+
+        /// <summary>
+        ///     Registers <paramref name="epochType" /> and binds it to <paramref name="storyType" />'s story column.
+        /// </summary>
+        public void RegisterStoryEpoch(Type storyType, Type epochType)
+        {
+            ArgumentNullException.ThrowIfNull(storyType);
+            ArgumentNullException.ThrowIfNull(epochType);
+            EnsureMutable($"register story-epoch binding '{storyType.Name}' ← '{epochType.Name}'");
+            EnsureSubtype(storyType, typeof(StoryModel), nameof(storyType));
+            EnsureSubtype(epochType, typeof(EpochModel), nameof(epochType));
+
+            RegisterEpoch(epochType);
+            ModStoryEpochBindings.Append(storyType, epochType);
+            _logger.Info($"[Timeline] Story-epoch binding: {storyType.Name} ← {epochType.Name}");
+        }
+
         internal static void FreezeRegistrations(string reason)
         {
             lock (SyncRoot)
@@ -74,6 +105,7 @@ namespace STS2RitsuLib.Timeline
                     return;
 
                 IsFrozen = true;
+                ModStoryEpochBindings.Freeze();
                 foreach (var registry in Registries.Values)
                     registry._freezeReason = reason;
             }
@@ -95,7 +127,10 @@ namespace STS2RitsuLib.Timeline
                     GetKnownEpochTypes());
 
                 if (!RegisteredEpochTypes.Add(epochType))
+                {
+                    _logger.Debug($"[Timeline] Skipping duplicate epoch registration: {epochType.Name} (id={epochId})");
                     return;
+                }
 
                 var epochTypeDictionary =
                     GetStaticField<Dictionary<string, Type>>(typeof(EpochModel), "_epochTypeDictionary");
@@ -107,6 +142,8 @@ namespace STS2RitsuLib.Timeline
                 SetStaticField(typeof(EpochModel), "_allEpochIds",
                     epochTypeDictionary.Keys.OrderBy(id => id, StringComparer.Ordinal).ToArray());
             }
+
+            _logger.Info($"[Timeline] Registered epoch: {epochType.Name} (id={epochId})");
         }
 
         private void RegisterStory(Type storyType)
@@ -124,12 +161,17 @@ namespace STS2RitsuLib.Timeline
                     GetKnownStoryTypes());
 
                 if (!RegisteredStoryTypes.Add(storyType))
+                {
+                    _logger.Debug($"[Timeline] Skipping duplicate story registration: {storyType.Name} (id={storyId})");
                     return;
+                }
 
                 var storyDictionary =
                     GetStaticField<Dictionary<string, Type>>(typeof(StoryModel), "_storyTypeDictionary");
                 storyDictionary[storyId] = storyType;
             }
+
+            _logger.Info($"[Timeline] Registered story: {storyType.Name} (id={storyId})");
         }
 
         private void EnsureMutable(string operation)

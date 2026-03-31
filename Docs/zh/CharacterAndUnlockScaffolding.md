@@ -133,18 +133,12 @@ public class MyCharacter : ModCharacterTemplate<MyCardPool, MyRelicPool, MyPotio
 
 ## 故事模板
 
-继承 `ModStoryTemplate`，定义一个故事节点以及它在时间线中展开的纪元序列：
+继承 `ModStoryTemplate` 提供故事标识（`StoryKey` → slug）。纪元顺序在注册阶段用 `RegisterStoryEpoch` / `StoryEpochPackEntry` / `.StoryEpoch<,>()` 绑定，见 `TimelineAndUnlocks.md`。
 
 ```csharp
 public class MyStory : ModStoryTemplate
 {
     protected override string StoryKey => "my-character";
-
-    protected override IEnumerable<Type> EpochTypes =>
-    [
-        typeof(MyCharacterEpoch),
-        typeof(MyEpoch2),
-    ];
 }
 ```
 
