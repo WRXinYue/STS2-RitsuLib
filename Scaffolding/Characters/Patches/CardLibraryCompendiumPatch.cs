@@ -15,6 +15,8 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
     ///     Adds a pool-filter button for each registered mod character in the card library compendium.
     ///     Without this patch, mod character cards are not visible in any filter category, and opening
     ///     the card library during a run with a mod character causes a KeyNotFoundException crash.
+    ///     Buttons are inserted before the colorless pool filter when possible (then ancients, misc),
+    ///     so they stay with playable-character filters rather than after misc/token-style pools.
     /// </summary>
     public class CardLibraryCompendiumPatch : IPatchMethod
     {
@@ -53,6 +55,8 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
             var filterParent = referenceFilter.GetParent();
             if (filterParent == null) return;
 
+            var useOrderedInsert = TryGetModFilterInsertIndex(__instance, filterParent, out var insertIndex);
+
             ShaderMaterial? referenceMat = null;
             if (referenceFilter.GetNodeOrNull<Control>("Image") is { Material: ShaderMaterial refMat })
                 referenceMat = refMat;
@@ -61,6 +65,7 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
             var updateCallable = Callable.From<NCardPoolFilter>(f => updateMethod.Invoke(__instance, [f]));
             var lastHoveredField = AccessTools.Field(typeof(NCardLibrary), "_lastHoveredControl");
 
+            var nextIndex = insertIndex;
             foreach (var character in modCharacters)
             {
                 string? iconTexturePath = null;
@@ -69,6 +74,11 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
 
                 var filter = CreateFilter(character, iconTexturePath, referenceMat);
                 filterParent.AddChild(filter, true);
+                if (useOrderedInsert)
+                {
+                    filterParent.MoveChild(filter, nextIndex);
+                    nextIndex++;
+                }
 
                 var pool = character.CardPool;
                 ____poolFilters.Add(filter, c => pool.AllCardIds.Contains(c.Id));
@@ -78,6 +88,38 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
                 filter.Connect(Control.SignalName.FocusEntered,
                     Callable.From(delegate { lastHoveredField.SetValue(__instance, filter); }));
             }
+        }
+
+        /// <summary>
+        ///     Prefer inserting mod character filters immediately before non-character pool toggles: colorless, then
+        ///     ancients, then misc (vanilla has no separate token node; those pools follow). Falls back when no anchor
+        ///     resolves under <paramref name="expectedParent" />.
+        /// </summary>
+        private static bool TryGetModFilterInsertIndex(
+            NCardLibrary library,
+            Node expectedParent,
+            out int insertIndex)
+        {
+            ReadOnlySpan<string> anchorNames =
+            [
+                "%ColorlessPool",
+                "%AncientsPool",
+                "%MiscPool",
+            ];
+
+            foreach (var name in anchorNames)
+            {
+                if (library.GetNodeOrNull<NCardPoolFilter>(name) is not { } anchor)
+                    continue;
+                if (anchor.GetParent() != expectedParent)
+                    continue;
+
+                insertIndex = anchor.GetIndex();
+                return true;
+            }
+
+            insertIndex = 0;
+            return false;
         }
 
         private static NCardPoolFilter CreateFilter(
