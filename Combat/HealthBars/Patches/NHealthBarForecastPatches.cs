@@ -1,5 +1,4 @@
 using Godot;
-using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Models.Powers;
@@ -13,32 +12,6 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
     {
         private static readonly AttachedState<NHealthBar, HealthBarForecastUiState?> UiStates = new(() => null);
 
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> HpForegroundContainerRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_hpForegroundContainer");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> HpForegroundRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_hpForeground");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> PoisonForegroundRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_poisonForeground");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> DoomForegroundRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_doomForeground");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> HpMiddlegroundRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_hpMiddleground");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, MegaLabel> HpLabelRef =
-            AccessTools.FieldRefAccess<NHealthBar, MegaLabel>("_hpLabel");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Creature> CreatureRef =
-            AccessTools.FieldRefAccess<NHealthBar, Creature>("_creature");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Tween?> MiddlegroundTweenRef =
-            AccessTools.FieldRefAccess<NHealthBar, Tween?>("_middlegroundTween");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, float> ExpectedMaxFgWidthRef =
-            AccessTools.FieldRefAccess<NHealthBar, float>("_expectedMaxFgWidth");
         private static readonly Color DoomLethalTextColor = new("FB8DFF");
         private static readonly Color DoomLethalOutlineColor = new("2D1263");
 
@@ -48,7 +21,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             if (BaseLibHealthBarForecastBridge.ShouldRitsuRendererStandDown())
                 return;
 
-            var creature = CreatureRef(healthBar);
+            var creature = healthBar._creature;
             if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
             {
                 HideAllCustomSegments(healthBar);
@@ -68,7 +41,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             EnsureOverlayOrder(healthBar, state);
 
             var maxWidth = GetMaxFgWidth(healthBar);
-            var hpForeground = HpForegroundRef(healthBar);
+            var hpForeground = healthBar._hpForeground;
             var baseHp = Math.Clamp(HpFromOffsetRight(healthBar, hpForeground.OffsetRight), 0, creature.CurrentHp);
 
             var rightSegments = customSegments
@@ -126,7 +99,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                     hpForeground.Visible = false;
                 }
 
-                var doomForeground = DoomForegroundRef(healthBar);
+                var doomForeground = healthBar._doomForeground;
                 if (doomForeground.Visible)
                 {
                     if (remainingHp > 0)
@@ -195,22 +168,22 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             if (state == null || !state.LastRender.HasRightForecast)
                 return;
 
-            var creature = CreatureRef(healthBar);
+            var creature = healthBar._creature;
             if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
                 return;
 
-            var hpMiddleground = HpMiddlegroundRef(healthBar);
+            var hpMiddleground = healthBar._hpMiddleground;
             var targetOffsetRight = state.LastRender.RightForecastEdgeOffsetRight;
             var shouldAnimateImmediately = targetOffsetRight >= hpMiddleground.OffsetRight;
             hpMiddleground.OffsetRight += 1f;
 
-            MiddlegroundTweenRef(healthBar)?.Kill();
+            healthBar._middlegroundTween?.Kill();
             var tween = healthBar.CreateTween();
             tween.TweenProperty(hpMiddleground, "offset_right", targetOffsetRight - 2f, 1.0)
                 .SetDelay(shouldAnimateImmediately ? 0.0 : 1.0)
                 .SetEase(Tween.EaseType.Out)
                 .SetTrans(Tween.TransitionType.Expo);
-            MiddlegroundTweenRef(healthBar) = tween;
+            healthBar._middlegroundTween = tween;
         }
 
         public static void RefreshTextOverlay(NHealthBar healthBar)
@@ -222,12 +195,12 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             if (state == null)
                 return;
 
-            var creature = CreatureRef(healthBar);
+            var creature = healthBar._creature;
             if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
                 return;
 
             var lethalColor = state.LastRender.LethalRightColor ?? state.LastRender.LethalLeftColor;
-            var hpLabel = HpLabelRef(healthBar);
+            var hpLabel = healthBar._hpLabel;
             if (!lethalColor.HasValue)
             {
                 if (!IsDoomLethalAfterRight(healthBar, creature))
@@ -269,8 +242,8 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             if (UiStates[healthBar] != null)
                 return;
 
-            var poisonForeground = (NinePatchRect)PoisonForegroundRef(healthBar);
-            var doomForeground = (NinePatchRect)DoomForegroundRef(healthBar);
+            var poisonForeground = (NinePatchRect)healthBar._poisonForeground;
+            var doomForeground = (NinePatchRect)healthBar._doomForeground;
             var mask = poisonForeground.GetParent<Control>();
             var rightContainer = CreateContainer("RitsuForecastRightContainer");
             var leftContainer = CreateContainer("RitsuForecastLeftContainer");
@@ -309,9 +282,9 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
 
         private static void EnsureOverlayOrder(NHealthBar healthBar, HealthBarForecastUiState state)
         {
-            if (PoisonForegroundRef(healthBar) is not Control poisonForeground ||
-                HpForegroundRef(healthBar) is not Control hpForeground ||
-                DoomForegroundRef(healthBar) is not Control doomForeground ||
+            if (healthBar._poisonForeground is not Control poisonForeground ||
+                healthBar._hpForeground is not Control hpForeground ||
+                healthBar._doomForeground is not Control doomForeground ||
                 poisonForeground.GetParent() is not Control mask)
             {
                 return;
@@ -356,15 +329,15 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
 
         private static float GetMaxFgWidth(NHealthBar healthBar)
         {
-            var expectedMaxFgWidth = ExpectedMaxFgWidthRef(healthBar);
+            var expectedMaxFgWidth = healthBar._expectedMaxFgWidth;
             return expectedMaxFgWidth > 0f
                 ? expectedMaxFgWidth
-                : HpForegroundContainerRef(healthBar).Size.X;
+                : healthBar._hpForegroundContainer.Size.X;
         }
 
         private static float GetFgWidth(NHealthBar healthBar, int amount)
         {
-            var creature = CreatureRef(healthBar);
+            var creature = healthBar._creature;
             if (creature.MaxHp <= 0 || amount <= 0)
                 return 0f;
 
@@ -374,7 +347,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
 
         private static int HpFromOffsetRight(NHealthBar healthBar, float offsetRight)
         {
-            var creature = CreatureRef(healthBar);
+            var creature = healthBar._creature;
             if (creature.MaxHp <= 0)
                 return 0;
 
@@ -404,7 +377,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 return false;
 
             var hpAfterRight = Math.Clamp(
-                HpFromOffsetRight(healthBar, HpForegroundRef(healthBar).OffsetRight),
+                HpFromOffsetRight(healthBar, healthBar._hpForeground.OffsetRight),
                 0,
                 creature.CurrentHp);
             return hpAfterRight > 0 && doomAmount >= hpAfterRight;
