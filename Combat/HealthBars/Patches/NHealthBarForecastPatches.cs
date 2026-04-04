@@ -2,9 +2,6 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Entities.Creatures;
-using MegaCrit.Sts2.Core.Helpers;
-using MegaCrit.Sts2.Core.Localization;
-using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using STS2RitsuLib.Patching.Models;
 using STS2RitsuLib.Utils;
@@ -24,32 +21,14 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         private static readonly AccessTools.FieldRef<NHealthBar, Control> PoisonForegroundRef =
             AccessTools.FieldRefAccess<NHealthBar, Control>("_poisonForeground");
 
-        private static readonly AccessTools.FieldRef<NHealthBar, Control> DoomForegroundRef =
-            AccessTools.FieldRefAccess<NHealthBar, Control>("_doomForeground");
-
         private static readonly AccessTools.FieldRef<NHealthBar, Control> HpMiddlegroundRef =
             AccessTools.FieldRefAccess<NHealthBar, Control>("_hpMiddleground");
 
         private static readonly AccessTools.FieldRef<NHealthBar, MegaLabel> HpLabelRef =
             AccessTools.FieldRefAccess<NHealthBar, MegaLabel>("_hpLabel");
 
-        private static readonly AccessTools.FieldRef<NHealthBar, TextureRect> InfinityTexRef =
-            AccessTools.FieldRefAccess<NHealthBar, TextureRect>("_infinityTex");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, LocString> HealthBarDeadRef =
-            AccessTools.FieldRefAccess<NHealthBar, LocString>("_healthBarDead");
-
         private static readonly AccessTools.FieldRef<NHealthBar, Creature> CreatureRef =
             AccessTools.FieldRefAccess<NHealthBar, Creature>("_creature");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, Creature?> BlockTrackingCreatureRef =
-            AccessTools.FieldRefAccess<NHealthBar, Creature?>("_blockTrackingCreature");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, int> CurrentHpOnLastRefreshRef =
-            AccessTools.FieldRefAccess<NHealthBar, int>("_currentHpOnLastRefresh");
-
-        private static readonly AccessTools.FieldRef<NHealthBar, int> MaxHpOnLastRefreshRef =
-            AccessTools.FieldRefAccess<NHealthBar, int>("_maxHpOnLastRefresh");
 
         private static readonly AccessTools.FieldRef<NHealthBar, Tween?> MiddlegroundTweenRef =
             AccessTools.FieldRefAccess<NHealthBar, Tween?>("_middlegroundTween");
@@ -57,79 +36,38 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         private static readonly AccessTools.FieldRef<NHealthBar, float> ExpectedMaxFgWidthRef =
             AccessTools.FieldRefAccess<NHealthBar, float>("_expectedMaxFgWidth");
 
-        private static readonly Color DefaultFontColor = StsColors.cream;
-        private static readonly Color DefaultFontOutlineColor = new("900000");
-        private static readonly Color BlockOutlineColor = new("1B3045");
-        private static readonly Color PoisonColor = new("79C03C");
-        private static readonly Color DoomColor = new("5A42A5");
-
-        public static void EnsureUiState(NHealthBar healthBar)
+        public static void RefreshForegroundOverlay(NHealthBar healthBar)
         {
-            if (UiStates[healthBar] != null)
+            var creature = CreatureRef(healthBar);
+            if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
+            {
+                HideAllCustomSegments(healthBar);
                 return;
+            }
 
-            var poisonForeground = (NinePatchRect)PoisonForegroundRef(healthBar);
-            var hpForeground = HpForegroundRef(healthBar);
-            var mask = poisonForeground.GetParent<Control>();
+            var customSegments = GetCustomSegments(creature);
+            if (customSegments.Length == 0)
+            {
+                HideAllCustomSegments(healthBar);
+                return;
+            }
 
-            var rightContainer = CreateContainer("RitsuForecastRightContainer");
-            var leftContainer = CreateContainer("RitsuForecastLeftContainer");
-
-            mask.AddChild(rightContainer);
-            mask.MoveChild(rightContainer, hpForeground.GetIndex());
-
-            mask.AddChild(leftContainer);
-            mask.MoveChild(leftContainer, hpForeground.GetIndex() + 1);
-
-            UiStates[healthBar] = new(
-                rightContainer,
-                leftContainer,
-                CreateSegmentTemplate(poisonForeground),
-                []);
-        }
-
-        public static void RefreshForeground(NHealthBar healthBar)
-        {
             EnsureUiState(healthBar);
-
             var state = UiStates[healthBar] ??
                         throw new InvalidOperationException("Missing health bar forecast UI state.");
-            var creature = CreatureRef(healthBar);
+
+            var maxWidth = GetMaxFgWidth(healthBar);
             var hpForeground = HpForegroundRef(healthBar);
-            var poisonForeground = PoisonForegroundRef(healthBar);
-            var doomForeground = DoomForegroundRef(healthBar);
+            var baseHp = Math.Clamp(HpFromOffsetRight(healthBar, hpForeground.OffsetRight), 0, creature.CurrentHp);
 
-            poisonForeground.Visible = false;
-            doomForeground.Visible = false;
-            HideSegments(state.RightSegments);
-            HideSegments(state.LeftSegments);
-            state.LastRender = HealthBarForecastRenderResult.Empty;
-
-            if (creature.CurrentHp <= 0)
-            {
-                hpForeground.Visible = false;
-                return;
-            }
-
-            hpForeground.Visible = true;
-            var currentOffsetRight = GetFgWidth(healthBar, creature.CurrentHp) - GetMaxFgWidth(healthBar);
-            hpForeground.OffsetRight = currentOffsetRight;
-
-            if (creature.ShowsInfiniteHp)
-            {
-                hpForeground.SelfModulate = new("C5BBED");
-                return;
-            }
-
-            var registeredSegments = HealthBarForecastRegistry.GetSegments(creature).ToArray();
-
-            var rightSegments = BuildRightSegments(creature, registeredSegments)
+            var rightSegments = customSegments
+                .Where(segment => segment.Direction == HealthBarForecastGrowthDirection.FromRight)
                 .OrderBy(segment => segment.Order)
                 .ThenBy(segment => segment.SequenceOrder)
                 .ToArray();
 
-            var rightEdgeOffsetRight = currentOffsetRight;
-            var remainingHp = creature.CurrentHp;
+            var remainingHp = baseHp;
+            var rightForecastEdgeOffsetRight = hpForeground.OffsetRight;
             Color? lethalRightColor = null;
             var rightIndex = 0;
 
@@ -149,15 +87,13 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
 
                 var leftWidth = GetFgWidth(healthBar, remainingHp);
                 var rightWidth = GetFgWidth(healthBar, previousHp);
-                var patchMarginLeft = node.PatchMarginLeft;
-
                 node.Visible = true;
                 node.SelfModulate = segment.Color;
-                node.OffsetLeft = remainingHp > 0 ? Math.Max(0f, leftWidth - patchMarginLeft) : 0f;
-                node.OffsetRight = rightWidth - GetMaxFgWidth(healthBar);
+                node.OffsetLeft = remainingHp > 0 ? Math.Max(0f, leftWidth - node.PatchMarginLeft) : 0f;
+                node.OffsetRight = rightWidth - maxWidth;
 
                 if (rightIndex == 0)
-                    rightEdgeOffsetRight = node.OffsetRight;
+                    rightForecastEdgeOffsetRight = node.OffsetRight;
 
                 if (remainingHp <= 0)
                     lethalRightColor = segment.Color;
@@ -167,25 +103,15 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
 
             HideSegments(state.RightSegments, rightIndex);
 
-            hpForeground.OffsetRight = GetFgWidth(healthBar, remainingHp) - GetMaxFgWidth(healthBar);
-            hpForeground.Visible = remainingHp > 0;
-
-            // Mirror vanilla poison/doom precedence: once the right-growing chain is lethal,
-            // left-growing forecasts are not shown anymore.
             if (remainingHp <= 0)
             {
                 HideSegments(state.LeftSegments);
-                state.LastRender = new(
-                    rightIndex > 0,
-                    rightEdgeOffsetRight,
-                    creature.CurrentHp - remainingHp,
-                    remainingHp,
-                    lethalRightColor,
-                    null);
+                state.LastRender = new(true, rightForecastEdgeOffsetRight, lethalRightColor, null);
                 return;
             }
 
-            var leftSegments = BuildLeftSegments(creature, registeredSegments)
+            var leftSegments = customSegments
+                .Where(segment => segment.Direction == HealthBarForecastGrowthDirection.FromLeft)
                 .OrderBy(segment => segment.Order)
                 .ThenBy(segment => segment.SequenceOrder)
                 .ToArray();
@@ -212,7 +138,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 node.Visible = true;
                 node.SelfModulate = segment.Color;
                 node.OffsetLeft = segmentStart > 0 ? Math.Max(0f, startWidth - node.PatchMarginLeft) : 0f;
-                node.OffsetRight = Math.Min(0f, endWidth - GetMaxFgWidth(healthBar) + node.PatchMarginRight);
+                node.OffsetRight = Math.Min(0f, endWidth - maxWidth + node.PatchMarginRight);
 
                 if (lethalLeftColor == null && leftAccumulated >= remainingHp)
                     lethalLeftColor = segment.Color;
@@ -221,47 +147,21 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             }
 
             HideSegments(state.LeftSegments, leftIndex);
-
-            state.LastRender = new(
-                rightIndex > 0,
-                rightEdgeOffsetRight,
-                creature.CurrentHp - remainingHp,
-                remainingHp,
-                lethalRightColor,
-                lethalLeftColor);
+            state.LastRender = new(rightIndex > 0, rightForecastEdgeOffsetRight, lethalRightColor, lethalLeftColor);
         }
 
-        public static void RefreshMiddleground(NHealthBar healthBar)
+        public static void RefreshMiddlegroundOverlay(NHealthBar healthBar)
         {
-            EnsureUiState(healthBar);
+            var state = UiStates[healthBar];
+            if (state == null || !state.LastRender.HasRightForecast)
+                return;
 
             var creature = CreatureRef(healthBar);
+            if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
+                return;
+
             var hpMiddleground = HpMiddlegroundRef(healthBar);
-
-            if (creature.CurrentHp <= 0)
-            {
-                hpMiddleground.Visible = false;
-                return;
-            }
-
-            hpMiddleground.Visible = true;
-            var position = hpMiddleground.Position;
-            position.X = 1f;
-            hpMiddleground.Position = position;
-
-            var currentHp = creature.CurrentHp;
-            var maxHp = creature.MaxHp;
-            if (currentHp == CurrentHpOnLastRefreshRef(healthBar) && maxHp == MaxHpOnLastRefreshRef(healthBar))
-                return;
-
-            CurrentHpOnLastRefreshRef(healthBar) = currentHp;
-            MaxHpOnLastRefreshRef(healthBar) = maxHp;
-
-            var render = UiStates[healthBar]?.LastRender ?? HealthBarForecastRenderResult.Empty;
-            var targetOffsetRight = render.HasRightForecast
-                ? render.RightForecastEdgeOffsetRight
-                : HpForegroundRef(healthBar).OffsetRight;
-
+            var targetOffsetRight = state.LastRender.RightForecastEdgeOffsetRight;
             var shouldAnimateImmediately = targetOffsetRight >= hpMiddleground.OffsetRight;
             hpMiddleground.OffsetRight += 1f;
 
@@ -274,112 +174,68 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             MiddlegroundTweenRef(healthBar) = tween;
         }
 
-        public static void RefreshText(NHealthBar healthBar)
+        public static void RefreshTextOverlay(NHealthBar healthBar)
         {
-            EnsureUiState(healthBar);
+            var state = UiStates[healthBar];
+            if (state == null)
+                return;
 
             var creature = CreatureRef(healthBar);
+            if (creature.CurrentHp <= 0 || creature.ShowsInfiniteHp)
+                return;
+
+            var lethalColor = state.LastRender.LethalRightColor ?? state.LastRender.LethalLeftColor;
+            if (!lethalColor.HasValue)
+                return;
+
             var hpLabel = HpLabelRef(healthBar);
-            var infinityTex = InfinityTexRef(healthBar);
-
-            if (creature.CurrentHp <= 0)
-            {
-                hpLabel.AddThemeColorOverride("font_color", DefaultFontColor);
-                hpLabel.AddThemeColorOverride("font_outline_color", DefaultFontOutlineColor);
-                hpLabel.SetTextAutoSize(HealthBarDeadRef(healthBar).GetRawText());
-                return;
-            }
-
-            if (creature.ShowsInfiniteHp)
-            {
-                infinityTex.Visible = creature.IsAlive;
-                hpLabel.Visible = !infinityTex.Visible;
-                return;
-            }
-
-            infinityTex.Visible = false;
-            hpLabel.Visible = true;
-
-            var render = UiStates[healthBar]?.LastRender ?? HealthBarForecastRenderResult.Empty;
-            var lethalColor = render.LethalRightColor ?? render.LethalLeftColor;
-            Color color;
-            Color outlineColor;
-
-            if (lethalColor.HasValue)
-            {
-                color = lethalColor.Value;
-                outlineColor = DarkenForOutline(lethalColor.Value);
-            }
-            else if (creature.Block > 0 || (BlockTrackingCreatureRef(healthBar)?.Block ?? 0) > 0)
-            {
-                color = DefaultFontColor;
-                outlineColor = BlockOutlineColor;
-            }
-            else
-            {
-                color = DefaultFontColor;
-                outlineColor = DefaultFontOutlineColor;
-            }
-
-            hpLabel.AddThemeColorOverride("font_color", color);
-            hpLabel.AddThemeColorOverride("font_outline_color", outlineColor);
-            hpLabel.SetTextAutoSize($"{creature.CurrentHp}/{creature.MaxHp}");
+            hpLabel.AddThemeColorOverride("font_color", lethalColor.Value);
+            hpLabel.AddThemeColorOverride("font_outline_color", DarkenForOutline(lethalColor.Value));
         }
 
-        private static IEnumerable<ForecastSegmentRenderInfo> BuildRightSegments(
-            Creature creature,
-            IEnumerable<HealthBarForecastRegistry.RegisteredHealthBarForecastSegment> registeredSegments)
+        private static CustomSegment[] GetCustomSegments(Creature creature)
         {
-            if (creature.GetPower<PoisonPower>() is { } poison)
-            {
-                var amount = poison.CalculateTotalDamageNextTurn();
-                if (amount > 0)
-                    yield return new(
-                        amount,
-                        PoisonColor,
-                        HealthBarForecastOrder.ForSideTurnStart(creature, creature.Side),
-                        -2);
-            }
-
-            foreach (var registered in registeredSegments)
-            {
-                if (registered.Segment.Direction != HealthBarForecastGrowthDirection.FromRight)
-                    continue;
-
-                yield return new(
+            return HealthBarForecastRegistry.GetSegments(creature)
+                .Select(registered => new CustomSegment(
                     registered.Segment.Amount,
                     registered.Segment.Color,
+                    registered.Segment.Direction,
                     registered.Segment.Order,
-                    registered.SequenceOrder);
-            }
+                    registered.SequenceOrder))
+                .Where(segment => segment.Amount > 0)
+                .ToArray();
         }
 
-        private static IEnumerable<ForecastSegmentRenderInfo> BuildLeftSegments(
-            Creature creature,
-            IEnumerable<HealthBarForecastRegistry.RegisteredHealthBarForecastSegment> registeredSegments)
+        private static void HideAllCustomSegments(NHealthBar healthBar)
         {
-            if (creature.HasPower<DoomPower>())
-            {
-                var amount = creature.GetPowerAmount<DoomPower>();
-                if (amount > 0)
-                    yield return new(
-                        amount,
-                        DoomColor,
-                        HealthBarForecastOrder.ForSideTurnEnd(creature, creature.Side),
-                        -2);
-            }
+            var state = UiStates[healthBar];
+            if (state == null)
+                return;
 
-            foreach (var registered in registeredSegments)
-            {
-                if (registered.Segment.Direction != HealthBarForecastGrowthDirection.FromLeft)
-                    continue;
+            HideSegments(state.RightSegments);
+            HideSegments(state.LeftSegments);
+            state.LastRender = HealthBarForecastRenderResult.Empty;
+        }
 
-                yield return new(
-                    registered.Segment.Amount,
-                    registered.Segment.Color,
-                    registered.Segment.Order,
-                    registered.SequenceOrder);
-            }
+        private static void EnsureUiState(NHealthBar healthBar)
+        {
+            if (UiStates[healthBar] != null)
+                return;
+
+            var poisonForeground = (NinePatchRect)PoisonForegroundRef(healthBar);
+            var mask = poisonForeground.GetParent<Control>();
+            var rightContainer = CreateContainer("RitsuForecastRightContainer");
+            var leftContainer = CreateContainer("RitsuForecastLeftContainer");
+
+            // Add custom overlays above vanilla layers, without mutating vanilla nodes.
+            mask.AddChild(rightContainer);
+            mask.AddChild(leftContainer);
+
+            UiStates[healthBar] = new(
+                rightContainer,
+                leftContainer,
+                CreateSegmentTemplate(poisonForeground),
+                []);
         }
 
         private static Control CreateContainer(string name)
@@ -450,6 +306,20 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             return Math.Max(width, creature.CurrentHp > 0 ? 12f : 0f);
         }
 
+        private static int HpFromOffsetRight(NHealthBar healthBar, float offsetRight)
+        {
+            var creature = CreatureRef(healthBar);
+            if (creature.MaxHp <= 0)
+                return 0;
+
+            var maxWidth = GetMaxFgWidth(healthBar);
+            if (maxWidth <= 0f)
+                return 0;
+
+            var width = Math.Clamp(offsetRight + maxWidth, 0f, maxWidth);
+            return (int)Math.Round(width / maxWidth * creature.MaxHp);
+        }
+
         private static Color DarkenForOutline(Color color)
         {
             return new(
@@ -472,28 +342,27 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             public HealthBarForecastRenderResult LastRender { get; set; } = HealthBarForecastRenderResult.Empty;
         }
 
-        private readonly record struct ForecastSegmentRenderInfo(
+        private readonly record struct CustomSegment(
             int Amount,
             Color Color,
+            HealthBarForecastGrowthDirection Direction,
             int Order,
             long SequenceOrder);
 
         private readonly record struct HealthBarForecastRenderResult(
             bool HasRightForecast,
             float RightForecastEdgeOffsetRight,
-            int TotalRightForecastDamage,
-            int RemainingHpAfterRightForecast,
             Color? LethalRightColor,
             Color? LethalLeftColor)
         {
-            public static HealthBarForecastRenderResult Empty => new(false, 0f, 0, 0, null, null);
+            public static HealthBarForecastRenderResult Empty => new(false, 0f, null, null);
         }
     }
 
     internal sealed class NHealthBarReadyForecastPatch : IPatchMethod
     {
         public static string PatchId => "health_bar_forecast_ready";
-        public static string Description => "Attach shared forecast overlay containers to health bars";
+        public static string Description => "Health bar forecast overlay bootstrap";
         public static bool IsCritical => false;
 
         public static ModPatchTarget[] GetTargets()
@@ -504,14 +373,14 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         // ReSharper disable once InconsistentNaming
         public static void Postfix(NHealthBar __instance)
         {
-            NHealthBarForecastPatchHelper.EnsureUiState(__instance);
+            // Keep empty intentionally: do not alter vanilla hierarchy until needed.
         }
     }
 
     internal sealed class NHealthBarRefreshForegroundForecastPatch : IPatchMethod
     {
         public static string PatchId => "health_bar_forecast_refresh_foreground";
-        public static string Description => "Render shared forecast segments on creature health bars";
+        public static string Description => "Render custom forecast overlays after vanilla foreground";
         public static bool IsCritical => false;
 
         public static ModPatchTarget[] GetTargets()
@@ -520,17 +389,16 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         }
 
         // ReSharper disable once InconsistentNaming
-        public static bool Prefix(NHealthBar __instance)
+        public static void Postfix(NHealthBar __instance)
         {
-            NHealthBarForecastPatchHelper.RefreshForeground(__instance);
-            return false;
+            NHealthBarForecastPatchHelper.RefreshForegroundOverlay(__instance);
         }
     }
 
     internal sealed class NHealthBarRefreshMiddlegroundForecastPatch : IPatchMethod
     {
         public static string PatchId => "health_bar_forecast_refresh_middleground";
-        public static string Description => "Keep middleground animation aligned with shared forecast overlays";
+        public static string Description => "Animate middleground for custom right-side forecasts";
         public static bool IsCritical => false;
 
         public static ModPatchTarget[] GetTargets()
@@ -539,17 +407,16 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         }
 
         // ReSharper disable once InconsistentNaming
-        public static bool Prefix(NHealthBar __instance)
+        public static void Postfix(NHealthBar __instance)
         {
-            NHealthBarForecastPatchHelper.RefreshMiddleground(__instance);
-            return false;
+            NHealthBarForecastPatchHelper.RefreshMiddlegroundOverlay(__instance);
         }
     }
 
     internal sealed class NHealthBarRefreshTextForecastPatch : IPatchMethod
     {
         public static string PatchId => "health_bar_forecast_refresh_text";
-        public static string Description => "Apply shared forecast lethal tinting to health bar text";
+        public static string Description => "Tint health bar text for custom lethal forecasts";
         public static bool IsCritical => false;
 
         public static ModPatchTarget[] GetTargets()
@@ -558,10 +425,9 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
         }
 
         // ReSharper disable once InconsistentNaming
-        public static bool Prefix(NHealthBar __instance)
+        public static void Postfix(NHealthBar __instance)
         {
-            NHealthBarForecastPatchHelper.RefreshText(__instance);
-            return false;
+            NHealthBarForecastPatchHelper.RefreshTextOverlay(__instance);
         }
     }
 }
