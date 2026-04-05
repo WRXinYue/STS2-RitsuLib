@@ -2,12 +2,14 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using STS2RitsuLib.Cards.FreePlay;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Data;
+using STS2RitsuLib.Diagnostics.CardExport;
 using STS2RitsuLib.Interop;
 using STS2RitsuLib.Keywords;
 using STS2RitsuLib.Patching.Core;
@@ -311,6 +313,16 @@ namespace STS2RitsuLib
         public static ModContentPackBuilder CreateContentPack(string modId)
         {
             return ModContentPackBuilder.For(modId);
+        }
+
+        /// <summary>
+        ///     Starts a batch PNG export of registered cards (see <see cref="CardPngExporter" />).
+        /// </summary>
+        /// <param name="request">Output directory, scale, hover panel, filters, etc.</param>
+        /// <param name="issuingPlayer">Optional; export does not require a run or player.</param>
+        public static void BeginCardPngExport(CardPngExportRequest request, Player? issuingPlayer = null)
+        {
+            CardPngExporter.BeginExport(request, issuingPlayer, msg => Logger.Info(msg));
         }
 
         /// <summary>

@@ -11,7 +11,7 @@ namespace STS2RitsuLib.Data.Models
         /// <summary>
         ///     Current schema version written by the library when creating or normalizing settings.
         /// </summary>
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
 
         /// <summary>
         ///     Persisted schema version used by the migration pipeline
@@ -60,5 +60,48 @@ namespace STS2RitsuLib.Data.Models
         /// </summary>
         [JsonPropertyName("harmony_patch_dump_on_first_main_menu")]
         public bool HarmonyPatchDumpOnFirstMainMenu { get; set; }
+
+        /// <summary>
+        ///     Output directory for dev card PNG batch export (absolute path or <c>user://</c>).
+        /// </summary>
+        [JsonPropertyName("card_png_export_output_path")]
+        public string CardPngExportOutputPath { get; set; } = "";
+
+        /// <summary>
+        ///     When true, export layout includes a right-hand hover-tip style column (approximation, not in-game tooltip
+        ///     positioning).
+        /// </summary>
+        [JsonPropertyName("card_png_export_include_hover")]
+        public bool CardPngExportIncludeHover { get; set; }
+
+        /// <summary>
+        ///     When true, also writes <c>_upgraded.png</c> for upgradable cards.
+        /// </summary>
+        [JsonPropertyName("card_png_export_include_upgrades")]
+        public bool CardPngExportIncludeUpgrades { get; set; } = true;
+
+        /// <summary>
+        ///     Uniform scale for rendered cards (slider domain; clamped when exporting).
+        /// </summary>
+        [JsonPropertyName("card_png_export_scale")]
+        public double CardPngExportScale { get; set; } = 1d;
+
+        /// <summary>
+        ///     Optional substring filter on <c>ModelId.Entry</c> (ordinal ignore-case); empty exports all.
+        /// </summary>
+        [JsonPropertyName("card_png_export_id_filter")]
+        public string CardPngExportIdFilter { get; set; } = "";
+
+        /// <summary>
+        ///     Maximum number of <em>base</em> cards to process; <c>0</c> means no limit.
+        /// </summary>
+        [JsonPropertyName("card_png_export_max_base_cards")]
+        public int CardPngExportMaxBaseCards { get; set; }
+
+        /// <summary>
+        ///     When true, export includes cards that are registered but hidden from the in-game card library.
+        /// </summary>
+        [JsonPropertyName("card_png_export_include_hidden_from_library")]
+        public bool CardPngExportIncludeHiddenFromLibrary { get; set; }
     }
 }

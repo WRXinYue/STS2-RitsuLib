@@ -791,7 +791,7 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
-        ///     Builds context, runs all queued steps, logs a summary, and returns the context.
+        ///     Builds context, runs all queued registration steps, and returns the context.
         /// </summary>
         public ModContentPackContext Apply()
         {

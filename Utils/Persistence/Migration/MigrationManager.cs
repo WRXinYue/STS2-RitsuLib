@@ -35,7 +35,11 @@ namespace STS2RitsuLib.Utils.Persistence.Migration
                 _migrations[type] = [];
 
             _migrations[type].Add(migration);
-            _migrations[type].Sort((a, b) => a.FromVersion.CompareTo(b.FromVersion));
+            _migrations[type].Sort((a, b) =>
+            {
+                var c = a.FromVersion.CompareTo(b.FromVersion);
+                return c != 0 ? c : a.ToVersion.CompareTo(b.ToVersion);
+            });
         }
 
         /// <summary>
@@ -78,23 +82,38 @@ namespace STS2RitsuLib.Utils.Persistence.Migration
                         ErrorMessage = $"Data version {version} is newer than current version {config.CurrentVersion}",
                     };
 
-                if (_migrations.TryGetValue(type, out var migrations))
-                    foreach (var migration in migrations.Where(migration =>
-                                 version >= migration.FromVersion && version < migration.ToVersion))
+                if (_migrations.TryGetValue(type, out var migrations) && migrations.Count > 0)
+                {
+                    if (!TryBuildShortestMigrationPath(
+                            version,
+                            config.CurrentVersion,
+                            migrations,
+                            out var plan))
+                        return new()
+                        {
+                            Success = false,
+                            ErrorMessage =
+                                $"No migration path from data version {version} to current version {config.CurrentVersion} for {type.Name}.",
+                        };
+
+                    for (var i = 0; i < plan.Count; i++)
                     {
+                        var migration = plan[i];
                         RitsuLibFramework.Logger.Info(
-                            $"Applying migration {migration.FromVersion} -> {migration.ToVersion} for {type.Name}");
+                            $"Applying migration {migration.FromVersion} -> {migration.ToVersion} for {type.Name} (shortest path: step {i + 1}/{plan.Count})");
 
                         if (!migration.Migrate(jsonObject))
                             return new()
                             {
                                 Success = false,
-                                ErrorMessage = $"Migration {migration.FromVersion} -> {migration.ToVersion} failed",
+                                ErrorMessage =
+                                    $"Migration {migration.FromVersion} -> {migration.ToVersion} failed",
                             };
 
                         version = migration.ToVersion;
                         SetVersion(jsonObject, config.SchemaVersionProperty, version);
                     }
+                }
 
                 var migratedJson = jsonObject.ToJsonString();
                 var data = JsonSerializer.Deserialize<T>(migratedJson, options);
@@ -191,6 +210,75 @@ namespace STS2RitsuLib.Utils.Persistence.Migration
         private static void SetVersion(JsonObject obj, string propertyName, int version)
         {
             obj[propertyName] = version;
+        }
+
+        /// <summary>
+        ///     Breadth-first search on version states: from current version <paramref name="startVersion" />, a
+        ///     registered migration applies when the version lies in <c>[FromVersion, ToVersion)</c>, advancing the
+        ///     state to <c>ToVersion</c>.
+        ///     Edges whose <c>ToVersion</c> exceeds <paramref name="targetVersion" /> are skipped so the plan ends at
+        ///     the configured current schema. The returned path uses the minimum number of migration steps; ties are
+        ///     broken by iteration order (registration order, then sort by FromVersion, ToVersion).
+        /// </summary>
+        private static bool TryBuildShortestMigrationPath(
+            int startVersion,
+            int targetVersion,
+            List<IMigration> migrations,
+            out List<IMigration> path)
+        {
+            path = [];
+            if (startVersion == targetVersion)
+                return true;
+
+            var queue = new Queue<int>();
+            var visited = new HashSet<int>();
+            var predecessor = new Dictionary<int, (int PrevVersion, IMigration Via)>();
+
+            queue.Enqueue(startVersion);
+            visited.Add(startVersion);
+
+            var found = false;
+
+            while (queue.Count > 0 && !found)
+            {
+                var v = queue.Dequeue();
+                foreach (var m in migrations)
+                {
+                    if (v < m.FromVersion || v >= m.ToVersion)
+                        continue;
+
+                    var next = m.ToVersion;
+                    if (next > targetVersion)
+                        continue;
+
+                    if (!visited.Add(next))
+                        continue;
+
+                    predecessor[next] = (v, m);
+                    if (next == targetVersion)
+                    {
+                        found = true;
+                        break;
+                    }
+
+                    queue.Enqueue(next);
+                }
+            }
+
+            if (!found)
+                return false;
+
+            path = [];
+            var cur = targetVersion;
+            while (cur != startVersion)
+            {
+                var (prev, via) = predecessor[cur];
+                path.Add(via);
+                cur = prev;
+            }
+
+            path.Reverse();
+            return true;
         }
 
         private class MigrationConfig

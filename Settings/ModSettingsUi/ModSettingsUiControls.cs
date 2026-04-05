@@ -2607,6 +2607,7 @@ namespace STS2RitsuLib.Settings
         private readonly string? _subtitle;
         private readonly string _title = string.Empty;
         private Label? _arrowLabel;
+        private MarginContainer? _measureFrame;
         private bool _selected;
         private Label? _subtitleLabel;
         private Label? _titleLabel;
@@ -2644,6 +2645,7 @@ namespace STS2RitsuLib.Settings
             frame.AddThemeConstantOverride("margin_right", 14);
             frame.AddThemeConstantOverride("margin_bottom", 10);
             AddChild(frame);
+            _measureFrame = frame;
 
             var root = new HBoxContainer
             {
@@ -2718,11 +2720,21 @@ namespace STS2RitsuLib.Settings
         {
         }
 
+        public override Vector2 _GetMinimumSize()
+        {
+            var baseMin = base._GetMinimumSize();
+            if (_measureFrame == null)
+                return baseMin;
+            var inner = _measureFrame.GetCombinedMinimumSize();
+            return new(baseMin.X, Mathf.Max(baseMin.Y, inner.Y));
+        }
+
         public override void _Ready()
         {
             _titleLabel?.Text = _title;
             _subtitleLabel?.Text = _subtitle ?? string.Empty;
             ApplySelectedState();
+            Callable.From(UpdateMinimumSize).CallDeferred();
         }
 
         public void SetSelected(bool selected)

@@ -13,8 +13,7 @@ using Timer = Godot.Timer;
 namespace STS2RitsuLib.Settings
 {
     /// <summary>
-    ///     Full-screen mod settings browser: sidebar (mods, pages, sections), content pane, deferred save, and locale
-    ///     refresh.
+    ///     Full-screen mod settings browser: sidebar (mods, pages, sections) and content pane.
     /// </summary>
     public partial class RitsuModSettingsSubmenu : NSubmenu
     {

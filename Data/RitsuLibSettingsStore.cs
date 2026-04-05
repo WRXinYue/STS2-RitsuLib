@@ -1,3 +1,4 @@
+using STS2RitsuLib.Data.Migrations;
 using STS2RitsuLib.Data.Models;
 using STS2RitsuLib.Utils.Persistence;
 
@@ -24,11 +25,17 @@ namespace STS2RitsuLib.Data
                         Const.SettingsFileName,
                         SaveScope.Global,
                         () => new(),
-                        true
-                    );
+                        true,
+                        new()
+                        {
+                            CurrentDataVersion = RitsuLibSettings.CurrentSchemaVersion,
+                            MinimumSupportedDataVersion = 0,
+                        },
+                        [
+                            new RitsuLibSettingsV0Or1ToV2Migration(),
+                            new RitsuLibSettingsV2ToV4Migration(),
+                        ]);
                 }
-
-                NormalizeSchemaVersionIfNeeded();
 
                 _initialized = true;
                 LogConfigSnapshot();
@@ -97,28 +104,6 @@ namespace STS2RitsuLib.Data
             Initialize();
             var s = GetSettings();
             return (s.HarmonyPatchDumpOutputPath, s.HarmonyPatchDumpOnFirstMainMenu);
-        }
-
-        private static void NormalizeSchemaVersionIfNeeded()
-        {
-            var settings = GetSettings();
-            if (settings.SchemaVersion >= RitsuLibSettings.CurrentSchemaVersion)
-                return;
-
-            Store.Modify<RitsuLibSettings>(Const.SettingsKey, model =>
-            {
-                if (model.SchemaVersion < 2)
-                {
-                    model.DebugCompatLocTable = true;
-                    model.DebugCompatUnlockEpoch = true;
-                    model.DebugCompatAncientArchitect = true;
-                }
-
-                // Schema 3 adds Harmony patch dump options; new properties default via type initializers / JSON.
-
-                model.SchemaVersion = RitsuLibSettings.CurrentSchemaVersion;
-            });
-            Store.Save(Const.SettingsKey);
         }
     }
 }

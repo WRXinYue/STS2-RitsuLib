@@ -1,7 +1,9 @@
+using System.Globalization;
 using Godot;
 using STS2RitsuLib.Data;
 using STS2RitsuLib.Data.Models;
 using STS2RitsuLib.Diagnostics;
+using STS2RitsuLib.Diagnostics.CardExport;
 using STS2RitsuLib.Utils.Persistence;
 
 namespace STS2RitsuLib.Settings
@@ -53,6 +55,42 @@ namespace STS2RitsuLib.Settings
                     Const.SettingsKey,
                     settings => settings.HarmonyPatchDumpOnFirstMainMenu,
                     (settings, value) => settings.HarmonyPatchDumpOnFirstMainMenu = value);
+
+                var cardPngExportPathBinding = ModSettingsBindings.Global<RitsuLibSettings, string>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportOutputPath,
+                    (settings, value) => settings.CardPngExportOutputPath = value);
+
+                var cardPngExportIncludeHoverBinding = ModSettingsBindings.Global<RitsuLibSettings, bool>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportIncludeHover,
+                    (settings, value) => settings.CardPngExportIncludeHover = value);
+
+                var cardPngExportIncludeUpgradesBinding = ModSettingsBindings.Global<RitsuLibSettings, bool>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportIncludeUpgrades,
+                    (settings, value) => settings.CardPngExportIncludeUpgrades = value);
+
+                var cardPngExportScaleBinding = ModSettingsBindings.Global<RitsuLibSettings, double>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportScale,
+                    (settings, value) => settings.CardPngExportScale = value);
+
+                var cardPngExportFilterBinding = ModSettingsBindings.Global<RitsuLibSettings, string>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportIdFilter,
+                    (settings, value) => settings.CardPngExportIdFilter = value);
+
+                var cardPngExportIncludeHiddenBinding = ModSettingsBindings.Global<RitsuLibSettings, bool>(
+                    Const.ModId,
+                    Const.SettingsKey,
+                    settings => settings.CardPngExportIncludeHiddenFromLibrary,
+                    (settings, value) => settings.CardPngExportIncludeHiddenFromLibrary = value);
 
                 var showcaseState = new DebugShowcaseState();
                 var previewToggleBinding =
@@ -117,41 +155,26 @@ namespace STS2RitsuLib.Settings
                                 debugCompatAncientArchitectBinding,
                                 T("ritsulib.debugCompatAncientArchitect.description",
                                     "Inject empty Lines entries for ModContentRegistry ancients when vanilla provides no dialogue.")))
-                    .AddSection("harmony_patch_dump", section => section
-                        .WithTitle(T("ritsulib.section.harmonyDump.title", "Harmony patch dump"))
-                        .WithDescription(T("ritsulib.section.harmonyDump.description",
-                            "Export a text report of patched methods (prefix/postfix/transpiler/finalizer) for debugging mod interactions."))
-                        .AddString(
-                            "harmony_patch_dump_output_path",
-                            T("ritsulib.harmonyDump.path.label", "Output file path"),
-                            harmonyPatchDumpPathBinding,
-                            T("ritsulib.harmonyDump.path.placeholder",
-                                "Absolute path or user://… (e.g. user://ritsulib_harmony_patch_dump.log)"),
-                            1024,
-                            T("ritsulib.harmonyDump.path.description",
-                                "Where to write the dump. Use Browse to pick a folder and filename, or type a full path / Godot user:// path."))
-                        .AddToggle(
-                            "harmony_patch_dump_on_first_main_menu",
-                            T("ritsulib.harmonyDump.auto.label", "Dump when main menu first loads"),
-                            harmonyPatchDumpOnFirstMainMenuBinding,
-                            T("ritsulib.harmonyDump.auto.description",
-                                "Once per game session, after the main menu finishes loading, write the report if the output path is set."))
-                        .AddButton(
-                            "harmony_patch_dump_browse",
-                            T("ritsulib.harmonyDump.browse.label", "Choose output file"),
-                            T("ritsulib.harmonyDump.browse.button", "Browse…"),
-                            host => HarmonyPatchDumpSaveDialog.Show(harmonyPatchDumpPathBinding, host),
-                            ModSettingsButtonTone.Normal,
-                            T("ritsulib.harmonyDump.browse.hint",
-                                "Opens a save dialog and stores the chosen path in the field above."))
-                        .AddButton(
-                            "harmony_patch_dump_now",
-                            T("ritsulib.harmonyDump.now.label", "Write dump now"),
-                            T("ritsulib.harmonyDump.now.button", "Dump now"),
-                            HarmonyPatchDumpCoordinator.TryManualDumpFromSettings,
-                            ModSettingsButtonTone.Accent,
-                            T("ritsulib.harmonyDump.now.description",
-                                "Generates the report immediately using the output path above. Check the game log for success or errors.")))
+                    .AddSection("harmony_patch_dump_nav", section => section
+                        .WithTitle(T("ritsulib.harmonyDump.navSection.title", "Harmony patch dump"))
+                        .WithDescription(T("ritsulib.harmonyDump.navSection.description",
+                            "Export a text report of patched methods for debugging mod interactions."))
+                        .Collapsible(true)
+                        .AddSubpage(
+                            "harmony_patch_dump_open",
+                            T("ritsulib.harmonyDump.navSubpage.label", "Harmony dump settings"),
+                            "harmony-patch-dump",
+                            T("button.open", "Open")))
+                    .AddSection("card_png_export_nav", section => section
+                        .WithTitle(T("ritsulib.cardPngExport.navSection.title", "Card PNG export"))
+                        .WithDescription(T("ritsulib.cardPngExport.navSection.description",
+                            "Export library cards as PNG."))
+                        .Collapsible(true)
+                        .AddSubpage(
+                            "card_png_export_open",
+                            T("ritsulib.cardPngExport.navSubpage.label", "Card PNG export settings"),
+                            "card-png-export",
+                            T("button.open", "Open")))
                     .AddSection("reference", section => section
                         .WithTitle(T("ritsulib.section.reference.title", "Reference"))
                         .WithDescription(T("ritsulib.section.reference.description",
@@ -168,6 +191,111 @@ namespace STS2RitsuLib.Settings
                             T("button.open", "Open"),
                             T("ritsulib.reference.gallery.description",
                                 "Reference page only. Values on this page are not persisted."))));
+
+                RitsuLibFramework.RegisterModSettings(
+                    Const.ModId,
+                    page => page
+                        .AsChildOf(Const.ModId)
+                        .WithSortOrder(-250)
+                        .WithTitle(T("ritsulib.page.harmonyDump.title", "Harmony patch dump"))
+                        .WithDescription(T("ritsulib.page.harmonyDump.description",
+                            "Export a text report of patched methods (prefix/postfix/transpiler/finalizer) for debugging mod interactions."))
+                        .AddSection("harmony_patch_dump", section => section
+                            .AddString(
+                                "harmony_patch_dump_output_path",
+                                T("ritsulib.harmonyDump.path.label", "Output file path"),
+                                harmonyPatchDumpPathBinding,
+                                T("ritsulib.harmonyDump.path.placeholder",
+                                    "Absolute path or user://… (e.g. user://ritsulib_harmony_patch_dump.log)"),
+                                1024,
+                                T("ritsulib.harmonyDump.path.description",
+                                    "Where to write the patch report. Use Browse to pick a file, or type a full path or Godot user:// path."))
+                            .AddToggle(
+                                "harmony_patch_dump_on_first_main_menu",
+                                T("ritsulib.harmonyDump.auto.label", "Dump when main menu first loads"),
+                                harmonyPatchDumpOnFirstMainMenuBinding,
+                                T("ritsulib.harmonyDump.auto.description",
+                                    "Once per game session, after the main menu finishes loading, write the report if the output path is set."))
+                            .AddButton(
+                                "harmony_patch_dump_browse",
+                                T("ritsulib.harmonyDump.browse.label", "Choose output file"),
+                                T("ritsulib.harmonyDump.browse.button", "Browse…"),
+                                host => HarmonyPatchDumpSaveDialog.Show(harmonyPatchDumpPathBinding, host),
+                                ModSettingsButtonTone.Normal,
+                                T("ritsulib.harmonyDump.browse.hint",
+                                    "Opens a save dialog and fills the output path above."))
+                            .AddButton(
+                                "harmony_patch_dump_now",
+                                T("ritsulib.harmonyDump.now.label", "Write dump now"),
+                                T("ritsulib.harmonyDump.now.button", "Dump now"),
+                                HarmonyPatchDumpCoordinator.TryManualDumpFromSettings,
+                                ModSettingsButtonTone.Accent,
+                                T("ritsulib.harmonyDump.now.description",
+                                    "Generates the report immediately using the output path. Check the log for success or errors."))),
+                    "harmony-patch-dump");
+
+                RitsuLibFramework.RegisterModSettings(
+                    Const.ModId,
+                    page => page
+                        .AsChildOf(Const.ModId)
+                        .WithSortOrder(-200)
+                        .WithTitle(T("ritsulib.page.cardPngExport.title", "Card PNG export (dev)"))
+                        .WithDescription(T("ritsulib.page.cardPngExport.description",
+                            "Same card set as the library."))
+                        .AddSection("card_png_export", section => section
+                            .AddString(
+                                "card_png_export_output_path",
+                                T("ritsulib.cardPngExport.path.label", "Output folder"),
+                                cardPngExportPathBinding,
+                                T("ritsulib.cardPngExport.path.placeholder",
+                                    "Absolute path or user://… (e.g. user://ritsu_card_png)"),
+                                1024)
+                            .AddButton(
+                                "card_png_export_browse",
+                                T("ritsulib.cardPngExport.browse.label", "Choose output folder"),
+                                T("ritsulib.cardPngExport.browse.button", "Browse…"),
+                                host => CardPngExportFolderDialog.Show(cardPngExportPathBinding, host))
+                            .AddToggle(
+                                "card_png_export_include_hover",
+                                T("ritsulib.cardPngExport.hover.label", "Include hover-tip panel"),
+                                cardPngExportIncludeHoverBinding)
+                            .AddToggle(
+                                "card_png_export_include_upgrades",
+                                T("ritsulib.cardPngExport.upgrades.label", "Export upgraded variants"),
+                                cardPngExportIncludeUpgradesBinding)
+                            .AddToggle(
+                                "card_png_export_include_hidden",
+                                T("ritsulib.cardPngExport.hidden.label", "Include non-library cards"),
+                                cardPngExportIncludeHiddenBinding)
+                            .AddSlider(
+                                "card_png_export_scale",
+                                T("ritsulib.cardPngExport.scale.label", "Render scale"),
+                                cardPngExportScaleBinding,
+                                0.25d,
+                                4d,
+                                0.25d,
+                                v => v.ToString("0.##", CultureInfo.InvariantCulture))
+                            .AddString(
+                                "card_png_export_id_filter",
+                                T("ritsulib.cardPngExport.filter.label", "Card id contains (optional)"),
+                                cardPngExportFilterBinding,
+                                T("ritsulib.cardPngExport.filter.placeholder", "Empty = all cards; e.g. WINE_"),
+                                256,
+                                T("ritsulib.cardPngExport.filter.description",
+                                    "Substring match, case-insensitive."))
+                            .AddButton(
+                                "card_png_export_start",
+                                T("ritsulib.cardPngExport.start.label", "Start export"),
+                                T("ritsulib.cardPngExport.start.button", "Start export"),
+                                () => CardPngExportSettingsActions.TryBeginFromSettings(
+                                    cardPngExportPathBinding,
+                                    cardPngExportIncludeHoverBinding,
+                                    cardPngExportIncludeUpgradesBinding,
+                                    cardPngExportScaleBinding,
+                                    cardPngExportFilterBinding,
+                                    cardPngExportIncludeHiddenBinding),
+                                ModSettingsButtonTone.Accent)),
+                    "card-png-export");
 
                 RitsuLibFramework.RegisterModSettings(
                     Const.ModId,
