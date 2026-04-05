@@ -32,11 +32,24 @@ namespace STS2RitsuLib.Combat.HealthBars
     ///     edge; for <see cref="HealthBarForecastGrowthDirection.FromLeft" />, earlier segments stay closer to the empty
     ///     edge.
     /// </param>
+    /// <param name="OverlayMaterial">
+    ///     Optional Godot material (e.g. shader like vanilla doom). When null, only <see cref="Color" /> tint applies.
+    /// </param>
     public readonly record struct HealthBarForecastSegment(
         int Amount,
         Color Color,
         HealthBarForecastGrowthDirection Direction,
-        int Order = 0);
+        int Order,
+        Material? OverlayMaterial)
+    {
+        /// <summary>
+        ///     Overload for mods built against the original four-parameter constructor (no custom material).
+        /// </summary>
+        public HealthBarForecastSegment(int amount, Color color, HealthBarForecastGrowthDirection direction, int order = 0)
+            : this(amount, color, direction, order, null)
+        {
+        }
+    }
 
     /// <summary>
     ///     Helpers for common turn-relative ordering of forecast segments.

@@ -39,13 +39,24 @@ namespace STS2RitsuLib.Combat.HealthBars
             int amount,
             Color color,
             HealthBarForecastGrowthDirection direction,
-            int order = 0)
+            int order,
+            Material? overlayMaterial)
         {
             if (amount <= 0)
                 return [];
 
-            return [new(amount, color, direction, order)];
+            return [new(amount, color, direction, order, overlayMaterial)];
         }
+
+        /// <summary>
+        ///     Returns a single segment when <paramref name="amount" /> is positive, without a custom material.
+        /// </summary>
+        public static IEnumerable<HealthBarForecastSegment> Single(
+            int amount,
+            Color color,
+            HealthBarForecastGrowthDirection direction,
+            int order = 0)
+            => Single(amount, color, direction, order, null);
     }
 
     /// <summary>
@@ -62,18 +73,19 @@ namespace STS2RitsuLib.Combat.HealthBars
 
         /// <summary>
         ///     Appends a segment when <paramref name="amount" /> is positive.
-        ///     Consecutive segments with identical color/direction/order are merged.
+        ///     Consecutive segments with identical color/direction/order/material are merged.
         /// </summary>
         public HealthBarForecastSequenceBuilder Add(
             int amount,
             Color color,
             HealthBarForecastGrowthDirection direction,
-            int order = 0)
+            int order,
+            Material? overlayMaterial)
         {
             if (amount <= 0)
                 return this;
 
-            var segment = new HealthBarForecastSegment(amount, color, direction, order);
+            var segment = new HealthBarForecastSegment(amount, color, direction, order, overlayMaterial);
             if (_segments.Count > 0)
             {
                 var last = _segments[^1];
@@ -89,21 +101,42 @@ namespace STS2RitsuLib.Combat.HealthBars
         }
 
         /// <summary>
+        ///     Appends a segment without a custom material.
+        /// </summary>
+        public HealthBarForecastSequenceBuilder Add(
+            int amount,
+            Color color,
+            HealthBarForecastGrowthDirection direction,
+            int order = 0)
+            => Add(amount, color, direction, order, null);
+
+        /// <summary>
         ///     Appends all positive amounts as consecutive segments.
         /// </summary>
         public HealthBarForecastSequenceBuilder AddRange(
             IEnumerable<int> amounts,
             Color color,
             HealthBarForecastGrowthDirection direction,
-            int order = 0)
+            int order,
+            Material? overlayMaterial)
         {
             ArgumentNullException.ThrowIfNull(amounts);
 
             foreach (var amount in amounts)
-                Add(amount, color, direction, order);
+                Add(amount, color, direction, order, overlayMaterial);
 
             return this;
         }
+
+        /// <summary>
+        ///     Appends all positive amounts as consecutive segments without a custom material.
+        /// </summary>
+        public HealthBarForecastSequenceBuilder AddRange(
+            IEnumerable<int> amounts,
+            Color color,
+            HealthBarForecastGrowthDirection direction,
+            int order = 0)
+            => AddRange(amounts, color, direction, order, null);
 
         /// <summary>
         ///     Appends segments that trigger at the start of <paramref name="triggerSide" />'s turn.
@@ -165,7 +198,8 @@ namespace STS2RitsuLib.Combat.HealthBars
         {
             return left.Color == right.Color &&
                    left.Direction == right.Direction &&
-                   left.Order == right.Order;
+                   left.Order == right.Order &&
+                   ReferenceEquals(left.OverlayMaterial, right.OverlayMaterial);
         }
     }
 
@@ -183,22 +217,34 @@ namespace STS2RitsuLib.Combat.HealthBars
         public HealthBarForecastSequenceBuilder Sequence { get; } = sequence;
 
         /// <summary>
-        ///     Appends a segment with explicit <paramref name="order" />.
+        ///     Appends a segment with explicit <paramref name="order" /> and optional <paramref name="overlayMaterial" />.
         /// </summary>
-        public HealthBarForecastLaneBuilder Add(int amount, int order = 0)
+        public HealthBarForecastLaneBuilder Add(int amount, int order, Material? overlayMaterial)
         {
-            Sequence.Add(amount, color, direction, order);
+            Sequence.Add(amount, color, direction, order, overlayMaterial);
             return this;
         }
 
         /// <summary>
-        ///     Appends multiple segments with the same <paramref name="order" />.
+        ///     Appends a segment without a custom material.
         /// </summary>
-        public HealthBarForecastLaneBuilder AddRange(IEnumerable<int> amounts, int order = 0)
+        public HealthBarForecastLaneBuilder Add(int amount, int order = 0)
+            => Add(amount, order, null);
+
+        /// <summary>
+        ///     Appends multiple segments with the same <paramref name="order" /> and optional <paramref name="overlayMaterial" />.
+        /// </summary>
+        public HealthBarForecastLaneBuilder AddRange(IEnumerable<int> amounts, int order, Material? overlayMaterial)
         {
-            Sequence.AddRange(amounts, color, direction, order);
+            Sequence.AddRange(amounts, color, direction, order, overlayMaterial);
             return this;
         }
+
+        /// <summary>
+        ///     Appends multiple segments without a custom material.
+        /// </summary>
+        public HealthBarForecastLaneBuilder AddRange(IEnumerable<int> amounts, int order = 0)
+            => AddRange(amounts, order, null);
 
         /// <summary>
         ///     Appends segments that trigger at the start of <paramref name="triggerSide" />'s turn.
