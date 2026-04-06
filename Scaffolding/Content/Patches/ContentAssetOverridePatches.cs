@@ -1,6 +1,8 @@
 using System.Reflection;
 using Godot;
 using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Events;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Timeline;
@@ -1693,8 +1695,24 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         {
             _ = runState;
 
+            var paths = __result;
+
+            if (__instance is IModEventAssetOverrides evo
+                && __instance.LayoutType == EventLayoutType.Ancient
+                && !string.IsNullOrWhiteSpace(evo.CustomBackgroundScenePath)
+                && AssetPathDiagnostics.Exists(evo.CustomBackgroundScenePath, __instance,
+                    nameof(IModEventAssetOverrides.CustomBackgroundScenePath)))
+            {
+                var entry = __instance.Id.Entry.ToLowerInvariant();
+                var vanillaBg = SceneHelper.GetScenePath($"events/background_scenes/{entry}");
+                paths = paths.Where(p => p != vanillaBg);
+            }
+
             if (__instance is not IModEventAssetOverrides eventOverrides)
+            {
+                __result = paths;
                 return;
+            }
 
             var merged = AssetPathDiagnostics.CollectExistingPaths(
                 __instance,
@@ -1719,9 +1737,12 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
             }
 
             if (merged.Length == 0)
+            {
+                __result = paths;
                 return;
+            }
 
-            __result = __result.Concat(merged);
+            __result = paths.Concat(merged);
         }
     }
 
@@ -1856,6 +1877,10 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
             if (__instance is not IModAncientEventAssetOverrides overrides)
                 return;
 
+            var entry = __instance.Id.Entry.ToLowerInvariant();
+            var vanillaMain = ImageHelper.GetImagePath($"packed/map/ancients/ancient_node_{entry}.png");
+            var vanillaOutline = ImageHelper.GetImagePath($"packed/map/ancients/ancient_node_{entry}_outline.png");
+
             var extra = AssetPathDiagnostics.CollectExistingPaths(
                 __instance,
                 (overrides.CustomMapIconPath, nameof(IModAncientEventAssetOverrides.CustomMapIconPath)),
@@ -1863,7 +1888,7 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
             if (extra.Length == 0)
                 return;
 
-            __result = __result.Concat(extra);
+            __result = __result.Where(p => p != vanillaMain && p != vanillaOutline).Concat(extra);
         }
     }
 
