@@ -155,26 +155,23 @@ namespace STS2RitsuLib.Settings
                                 debugCompatAncientArchitectBinding,
                                 T("ritsulib.debugCompatAncientArchitect.description",
                                     "Inject empty Lines entries for ModContentRegistry ancients when vanilla provides no dialogue.")))
-                    .AddSection("harmony_patch_dump_nav", section => section
-                        .WithTitle(T("ritsulib.harmonyDump.navSection.title", "Harmony patch dump"))
-                        .WithDescription(T("ritsulib.harmonyDump.navSection.description",
-                            "Export a text report of patched methods for debugging mod interactions."))
+                    .AddSection("dev_debug_tools", section => section
+                        .WithTitle(T("ritsulib.section.devDebugTools.title", "Developer debug tools"))
                         .Collapsible(true)
                         .AddSubpage(
                             "harmony_patch_dump_open",
-                            T("ritsulib.harmonyDump.navSubpage.label", "Harmony dump settings"),
+                            T("ritsulib.section.harmonyDump.title", "Harmony patch dump"),
                             "harmony-patch-dump",
-                            T("button.open", "Open")))
-                    .AddSection("card_png_export_nav", section => section
-                        .WithTitle(T("ritsulib.cardPngExport.navSection.title", "Card PNG export"))
-                        .WithDescription(T("ritsulib.cardPngExport.navSection.description",
-                            "Export library cards as PNG."))
-                        .Collapsible(true)
+                            T("button.open", "Open"),
+                            T("ritsulib.section.harmonyDump.description",
+                                "Export a text report of patched methods (prefix/postfix/transpiler/finalizer) for debugging mod interactions."))
                         .AddSubpage(
                             "card_png_export_open",
-                            T("ritsulib.cardPngExport.navSubpage.label", "Card PNG export settings"),
+                            T("ritsulib.section.cardPngExport.title", "Card PNG export (dev)"),
                             "card-png-export",
-                            T("button.open", "Open")))
+                            T("button.open", "Open"),
+                            T("ritsulib.section.cardPngExport.description",
+                                "Library card set.")))
                     .AddSection("reference", section => section
                         .WithTitle(T("ritsulib.section.reference.title", "Reference"))
                         .WithDescription(T("ritsulib.section.reference.description",
