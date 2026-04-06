@@ -162,6 +162,7 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<EventGetAssetPathsPatch>();
             patcher.RegisterPatch<AncientMapIconTexturePatch>();
             patcher.RegisterPatch<AncientRunHistoryIconTexturePatch>();
+            patcher.RegisterPatch<ImageHelperAncientModRunHistoryIconPathPatch>();
             patcher.RegisterPatch<AncientMapNodeAssetPathsPatch>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.ContentAssets, patcher);
         }
