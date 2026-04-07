@@ -26,6 +26,9 @@ namespace STS2RitsuLib.Scaffolding.Visuals.Definition
         public VisualFrameSequenceBuilder Frame(string texturePath, float durationSeconds)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(texturePath);
+            if (!float.IsFinite(durationSeconds))
+                throw new ArgumentOutOfRangeException(nameof(durationSeconds), durationSeconds,
+                    "Frame duration must be a finite value.");
 
             _frames.Add(new(texturePath, durationSeconds));
             return this;

@@ -212,6 +212,10 @@ namespace STS2RitsuLib.Scaffolding.Characters.Visuals
             if (map == null || map.Count == 0)
                 return false;
 
+            var sprite = FindPrimarySprite2D(visualsRoot);
+            if (sprite == null)
+                return false;
+
             foreach (var name in names)
             {
                 if (string.IsNullOrWhiteSpace(name))
@@ -222,10 +226,6 @@ namespace STS2RitsuLib.Scaffolding.Characters.Visuals
 
                 var tex = ResourceLoader.Load<Texture2D>(path);
                 if (tex == null)
-                    continue;
-
-                var sprite = FindPrimarySprite2D(visualsRoot);
-                if (sprite == null)
                     continue;
 
                 sprite.Texture = tex;

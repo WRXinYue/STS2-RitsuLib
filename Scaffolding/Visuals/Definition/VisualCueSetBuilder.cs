@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace STS2RitsuLib.Scaffolding.Visuals.Definition
 {
     /// <summary>
@@ -68,8 +70,14 @@ namespace STS2RitsuLib.Scaffolding.Visuals.Definition
         public VisualCueSet Build()
         {
             return new(
-                _textures.Count > 0 ? _textures : null,
-                _sequences.Count > 0 ? _sequences : null);
+                _textures.Count > 0
+                    ? new ReadOnlyDictionary<string, string>(
+                        new Dictionary<string, string>(_textures, StringComparer.OrdinalIgnoreCase))
+                    : null,
+                _sequences.Count > 0
+                    ? new ReadOnlyDictionary<string, VisualFrameSequence>(
+                        new Dictionary<string, VisualFrameSequence>(_sequences, StringComparer.OrdinalIgnoreCase))
+                    : null);
         }
     }
 }

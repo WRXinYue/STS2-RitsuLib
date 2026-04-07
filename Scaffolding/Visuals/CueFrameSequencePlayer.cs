@@ -15,6 +15,7 @@ namespace STS2RitsuLib.Scaffolding.Visuals
         private double _frameDurationSeconds;
         private VisualFrame[] _frames = [];
         private int _index;
+        private bool[] _loadFailed = [];
         private bool _loop;
 
         private Sprite2D? _sprite;
@@ -43,6 +44,7 @@ namespace STS2RitsuLib.Scaffolding.Visuals
             _sprite = null;
             _frames = [];
             _cache = [];
+            _loadFailed = [];
             _index = 0;
             _carry = 0;
             SetProcess(false);
@@ -66,7 +68,8 @@ namespace STS2RitsuLib.Scaffolding.Visuals
             StopAndReset();
             _sprite = sprite;
             _frames = frames;
-            _cache = new Texture2D[frames.Length];
+            _cache = new Texture2D?[frames.Length];
+            _loadFailed = new bool[frames.Length];
             _loop = sequence.Loop;
             _index = 0;
             _carry = 0;
@@ -109,7 +112,7 @@ namespace STS2RitsuLib.Scaffolding.Visuals
 
         private static double ClampFrameDuration(float seconds)
         {
-            return seconds <= 0f ? 1.0 / 60.0 : seconds;
+            return !float.IsFinite(seconds) || seconds <= 0f ? 1.0 / 60.0 : seconds;
         }
 
         private void ApplyFrame(int i)
@@ -120,12 +123,20 @@ namespace STS2RitsuLib.Scaffolding.Visuals
             var tex = _cache[i];
             if (tex == null)
             {
+                if (_loadFailed[i])
+                    return;
+
                 tex = ResourceLoader.Load<Texture2D>(_frames[i].TexturePath);
+                if (tex == null)
+                {
+                    _loadFailed[i] = true;
+                    return;
+                }
+
                 _cache[i] = tex;
             }
 
-            if (tex != null)
-                _sprite.Texture = tex;
+            _sprite.Texture = tex;
         }
 
         internal static CueFrameSequencePlayer EnsureUnder(Node parent)
