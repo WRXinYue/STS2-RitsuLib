@@ -1,20 +1,22 @@
 using MegaCrit.Sts2.Core.Nodes.Screens.Timeline;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Timeline;
+using MegaCrit.Sts2.Core.Timeline.Epochs;
 using STS2RitsuLib.Patching.Models;
-using STS2RitsuLib.Timeline.Scaffolding;
 
 namespace STS2RitsuLib.Timeline.Patches
 {
     /// <summary>
-    ///     Vanilla <see cref="NTimelineScreen.InitScreen" /> only passes epochs that already exist in
-    ///     <see cref="MegaCrit.Sts2.Core.Saves.ProgressState.Epochs" /> into <see cref="NTimelineScreen.AddEpochSlots" />.
+    ///     Vanilla <see cref="MegaCrit.Sts2.Core.Nodes.Screens.Timeline.NTimelineScreen.InitScreen" /> only passes epochs
+    ///     that already exist in <see cref="MegaCrit.Sts2.Core.Saves.ProgressState.Epochs" /> into
+    ///     <see cref="MegaCrit.Sts2.Core.Nodes.Screens.Timeline.NTimelineScreen.AddEpochSlots" />.
     ///     Mod story lines are not inserted into the save until gameplay or expansion runs
     ///     <see cref="MegaCrit.Sts2.Core.Saves.ProgressState.UnlockSlot" />, so mod columns would stay missing while the
-    ///     underlying unlock flow stays correct. This prefix only augments the in-memory list for the non-animated
-    ///     <see cref="NTimelineScreen.AddEpochSlots" /> call used by <c>InitScreen</c> (the only <c>isAnimated: false</c>
-    ///     caller), without writing placeholder rows into progress — so <see cref="EpochModel.QueueTimelineExpansion" />
-    ///     and <see cref="MegaCrit.Sts2.Core.Saves.ProgressState.UnlockSlot" /> behave like vanilla.
+    ///     underlying unlock flow stays correct. Cold open (<c>isAnimated: false</c>) merges only after vanilla Neow&apos;s
+    ///     primary expansion has started (see <see cref="ModTimelineNeowCoExpansion.HasVanillaNeowTimelineExpansionStarted" />
+    ///     ).
+    ///     Animated expansion merges only when <see cref="NeowEpoch.QueueUnlocks" /> just queued that batch (pending flag from
+    ///     <see cref="QueueTimelineExpansionUnlockModSlotsAfterNeowPatch" />).
     /// </summary>
     public sealed class NTimelineScreenAddEpochSlotsMergeModTemplatesPatch : IPatchMethod
     {
@@ -23,7 +25,7 @@ namespace STS2RitsuLib.Timeline.Patches
 
         /// <inheritdoc />
         public static string Description =>
-            "Merge ModEpochTemplate slots into InitScreen AddEpochSlots list without mutating Progress.Epochs";
+            "Merge ModEpochTemplate slots only after Neow primary expansion (cold) or same-session Neow QueueUnlocks (animated)";
 
         /// <inheritdoc />
         public static bool IsCritical => false;
@@ -33,67 +35,39 @@ namespace STS2RitsuLib.Timeline.Patches
         {
             return
             [
-                new(typeof(NTimelineScreen), nameof(NTimelineScreen.AddEpochSlots),
+                new(typeof(NTimelineScreen),
+                    nameof(NTimelineScreen.AddEpochSlots),
                     [typeof(List<EpochSlotData>), typeof(bool)]),
             ];
         }
 
         /// <summary>
-        ///     When <paramref name="isAnimated" /> is false (timeline init), append missing mod template slots and re-sort
-        ///     like vanilla <c>InitScreen</c> (<c>EraPosition</c> only).
+        ///     Cold: merge after Neow primary expansion has touched save. Animated: merge only with pending from Neow
+        ///     <see cref="NeowEpoch.QueueUnlocks" /> plus matching slot batch.
         /// </summary>
         public static void Prefix(List<EpochSlotData> slotsToAdd, bool isAnimated)
         {
-            if (isAnimated)
-                return;
-
             var progress = SaveManager.Instance?.Progress;
 
-            var existing = new HashSet<string>(slotsToAdd.Count);
-            foreach (var s in slotsToAdd)
-                existing.Add(s.Model.Id);
-
-            foreach (var id in EpochModel.AllEpochIds)
+            if (!isAnimated)
             {
-                if (existing.Contains(id))
-                    continue;
+                if (!ModTimelineNeowCoExpansion.HasVanillaNeowTimelineExpansionStarted(progress))
+                    return;
 
-                EpochModel model;
-                try
-                {
-                    model = EpochModel.Get(id);
-                }
-                catch
-                {
-                    continue;
-                }
-
-                if (model is not ModEpochTemplate)
-                    continue;
-
-                slotsToAdd.Add(new(model, ResolveMergedModSlotState(id, progress)));
-                existing.Add(id);
+                ModTimelineNeowCoExpansion.MergeModEpochTemplateSlotsInto(slotsToAdd, progress);
+                return;
             }
 
-            slotsToAdd.Sort((a, b) => a.EraPosition.CompareTo(b.EraPosition));
-        }
+            if (slotsToAdd.Count == 1 && slotsToAdd[0].Model.Id == EpochModel.GetId<NeowEpoch>())
+                return;
 
-        private static EpochSlotState ResolveMergedModSlotState(string id, ProgressState? progress)
-        {
-            if (progress == null || !progress.HasEpoch(id))
-                return EpochSlotState.NotObtained;
+            if (!ModTimelineNeowCoExpansion.TryConsumePendingNeowAnimatedSlotMerge())
+                return;
 
-            var row = progress.Epochs.FirstOrDefault(e => e.Id == id);
-            if (row == null)
-                return EpochSlotState.NotObtained;
+            if (!ModTimelineNeowCoExpansion.IsNeowPrimaryTimelineExpansionSlots(slotsToAdd))
+                return;
 
-            return row.State switch
-            {
-                EpochState.Revealed => EpochSlotState.Complete,
-                EpochState.Obtained => EpochSlotState.Obtained,
-                EpochState.ObtainedNoSlot => EpochSlotState.Obtained,
-                _ => EpochSlotState.NotObtained,
-            };
+            ModTimelineNeowCoExpansion.MergeModEpochTemplateSlotsInto(slotsToAdd, progress);
         }
     }
 }

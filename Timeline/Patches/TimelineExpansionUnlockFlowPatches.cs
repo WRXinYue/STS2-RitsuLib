@@ -2,6 +2,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes.Screens.Timeline.UnlockScreens;
 using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Patching.Models;
+using STS2RitsuLib.Timeline.Scaffolding;
 
 namespace STS2RitsuLib.Timeline.Patches
 {
@@ -85,6 +86,45 @@ namespace STS2RitsuLib.Timeline.Patches
 
             var ordered = eras.OrderBy(a => a.Era).ThenBy(a => a.EraPosition).ToList();
             field.SetValue(__instance, ordered);
+        }
+    }
+
+    /// <summary>
+    ///     When <c>NeowEpoch.QueueUnlocks</c> runs (scoped by <see cref="NeowEpochQueueUnlocksCoExpansionScopePatch" />),
+    ///     after vanilla <see cref="EpochModel.QueueTimelineExpansion" /> unlocks the twelve base rows, also
+    ///     <see cref="MegaCrit.Sts2.Core.Saves.SaveManager.UnlockSlot" /> for every <see cref="ModEpochTemplate" /> not in
+    ///     that batch, and signal the
+    ///     animated <see cref="MegaCrit.Sts2.Core.Nodes.Screens.Timeline.NTimelineScreen.AddEpochSlots" /> prefix to merge the
+    ///     same mod slots in-session.
+    /// </summary>
+    public sealed class QueueTimelineExpansionUnlockModSlotsAfterNeowPatch : IPatchMethod
+    {
+        /// <inheritdoc />
+        public static string PatchId => "queue_timeline_expansion_unlock_mod_slots_after_neow";
+
+        /// <inheritdoc />
+        public static string Description =>
+            "After Neow primary timeline expansion, UnlockSlot for ModEpochTemplate ids not in the vanilla batch";
+
+        /// <inheritdoc />
+        public static bool IsCritical => false;
+
+        /// <inheritdoc />
+        public static ModPatchTarget[] GetTargets()
+        {
+            return
+            [
+                new(typeof(EpochModel), nameof(EpochModel.QueueTimelineExpansion), [typeof(EpochModel[])]),
+            ];
+        }
+
+        /// <summary>
+        ///     Runs after vanilla queues the expansion list and unlocks vanilla slots.
+        /// </summary>
+        public static void Postfix(EpochModel[] epochs)
+        {
+            ArgumentNullException.ThrowIfNull(epochs);
+            ModTimelineNeowCoExpansion.OnQueueTimelineExpansionPostfix(epochs);
         }
     }
 }
