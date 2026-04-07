@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using STS2RitsuLib.Content;
+using STS2RitsuLib.Scaffolding.Cards.HandOutline.Patches;
 
 namespace STS2RitsuLib.Scaffolding.Cards.HandOutline
 {
@@ -59,6 +61,23 @@ namespace STS2RitsuLib.Scaffolding.Cards.HandOutline
         public static void ClearForTests()
         {
             RulesByCardType.Clear();
+        }
+
+        /// <summary>
+        ///     Applies the best matching registered outline for this holder
+        /// </summary>
+        /// <returns><see langword="true" /> if a rule was applied.</returns>
+        public static bool TryRefreshOutlineForHolder(NHandCardHolder? holder)
+        {
+            if (holder == null || !holder.IsNodeReady() || holder.CardNode?.Model is not { } model)
+                return false;
+
+            var rule = EvaluateBest(model);
+            if (!rule.HasValue)
+                return false;
+
+            ModCardHandOutlinePatchHelper.ApplyHighlight(holder, model, rule.Value);
+            return true;
         }
 
         internal static ModCardHandOutlineRule? EvaluateBest(CardModel model)
