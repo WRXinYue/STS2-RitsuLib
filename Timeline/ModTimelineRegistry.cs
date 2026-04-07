@@ -111,6 +111,19 @@ namespace STS2RitsuLib.Timeline
             }
         }
 
+        /// <summary>
+        ///     Rewrites <see cref="EpochModel.AllEpochIds" /> from the live <c>_epochTypeDictionary</c> so
+        ///     <see cref="EpochModel.IsValid" /> matches <see cref="EpochModel.Get" /> after third-party dictionary edits or
+        ///     early vanilla lazy-init of <c>_allEpochIds</c>.
+        /// </summary>
+        internal static void EnsureAllEpochIdsSyncedWithDictionary()
+        {
+            lock (SyncRoot)
+            {
+                RefreshAllEpochIdsSnapshotLocked();
+            }
+        }
+
         private void RegisterEpoch(Type epochType)
         {
             EnsureMutable($"register epoch '{epochType.Name}'");
@@ -139,8 +152,7 @@ namespace STS2RitsuLib.Timeline
 
                 epochTypeDictionary[epochId] = epochType;
                 typeToIdDictionary[epochType] = epochId;
-                SetStaticField(typeof(EpochModel), "_allEpochIds",
-                    epochTypeDictionary.Keys.OrderBy(id => id, StringComparer.Ordinal).ToArray());
+                RefreshAllEpochIdsSnapshotLocked();
             }
 
             _logger.Info($"[Timeline] Registered epoch: {epochType.Name} (id={epochId})");
@@ -231,6 +243,14 @@ namespace STS2RitsuLib.Timeline
                         ?? throw new MissingFieldException(ownerType.FullName, fieldName);
 
             field.SetValue(null, value);
+        }
+
+        private static void RefreshAllEpochIdsSnapshotLocked()
+        {
+            var epochTypeDictionary =
+                GetStaticField<Dictionary<string, Type>>(typeof(EpochModel), "_epochTypeDictionary");
+            SetStaticField(typeof(EpochModel), "_allEpochIds",
+                epochTypeDictionary.Keys.OrderBy(id => id, StringComparer.Ordinal).ToArray());
         }
     }
 }
