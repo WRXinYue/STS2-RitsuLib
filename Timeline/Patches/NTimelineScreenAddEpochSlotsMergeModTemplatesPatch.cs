@@ -1,4 +1,5 @@
 using MegaCrit.Sts2.Core.Nodes.Screens.Timeline;
+using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Patching.Models;
 using STS2RitsuLib.Timeline.Scaffolding;
@@ -46,6 +47,8 @@ namespace STS2RitsuLib.Timeline.Patches
             if (isAnimated)
                 return;
 
+            var progress = SaveManager.Instance?.Progress;
+
             var existing = new HashSet<string>(slotsToAdd.Count);
             foreach (var s in slotsToAdd)
                 existing.Add(s.Model.Id);
@@ -68,11 +71,29 @@ namespace STS2RitsuLib.Timeline.Patches
                 if (model is not ModEpochTemplate)
                     continue;
 
-                slotsToAdd.Add(new(model, EpochSlotState.NotObtained));
+                slotsToAdd.Add(new(model, ResolveMergedModSlotState(id, progress)));
                 existing.Add(id);
             }
 
             slotsToAdd.Sort((a, b) => a.EraPosition.CompareTo(b.EraPosition));
+        }
+
+        private static EpochSlotState ResolveMergedModSlotState(string id, ProgressState? progress)
+        {
+            if (progress == null || !progress.HasEpoch(id))
+                return EpochSlotState.NotObtained;
+
+            var row = progress.Epochs.FirstOrDefault(e => e.Id == id);
+            if (row == null)
+                return EpochSlotState.NotObtained;
+
+            return row.State switch
+            {
+                EpochState.Revealed => EpochSlotState.Complete,
+                EpochState.Obtained => EpochSlotState.Obtained,
+                EpochState.ObtainedNoSlot => EpochSlotState.Obtained,
+                _ => EpochSlotState.NotObtained,
+            };
         }
     }
 }

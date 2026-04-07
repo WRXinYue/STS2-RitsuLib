@@ -257,6 +257,7 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<AscensionOneEpochCompatibilityPatch>();
             patcher.RegisterPatch<PostRunCharacterUnlockEpochCompatibilityPatch>();
             patcher.RegisterPatch<AscensionEpochRevealCompatibilityPatch>();
+            patcher.RegisterPatch<ProgressSaveManagerGetRevealableEpochsModTemplatePatch>();
             patcher.RegisterPatch<QueueTimelineExpansionSyncEpochIdListPatch>();
             patcher.RegisterPatch<NUnlockTimelineScreenExpansionSlotSortPatch>();
             patcher.RegisterPatch<NTimelineScreenAddEpochSlotsMergeModTemplatesPatch>();
