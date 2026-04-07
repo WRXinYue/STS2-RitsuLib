@@ -11,6 +11,12 @@ namespace STS2RitsuLib.Timeline.Scaffolding
     public abstract class ModEpochTemplate : EpochModel, IModEpochAssetOverrides
     {
         /// <inheritdoc />
+        public sealed override EpochEra Era => ModTimelineLayoutRegistry.ResolveEra(GetType());
+
+        /// <inheritdoc />
+        public sealed override int EraPosition => ModTimelineLayoutRegistry.ResolveEraPosition(GetType());
+
+        /// <inheritdoc />
         public virtual EpochAssetProfile AssetProfile => EpochAssetProfile.Empty;
 
         /// <inheritdoc />

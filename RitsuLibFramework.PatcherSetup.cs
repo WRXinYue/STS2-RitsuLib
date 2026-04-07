@@ -12,6 +12,7 @@ using STS2RitsuLib.Scaffolding.Cards.HandOutline.Patches;
 using STS2RitsuLib.Scaffolding.Characters.Patches;
 using STS2RitsuLib.Scaffolding.Content.Patches;
 using STS2RitsuLib.Settings.Patches;
+using STS2RitsuLib.Timeline.Patches;
 using STS2RitsuLib.Unlocks.Patches;
 using STS2RitsuLib.Utils.Persistence.Patches;
 
@@ -263,6 +264,12 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<AscensionOneEpochCompatibilityPatch>();
             patcher.RegisterPatch<PostRunCharacterUnlockEpochCompatibilityPatch>();
             patcher.RegisterPatch<AscensionEpochRevealCompatibilityPatch>();
+            patcher.RegisterPatch<ProgressSaveManagerGetRevealableEpochsModTemplatePatch>();
+            patcher.RegisterPatch<QueueTimelineExpansionSyncEpochIdListPatch>();
+            patcher.RegisterPatch<NeowEpochQueueUnlocksCoExpansionScopePatch>();
+            patcher.RegisterPatch<QueueTimelineExpansionUnlockModSlotsAfterNeowPatch>();
+            patcher.RegisterPatch<NUnlockTimelineScreenExpansionSlotSortPatch>();
+            patcher.RegisterPatch<NTimelineScreenAddEpochSlotsMergeModTemplatesPatch>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.Unlocks, patcher);
         }
 

@@ -56,18 +56,25 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         /// <summary>
         ///     Registers <typeparamref name="TEpoch" /> on the story column, then optional slot configuration (pool defaults,
-        ///     gated lists, etc.). Execution order matches call order; later <c>RequireEpoch</c> for the same model overrides
-        ///     earlier ones.
+        ///     gated lists, etc.). For <see cref="ModEpochTemplate" /> epochs, timeline layout must be registered before freeze;
+        ///     when using this builder, the typical approach is to call
+        ///     <see cref="EpochSlotBuilder{TEpoch}.TimelineSlot" /> or <see cref="EpochSlotBuilder{TEpoch}.AutoTimelineSlot" />
+        ///     inside <paramref name="slot" /> (or register elsewhere before freeze, e.g. ModContentPackBuilder ModEpoch*
+        ///     helpers), so apply-time validation can run (conflicts with vanilla throw at apply time).
+        ///     Execution order matches call order; later <c>RequireEpoch</c> for the same model overrides earlier ones.
         /// </summary>
         public TimelineColumnBuilder<TStory> Epoch<TEpoch>(Action<EpochSlotBuilder<TEpoch>>? slot = null)
             where TEpoch : EpochModel, new()
         {
-            _steps.Add(() => _context.Timeline.RegisterStoryEpoch<TStory, TEpoch>());
-            if (slot == null) return this;
-            var b = new EpochSlotBuilder<TEpoch>(_context);
-            slot(b);
-            _steps.AddRange(b.DrainSteps());
+            if (slot != null)
+            {
+                var b = new EpochSlotBuilder<TEpoch>(_context);
+                slot(b);
+                foreach (var step in b.DrainSteps())
+                    _steps.Add(step);
+            }
 
+            _steps.Add(() => _context.Timeline.RegisterStoryEpoch<TStory, TEpoch>());
             return this;
         }
 
@@ -129,16 +136,89 @@ namespace STS2RitsuLib.Scaffolding.Content
     {
         private readonly ModContentPackContext _context;
         private readonly List<Action> _pending = [];
+        private Action? _layoutRegistration;
 
         internal EpochSlotBuilder(ModContentPackContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        ///     Reserves a fixed <see cref="EpochEra" /> column and <c>EraPosition</c> for this epoch. Conflicts with vanilla
+        ///     or other mods throw at registration time.
+        /// </summary>
+        public EpochSlotBuilder<TEpoch> TimelineSlot(EpochEra era, int eraPosition)
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterTimelineSlot(typeof(TEpoch), era, eraPosition, modId);
+            return this;
+        }
+
+        /// <summary>
+        ///     Reserves the lowest free <c>EraPosition</c> in <paramref name="era" /> after seeding vanilla occupancy.
+        /// </summary>
+        public EpochSlotBuilder<TEpoch> AutoTimelineSlot(EpochEra era)
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlot(typeof(TEpoch), era, modId);
+            return this;
+        }
+
+        /// <summary>
+        ///     Reserves a column strictly to the left of <paramref name="anchorEra" /> (smaller era int), preferring a new
+        ///     root cell at position 0 — use for a mod story “root” before the rest of your column content.
+        /// </summary>
+        public EpochSlotBuilder<TEpoch> AutoTimelineSlotBeforeColumn(EpochEra anchorEra)
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotBeforeEraColumn(typeof(TEpoch), anchorEra, modId);
+            return this;
+        }
+
+        /// <inheritdoc cref="ModTimelineLayoutRegistry.RegisterAutoTimelineSlotBeforeEpochColumn" />
+        public EpochSlotBuilder<TEpoch> AutoTimelineSlotBeforeEpochColumn<TReferenceEpoch>()
+            where TReferenceEpoch : EpochModel, new()
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotBeforeEpochColumn(typeof(TEpoch),
+                    typeof(TReferenceEpoch), modId);
+            return this;
+        }
+
+        /// <summary>
+        ///     Reserves a column strictly to the right of <paramref name="anchorEra" /> (larger era int).
+        /// </summary>
+        public EpochSlotBuilder<TEpoch> AutoTimelineSlotAfterColumn(EpochEra anchorEra)
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotAfterEraColumn(typeof(TEpoch), anchorEra, modId);
+            return this;
+        }
+
+        /// <inheritdoc cref="ModTimelineLayoutRegistry.RegisterAutoTimelineSlotAfterEpochColumn" />
+        public EpochSlotBuilder<TEpoch> AutoTimelineSlotAfterEpochColumn<TReferenceEpoch>()
+            where TReferenceEpoch : EpochModel, new()
+        {
+            var modId = _context.ModId;
+            _layoutRegistration = () =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotAfterEpochColumn(typeof(TEpoch),
+                    typeof(TReferenceEpoch), modId);
+            return this;
+        }
+
         internal List<Action> DrainSteps()
         {
-            var copy = _pending.ToList();
+            var copy = new List<Action>();
+            if (_layoutRegistration != null)
+                copy.Add(_layoutRegistration);
+            copy.AddRange(_pending);
             _pending.Clear();
+            _layoutRegistration = null;
             return copy;
         }
 

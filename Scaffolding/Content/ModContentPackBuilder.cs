@@ -448,6 +448,47 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
+        ///     Queues <see cref="ModTimelineLayoutRegistry.RegisterTimelineSlot" /> for a <see cref="ModEpochTemplate" />
+        ///     when not using <see cref="TimelineColumnPackEntry{TStory}" />.
+        /// </summary>
+        public ModContentPackBuilder ModEpochTimelineSlot<TEpoch>(EpochEra era, int eraPosition)
+            where TEpoch : ModEpochTemplate
+        {
+            return AddStep(ctx =>
+                ModTimelineLayoutRegistry.RegisterTimelineSlot(typeof(TEpoch), era, eraPosition, ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModTimelineLayoutRegistry.RegisterAutoTimelineSlot" /> for a <see cref="ModEpochTemplate" />.
+        /// </summary>
+        public ModContentPackBuilder ModEpochAutoTimelineSlot<TEpoch>(EpochEra era)
+            where TEpoch : ModEpochTemplate
+        {
+            return AddStep(ctx => ModTimelineLayoutRegistry.RegisterAutoTimelineSlot(typeof(TEpoch), era, ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModTimelineLayoutRegistry.RegisterAutoTimelineSlotBeforeEraColumn" />.
+        /// </summary>
+        public ModContentPackBuilder ModEpochAutoTimelineSlotBeforeColumn<TEpoch>(EpochEra anchorEra)
+            where TEpoch : ModEpochTemplate
+        {
+            return AddStep(ctx =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotBeforeEraColumn(typeof(TEpoch), anchorEra,
+                    ctx.ModId));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModTimelineLayoutRegistry.RegisterAutoTimelineSlotAfterEraColumn" />.
+        /// </summary>
+        public ModContentPackBuilder ModEpochAutoTimelineSlotAfterColumn<TEpoch>(EpochEra anchorEra)
+            where TEpoch : ModEpochTemplate
+        {
+            return AddStep(ctx =>
+                ModTimelineLayoutRegistry.RegisterAutoTimelineSlotAfterEraColumn(typeof(TEpoch), anchorEra, ctx.ModId));
+        }
+
+        /// <summary>
         ///     Queues <see cref="TimelineColumnPackEntry{TStory}" /> — one fluent block for column order + per-epoch unlock
         ///     bindings (recommended over many separate pack entry types).
         /// </summary>
