@@ -65,6 +65,62 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterForce{TAct}" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterForce<TAct>(int slotIndex, int priority,
+            Func<ActEnterResolveContext, bool> eligibility)
+            where TAct : ActModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEnterForce<TAct>(slotIndex, priority, eligibility));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterUniformPool" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterUniformPool(int slotIndex)
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEnterUniformPool(slotIndex));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterUniformPoolCandidate{TAct}" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterUniformPoolCandidate<TAct>(int slotIndex,
+            Func<ActEnterResolveContext, bool> eligibility)
+            where TAct : ActModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEnterUniformPoolCandidate<TAct>(slotIndex, eligibility));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterWeightedPool" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterWeightedPool(int slotIndex)
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEnterWeightedPool(slotIndex));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterWeightedPoolCandidate{TAct}" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterWeightedPoolCandidate<TAct>(int slotIndex,
+            Func<ActEnterResolveContext, bool> eligibility, Func<ActEnterResolveContext, double> weight)
+            where TAct : ActModel
+        {
+            return AddStep(ctx =>
+                ctx.Content.RegisterActEnterWeightedPoolCandidate<TAct>(slotIndex, eligibility, weight));
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterActEnterWeightedPoolBaseline" />.
+        /// </summary>
+        public ModContentPackBuilder ActEnterWeightedPoolBaseline(int slotIndex,
+            Func<ActEnterResolveContext, double> weight)
+        {
+            return AddStep(ctx => ctx.Content.RegisterActEnterWeightedPoolBaseline(slotIndex, weight));
+        }
+
+        /// <summary>
         ///     Queues <see cref="ModContentRegistry.RegisterActEncounter{TAct,TEncounter}" /> (encounter only in that act).
         /// </summary>
         public ModContentPackBuilder ActEncounter<TAct, TEncounter>()
