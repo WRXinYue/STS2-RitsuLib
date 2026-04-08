@@ -152,6 +152,13 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<ActGenerateBackgroundAssetsPatch>();
             patcher.RegisterPatch<ActAssetPathsBackgroundLayersPatch>();
 
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.MonsterCreatureVisualsRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EncounterCombatSceneRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventLayoutPackedSceneRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventBackgroundPackedSceneRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventHasVfxRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventCreateVfxRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.OrbSpriteRuntimeFactoryPatch>();
             patcher.RegisterPatch<EncounterCreateScenePatch>();
             patcher.RegisterPatch<EncounterGetBackgroundAssetsProgrammaticPrepPatch>();
             patcher.RegisterPatch<EncounterCreateBackgroundAssetsForCustomPatch>();
@@ -189,6 +196,7 @@ namespace STS2RitsuLib
         {
             var patcher = CreatePatcher(Const.ModId, "framework-character-assets", "character assets");
             patcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.CharacterCreatureVisualsRuntimeFactoryPatch>();
             patcher.RegisterPatch<CharacterVisualsPathPatch>();
             patcher.RegisterPatch<CharacterEnergyCounterPathPatch>();
             patcher.RegisterPatch<CharacterMerchantAnimPathPatch>();

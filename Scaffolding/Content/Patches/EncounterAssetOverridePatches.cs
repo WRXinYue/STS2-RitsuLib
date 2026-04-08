@@ -158,20 +158,18 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
                 }
             }
 
-            if (__instance is ModEncounterTemplate template)
+            if (__instance is not ModEncounterTemplate template) return true;
+            var slot = template.ConsumeProgrammaticCombatBackgroundSlot();
+            if (slot != null)
             {
-                var slot = template.ConsumeProgrammaticCombatBackgroundSlot();
-                if (slot != null)
-                {
-                    __result = slot;
-                    return false;
-                }
-
-                if (template.UsesProgrammaticCombatBackground)
-                    RitsuLibFramework.Logger.Warn(
-                        $"[Assets] Mod encounter '{__instance.Id.Entry}' has UseProgrammaticCombatBackground but " +
-                        "BuildProgrammaticCombatBackground returned null; using vanilla per-encounter background layout.");
+                __result = slot;
+                return false;
             }
+
+            if (template.UsesProgrammaticCombatBackground)
+                RitsuLibFramework.Logger.Warn(
+                    $"[Assets] Mod encounter '{__instance.Id.Entry}' has UseProgrammaticCombatBackground but " +
+                    "BuildProgrammaticCombatBackground returned null; using vanilla per-encounter background layout.");
 
             return true;
         }

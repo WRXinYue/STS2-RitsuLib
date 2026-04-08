@@ -1,3 +1,4 @@
+using Godot;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
@@ -6,10 +7,10 @@ using STS2RitsuLib.Scaffolding.Content.Patches;
 namespace STS2RitsuLib.Scaffolding.Content
 {
     /// <summary>
-    ///     Base <see cref="EncounterModel" /> for mods: wires <see cref="IModEncounterAssetOverrides" /> for combat scene,
-    ///     encounter-specific backgrounds (main scene + <c>_bg_</c>/<c>_fg_</c> layers), boss map node path, optional map-node
-    ///     preload list, and extra asset paths. Background pipeline matches vanilla
-    ///     <c>EncounterModel.HasCustomBackground</c> semantics, with an explicit switch to keep using the act’s combat
+    ///     Base <see cref="EncounterModel" /> for mods: <see cref="IModEncounterAssetOverrides" /> (combat scene path,
+    ///     backgrounds, boss node, map-node preload, extra paths), optional <see cref="TryCreateEncounterCombatScene" />.
+    ///     The background pipeline matches vanilla <c>EncounterModel.HasCustomBackground</c> semantics, with an explicit
+    ///     switch to keep using the act’s combat
     ///     background when desired. For disk-free backgrounds, set <see cref="UseProgrammaticCombatBackground" /> and
     ///     implement <see cref="BuildProgrammaticCombatBackground" /> using <see cref="CombatBackgroundAssetsFactory" /> (or
     ///     reuse <see cref="ActModel.GenerateBackgroundAssets" />).
@@ -20,7 +21,8 @@ namespace STS2RitsuLib.Scaffolding.Content
     ///     <c>GlobalEncounter&lt;TEncounter&gt;()</c>. Register each <see cref="MonsterModel" /> used in this encounter with
     ///     <c>RegisterMonster&lt;T&gt;()</c> / <c>Monster&lt;T&gt;()</c> so <c>ModelDb.Monsters</c> lists them.
     /// </summary>
-    public abstract class ModEncounterTemplate : EncounterModel, IModEncounterAssetOverrides
+    public abstract class ModEncounterTemplate : EncounterModel, IModEncounterAssetOverrides,
+        IModEncounterCombatSceneFactory
     {
         private BackgroundAssets? _programmaticCombatBackgroundSlot;
 
@@ -54,7 +56,14 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         /// <inheritdoc />
         public override bool HasScene =>
-            base.HasScene || !string.IsNullOrWhiteSpace(CustomEncounterScenePath);
+            base.HasScene
+            || !string.IsNullOrWhiteSpace(CustomEncounterScenePath)
+            || SuppliesEncounterCombatSceneFromFactory;
+
+        /// <summary>
+        ///     <c>true</c> when <see cref="HasScene" /> should be true without <see cref="CustomEncounterScenePath" />.
+        /// </summary>
+        protected virtual bool SuppliesEncounterCombatSceneFromFactory => false;
 
         /// <inheritdoc />
         public virtual EncounterAssetProfile AssetProfile => EncounterAssetProfile.Empty;
@@ -76,6 +85,22 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         /// <inheritdoc />
         public virtual IEnumerable<string>? CustomMapNodeAssetPaths => AssetProfile.MapNodeAssetPaths;
+
+        bool IModEncounterCombatSceneFactory.SuppliesEncounterCombatSceneFromFactory =>
+            SuppliesEncounterCombatSceneFromFactory;
+
+        Control? IModEncounterCombatSceneFactory.TryCreateEncounterCombatScene()
+        {
+            return TryCreateEncounterCombatScene();
+        }
+
+        /// <summary>
+        ///     Non-null combat root control; otherwise the default encounter scene path is used.
+        /// </summary>
+        protected virtual Control? TryCreateEncounterCombatScene()
+        {
+            return null;
+        }
 
         /// <summary>
         ///     Build combat background assets when <see cref="UseProgrammaticCombatBackground" /> is <c>true</c>.

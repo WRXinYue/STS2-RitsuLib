@@ -22,7 +22,7 @@ namespace STS2RitsuLib.Scaffolding.Content
             ArgumentException.ThrowIfNullOrWhiteSpace(backgroundScenePath);
             ArgumentNullException.ThrowIfNull(bgLayers);
 
-            var layers = bgLayers is List<string> list ? list : [..bgLayers];
+            var layers = bgLayers as List<string> ?? [..bgLayers];
             return Construct(backgroundScenePath, layers, fgLayer);
         }
 
