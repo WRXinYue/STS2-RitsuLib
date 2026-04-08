@@ -1,11 +1,14 @@
 using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Scaffolding.Content.Patches;
+using STS2RitsuLib.Scaffolding.Godot;
 
 namespace STS2RitsuLib.Scaffolding.Content
 {
     /// <summary>
     ///     Base <see cref="MonsterModel" /> for mods: <see cref="IModMonsterAssetOverrides" /> for creature visuals scene
-    ///     path.
+    ///     path; optional <see cref="RitsuGodotNodeFactories" /> can build <c>NCreatureVisuals</c> from <c>Texture2D</c> or
+    ///     mod scenes via explicit <c>CreateFromResource</c> / <c>CreateFromScenePath</c> in code you control (no global
+    ///     Instantiate hook).
     ///     Register the concrete type with <c>ModContentRegistry.RegisterMonster&lt;T&gt;()</c> or pack builder
     ///     <c>Monster&lt;T&gt;()</c>.
     /// </summary>
