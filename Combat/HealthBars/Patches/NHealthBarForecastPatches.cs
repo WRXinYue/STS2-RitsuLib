@@ -40,14 +40,20 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 return;
             }
 
-            EnsureUiState(healthBar);
-            var state = UiStates[healthBar] ??
-                        throw new InvalidOperationException("Missing health bar forecast UI state.");
+            if (!EnsureUiState(healthBar))
+                return;
+
+            var state = UiStates[healthBar];
+            if (state == null)
+                return;
+
             EnsureOverlayOrder(healthBar, state);
 
             var maxWidth = GetMaxFgWidth(healthBar);
             var hpForeground = healthBar._hpForeground;
-            var baseHp = Math.Clamp(HpFromOffsetRight(healthBar, hpForeground.OffsetRight), 0, creature.CurrentHp);
+            var hpFromForeground =
+                Math.Clamp(HpFromOffsetRight(healthBar, hpForeground.OffsetRight), 0, creature.CurrentHp);
+            var baseHp = hpForeground.Visible || hpFromForeground < creature.CurrentHp ? hpFromForeground : 0;
 
             var rightSegments = customSegments
                 .Where(segment => segment.Direction == HealthBarForecastGrowthDirection.FromRight)
@@ -132,7 +138,6 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 .ToArray();
 
             var leftAccumulated = 0;
-            Color? lethalLeftColor = null;
             var leftIndex = 0;
 
             foreach (var segment in leftSegments)
@@ -162,13 +167,11 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                     leftOffsetRight = Math.Min(leftOffsetRight, rightForecastEdgeOffsetRight);
                 node.OffsetRight = leftOffsetRight;
 
-                if (lethalLeftColor == null && leftAccumulated >= remainingHp)
-                    lethalLeftColor = segment.Color;
-
                 leftIndex++;
             }
 
             HideSegments(state.LeftSegments, leftIndex);
+            var lethalLeftColor = ResolveLeftLethalColor(creature, remainingHp, leftSegments);
             state.LastRender = new(rightIndex > 0, rightForecastEdgeOffsetRight, lethalRightColor, lethalLeftColor);
         }
 
@@ -253,14 +256,20 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
             state.LastRender = HealthBarForecastRenderResult.Empty;
         }
 
-        private static void EnsureUiState(NHealthBar healthBar)
+        private static bool EnsureUiState(NHealthBar healthBar)
         {
             if (UiStates[healthBar] != null)
-                return;
+                return true;
 
-            var poisonForeground = (NinePatchRect)healthBar._poisonForeground;
-            var doomForeground = (NinePatchRect)healthBar._doomForeground;
-            var mask = poisonForeground.GetParent<Control>();
+            if (healthBar._poisonForeground is not NinePatchRect poisonForeground)
+                return false;
+
+            if (healthBar._doomForeground is not NinePatchRect doomForeground)
+                return false;
+
+            if (poisonForeground.GetParent() is not Control mask)
+                return false;
+
             var rightContainer = CreateContainer("RitsuForecastRightContainer");
             var leftContainer = CreateContainer("RitsuForecastLeftContainer");
 
@@ -273,6 +282,7 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 CreateSegmentTemplate(poisonForeground, "RitsuForecastRightTemplate"),
                 CreateSegmentTemplate(doomForeground, "RitsuForecastLeftTemplate"),
                 []);
+            return true;
         }
 
         private static Control CreateContainer(string name)
@@ -305,11 +315,13 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 poisonForeground.GetParent() is not Control mask)
                 return;
 
+            // Right forecast should override poison, but still be clipped by HP.
             var poisonIndex = poisonForeground.GetIndex();
             var hpIndex = hpForeground.GetIndex();
             var rightTargetIndex = Math.Clamp(poisonIndex + 1, 0, hpIndex);
             mask.MoveChild(state.RightContainer, rightTargetIndex);
 
+            // Left forecast should override doom-like overlays.
             var doomIndex = doomForeground.GetIndex();
             var childCount = mask.GetChildCount();
             var leftTargetIndex = Math.Clamp(doomIndex + 1, 0, Math.Max(0, childCount - 1));
@@ -412,6 +424,45 @@ namespace STS2RitsuLib.Combat.HealthBars.Patches
                 creature.CurrentHp);
             return hpAfterRight > 0 && doomAmount >= hpAfterRight;
         }
+
+        private static Color? ResolveLeftLethalColor(Creature creature, int remainingHp,
+            IReadOnlyList<CustomSegment> leftSegments)
+        {
+            if (remainingHp <= 0)
+                return null;
+
+            List<LethalCandidate> candidates = [];
+            candidates.AddRange(from segment in leftSegments
+                where segment.Amount > 0
+                select new LethalCandidate(segment.Amount, segment.Color, segment.Order, segment.SequenceOrder));
+
+            var doomAmount = creature.GetPowerAmount<DoomPower>();
+            if (doomAmount > 0)
+                candidates.Add(new(doomAmount, DoomLethalTextColor, 0, long.MinValue / 4));
+
+            if (candidates.Count == 0)
+                return null;
+
+            var ordered = candidates
+                .OrderBy(candidate => candidate.Order)
+                .ThenBy(candidate => candidate.SequenceOrder);
+
+            var accumulated = 0;
+            foreach (var candidate in ordered)
+            {
+                accumulated = Math.Min(remainingHp, accumulated + candidate.Amount);
+                if (accumulated >= remainingHp)
+                    return candidate.Color;
+            }
+
+            return null;
+        }
+
+        private readonly record struct LethalCandidate(
+            int Amount,
+            Color Color,
+            int Order,
+            long SequenceOrder);
 
         private sealed class HealthBarForecastUiState(
             Control rightContainer,
