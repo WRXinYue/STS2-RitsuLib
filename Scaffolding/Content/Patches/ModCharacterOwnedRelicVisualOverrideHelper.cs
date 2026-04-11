@@ -89,6 +89,9 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
         private static IModCharacterAssetOverrides? TryGetOwningCharacterOverrides(RelicModel instance)
         {
+            if (instance.IsCanonical)
+                return null;
+
             return instance.Owner?.Character as IModCharacterAssetOverrides;
         }
     }
