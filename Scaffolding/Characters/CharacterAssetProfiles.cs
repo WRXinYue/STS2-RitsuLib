@@ -1,4 +1,5 @@
 using STS2RitsuLib.Scaffolding.Characters.Visuals.Definition;
+using STS2RitsuLib.Scaffolding.Content;
 using STS2RitsuLib.Scaffolding.Visuals.Definition;
 
 namespace STS2RitsuLib.Scaffolding.Characters
@@ -81,7 +82,9 @@ namespace STS2RitsuLib.Scaffolding.Characters
                 MergeAudio(fallback.Audio, profile.Audio),
                 MergeMultiplayer(fallback.Multiplayer, profile.Multiplayer),
                 MergeVisualCues(fallback.VisualCues, profile.VisualCues),
-                MergeWorldProceduralVisuals(fallback.WorldProceduralVisuals, profile.WorldProceduralVisuals));
+                MergeWorldProceduralVisuals(fallback.WorldProceduralVisuals, profile.WorldProceduralVisuals),
+                MergeVanillaRelicVisualOverrides(fallback.VanillaRelicVisualOverrides,
+                    profile.VanillaRelicVisualOverrides));
         }
 
         /// <summary>
@@ -202,6 +205,43 @@ namespace STS2RitsuLib.Scaffolding.Characters
                     profile.ArmRockTexturePath ?? fallback.ArmRockTexturePath,
                     profile.ArmPaperTexturePath ?? fallback.ArmPaperTexturePath,
                     profile.ArmScissorsTexturePath ?? fallback.ArmScissorsTexturePath);
+        }
+
+        private static CharacterVanillaRelicVisualOverride[]? MergeVanillaRelicVisualOverrides(
+            CharacterVanillaRelicVisualOverride[]? fallback,
+            CharacterVanillaRelicVisualOverride[]? profile)
+        {
+            if (fallback is not { Length: > 0 })
+                return profile is { Length: > 0 } ? profile : null;
+
+            if (profile is not { Length: > 0 })
+                return fallback;
+
+            var map = new Dictionary<string, CharacterVanillaRelicVisualOverride>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in fallback)
+                map[e.RelicModelIdEntry] = e;
+
+            foreach (var e in profile)
+                if (map.TryGetValue(e.RelicModelIdEntry, out var existing))
+                    map[e.RelicModelIdEntry] = new(e.RelicModelIdEntry,
+                        MergeRelicAssetProfiles(existing.Assets, e.Assets));
+                else
+                    map[e.RelicModelIdEntry] = e;
+
+            var merged = new CharacterVanillaRelicVisualOverride[map.Count];
+            var i = 0;
+            foreach (var kv in map.OrderBy(static p => p.Key, StringComparer.OrdinalIgnoreCase))
+                merged[i++] = kv.Value;
+
+            return merged;
+        }
+
+        private static RelicAssetProfile MergeRelicAssetProfiles(RelicAssetProfile fallback, RelicAssetProfile profile)
+        {
+            return new(
+                profile.IconPath ?? fallback.IconPath,
+                profile.IconOutlinePath ?? fallback.IconOutlinePath,
+                profile.BigIconPath ?? fallback.BigIconPath);
         }
 
         private static CharacterWorldProceduralVisualSet? MergeWorldProceduralVisuals(
@@ -372,6 +412,17 @@ namespace STS2RitsuLib.Scaffolding.Characters
                 ArgumentNullException.ThrowIfNull(profile);
                 ArgumentNullException.ThrowIfNull(worldVisuals);
                 return profile with { WorldProceduralVisuals = worldVisuals };
+            }
+
+            /// <summary>
+            ///     Returns a copy with <see cref="CharacterAssetProfile.VanillaRelicVisualOverrides" /> replaced.
+            /// </summary>
+            public CharacterAssetProfile WithVanillaRelicVisualOverrides(
+                CharacterVanillaRelicVisualOverride[] vanillaRelicVisualOverrides)
+            {
+                ArgumentNullException.ThrowIfNull(profile);
+                ArgumentNullException.ThrowIfNull(vanillaRelicVisualOverrides);
+                return profile with { VanillaRelicVisualOverrides = vanillaRelicVisualOverrides };
             }
         }
     }

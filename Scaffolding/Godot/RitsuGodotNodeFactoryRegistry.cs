@@ -54,10 +54,9 @@ namespace STS2RitsuLib.Scaffolding.Godot
             if (resource is string s && ResourceLoader.Exists(s))
             {
                 var loaded = ResourceLoader.Load(s);
-                if (loaded is null)
-                    throw new InvalidOperationException($"ResourceLoader.Load returned null for path: {s}");
 
-                resource = loaded;
+                resource = loaded ??
+                           throw new InvalidOperationException($"ResourceLoader.Load returned null for path: {s}");
             }
 
             RitsuLibFramework.Logger.Info($"[Godot] Creating {typeof(TNode).Name} from {resource.GetType().Name}");

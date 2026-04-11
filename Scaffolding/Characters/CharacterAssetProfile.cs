@@ -1,5 +1,6 @@
 using Godot;
 using STS2RitsuLib.Scaffolding.Characters.Visuals.Definition;
+using STS2RitsuLib.Scaffolding.Content;
 using STS2RitsuLib.Scaffolding.Visuals.Definition;
 
 namespace STS2RitsuLib.Scaffolding.Characters
@@ -108,6 +109,30 @@ namespace STS2RitsuLib.Scaffolding.Characters
         string? ArmScissorsTexturePath = null);
 
     /// <summary>
+    ///     One entry in <see cref="CharacterAssetProfile.VanillaRelicVisualOverrides" />: when this mod character owns a
+    ///     relic whose <c>ModelId.Entry</c> equals <paramref name="RelicModelIdEntry" /> (ordinal ignore-case), use
+    ///     <paramref name="Assets" /> for icon paths.
+    /// </summary>
+    /// <param name="RelicModelIdEntry">Stable relic id (same string as <c>RelicModel.Id.Entry</c>).</param>
+    /// <param name="Assets">
+    ///     Packed icon, outline, and large art paths (same shape as mod relic
+    ///     <see cref="RelicAssetProfile" />).
+    /// </param>
+    public sealed record CharacterVanillaRelicVisualOverride(string RelicModelIdEntry, RelicAssetProfile Assets);
+
+    /// <summary>
+    ///     Well-known <see cref="CharacterVanillaRelicVisualOverride.RelicModelIdEntry" /> values for base-game relics
+    ///     that commonly need per-character art.
+    /// </summary>
+    public static class CharacterOwnedVanillaRelicModelId
+    {
+        /// <summary>
+        ///     Entry id for the vanilla <c>YummyCookie</c> relic.
+        /// </summary>
+        public const string YummyCookie = "yummy_cookie";
+    }
+
+    /// <summary>
     ///     Bundles optional path sets for scaffolding a mod character alongside vanilla layout conventions.
     /// </summary>
     /// <param name="Scenes">Combat / world scenes.</param>
@@ -118,6 +143,10 @@ namespace STS2RitsuLib.Scaffolding.Characters
     /// <param name="Multiplayer">Multiplayer hand art.</param>
     /// <param name="VisualCues">Per-cue textures / frame sequences (combat, game-over, and other consumers).</param>
     /// <param name="WorldProceduralVisuals">Merchant / rest-site shells without custom character <c>tscn</c> scenes.</param>
+    /// <param name="VanillaRelicVisualOverrides">
+    ///     Per–relic-id icon overrides when this character is the relic owner (see
+    ///     <see cref="CharacterVanillaRelicVisualOverride" />).
+    /// </param>
     public sealed record CharacterAssetProfile(
         CharacterSceneAssetSet? Scenes = null,
         CharacterUiAssetSet? Ui = null,
@@ -126,7 +155,8 @@ namespace STS2RitsuLib.Scaffolding.Characters
         CharacterAudioAssetSet? Audio = null,
         CharacterMultiplayerAssetSet? Multiplayer = null,
         VisualCueSet? VisualCues = null,
-        CharacterWorldProceduralVisualSet? WorldProceduralVisuals = null)
+        CharacterWorldProceduralVisualSet? WorldProceduralVisuals = null,
+        CharacterVanillaRelicVisualOverride[]? VanillaRelicVisualOverrides = null)
     {
         /// <summary>
         ///     Profile with all components null (merge / fill helpers treat null as “missing”).

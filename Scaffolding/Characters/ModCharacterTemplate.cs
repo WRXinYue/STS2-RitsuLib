@@ -166,6 +166,12 @@ namespace STS2RitsuLib.Scaffolding.Characters
         ///     see <see cref="ModCharacterWorldSceneVisuals" />.
         /// </summary>
         CharacterWorldProceduralVisualSet? WorldProceduralVisuals { get; }
+
+        /// <summary>
+        ///     When <paramref name="relic" /> is owned by a player using this character, returns icon path overrides
+        ///     registered for that relic’s <c>ModelId.Entry</c>; otherwise <c>null</c>.
+        /// </summary>
+        RelicAssetProfile? TryGetVanillaRelicVisualOverrideForOwnedRelic(RelicModel relic);
     }
 
     /// <summary>
@@ -372,6 +378,30 @@ namespace STS2RitsuLib.Scaffolding.Characters
 
         /// <inheritdoc />
         public virtual string? CustomArmScissorsTexturePath => ResolvedAssetProfile.Multiplayer?.ArmScissorsTexturePath;
+
+        /// <inheritdoc />
+        public virtual RelicAssetProfile? TryGetVanillaRelicVisualOverrideForOwnedRelic(RelicModel relic)
+        {
+            var entries = ResolvedAssetProfile.VanillaRelicVisualOverrides;
+            if (entries is not { Length: > 0 })
+                return null;
+
+            var id = relic.Id.Entry;
+            foreach (var row in entries)
+            {
+                if (!id.Equals(row.RelicModelIdEntry, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var a = row.Assets;
+                if (string.IsNullOrWhiteSpace(a.IconPath) && string.IsNullOrWhiteSpace(a.IconOutlinePath) &&
+                    string.IsNullOrWhiteSpace(a.BigIconPath))
+                    return null;
+
+                return a;
+            }
+
+            return null;
+        }
 
         /// <inheritdoc />
         public virtual VisualCueSet? VisualCues => ResolvedAssetProfile.VisualCues;

@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Patching.Models;
+using STS2RitsuLib.Scaffolding.Characters;
 using STS2RitsuLib.Utils;
 
 namespace STS2RitsuLib.Scaffolding.Content.Patches
@@ -875,7 +876,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
     }
 
     /// <summary>
-    ///     Patches <see cref="RelicModel.IconPath" /> for <see cref="IModRelicAssetOverrides" />.
+    ///     Patches <see cref="RelicModel.IconPath" /> for <see cref="IModRelicAssetOverrides" /> and mod-character
+    ///     per–relic-id paths from <see cref="CharacterAssetProfile.VanillaRelicVisualOverrides" /> when the owner matches.
     /// </summary>
     public class RelicIconPathPatch : IPatchMethod
     {
@@ -883,7 +885,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         public static string PatchId => "content_asset_override_relic_icon_path";
 
         /// <inheritdoc cref="IPatchMethod.Description" />
-        public static string Description => "Allow mod relics to override icon path assets";
+        public static string Description =>
+            "Allow mod relics to override icon paths and mod characters to override owned relic icons by id";
 
         /// <inheritdoc cref="IPatchMethod.IsCritical" />
         public static bool IsCritical => false;
@@ -899,21 +902,27 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
         // ReSharper disable InconsistentNaming
         /// <summary>
-        ///     Supplies <see cref="IModRelicAssetOverrides.CustomIconPath" /> when the resource exists.
+        ///     Supplies <see cref="IModRelicAssetOverrides.CustomIconPath" /> when the resource exists, then
+        ///     <see cref="IModCharacterAssetOverrides.TryGetVanillaRelicVisualOverrideForOwnedRelic" /> when applicable.
         /// </summary>
         public static bool Prefix(RelicModel __instance, ref string __result)
             // ReSharper restore InconsistentNaming
         {
-            return ContentAssetOverridePatchHelper.TryUseStringOverride<IModRelicAssetOverrides>(
-                __instance,
-                ref __result,
-                o => o.CustomIconPath,
-                nameof(IModRelicAssetOverrides.CustomIconPath));
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (!ContentAssetOverridePatchHelper.TryUseStringOverride<IModRelicAssetOverrides>(
+                    __instance,
+                    ref __result,
+                    o => o.CustomIconPath,
+                    nameof(IModRelicAssetOverrides.CustomIconPath)))
+                return false;
+
+            return ModCharacterOwnedRelicVisualOverrideHelper.TryRelicIconPath(__instance, ref __result);
         }
     }
 
     /// <summary>
-    ///     Patches relic icon texture getters (main, outline, big) for mod path overrides.
+    ///     Patches relic icon texture getters (main, outline, big) for mod path overrides and mod-character per–relic-id
+    ///     paths.
     /// </summary>
     public class RelicTexturePatch : IPatchMethod
     {
@@ -921,7 +930,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         public static string PatchId => "content_asset_override_relic_texture";
 
         /// <inheritdoc cref="IPatchMethod.Description" />
-        public static string Description => "Allow mod relics to override icon textures";
+        public static string Description =>
+            "Allow mod relics and mod-character per-relic visual overrides to override icon textures";
 
         /// <inheritdoc cref="IPatchMethod.IsCritical" />
         public static bool IsCritical => false;
@@ -939,23 +949,49 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
         // ReSharper disable InconsistentNaming
         /// <summary>
-        ///     Dispatches texture loading to the matching <see cref="IModRelicAssetOverrides" /> path property.
+        ///     Dispatches texture loading to mod relic overrides, then mod-character per–relic-id overrides.
         /// </summary>
         public static bool Prefix(MethodBase __originalMethod, RelicModel __instance, ref Texture2D __result)
             // ReSharper restore InconsistentNaming
         {
             return __originalMethod.Name switch
             {
-                "get_Icon" => ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(__instance,
-                    ref __result, o => o.CustomIconPath, nameof(IModRelicAssetOverrides.CustomIconPath)),
-                "get_IconOutline" => ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(
-                    __instance, ref __result, o => o.CustomIconOutlinePath,
-                    nameof(IModRelicAssetOverrides.CustomIconOutlinePath)),
-                "get_BigIcon" => ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(
-                    __instance, ref __result, o => o.CustomBigIconPath,
-                    nameof(IModRelicAssetOverrides.CustomBigIconPath)),
+                "get_Icon" => TryRelicIconTexture(__instance, ref __result),
+                "get_IconOutline" => TryRelicIconOutlineTexture(__instance, ref __result),
+                "get_BigIcon" => TryRelicBigIconTexture(__instance, ref __result),
                 _ => true,
             };
+        }
+
+        private static bool TryRelicIconTexture(RelicModel instance, ref Texture2D result)
+        {
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (!ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(instance,
+                    ref result, o => o.CustomIconPath, nameof(IModRelicAssetOverrides.CustomIconPath)))
+                return false;
+
+            return ModCharacterOwnedRelicVisualOverrideHelper.TryRelicIconTexture(instance, ref result);
+        }
+
+        private static bool TryRelicIconOutlineTexture(RelicModel instance, ref Texture2D result)
+        {
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (!ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(instance,
+                    ref result, o => o.CustomIconOutlinePath,
+                    nameof(IModRelicAssetOverrides.CustomIconOutlinePath)))
+                return false;
+
+            return ModCharacterOwnedRelicVisualOverrideHelper.TryRelicIconOutlineTexture(instance, ref result);
+        }
+
+        private static bool TryRelicBigIconTexture(RelicModel instance, ref Texture2D result)
+        {
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (!ContentAssetOverridePatchHelper.TryUseTextureOverride<IModRelicAssetOverrides>(instance,
+                    ref result, o => o.CustomBigIconPath, nameof(IModRelicAssetOverrides.CustomBigIconPath)))
+                return false;
+
+            return ModCharacterOwnedRelicVisualOverrideHelper.TryRelicBigIconTexture(instance, ref result);
         }
     }
 
