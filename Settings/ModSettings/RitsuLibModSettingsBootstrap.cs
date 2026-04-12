@@ -502,7 +502,10 @@ namespace STS2RitsuLib.Settings
                                 T("ritsulib.showcase.list.add", "Add Item"),
                                 ModSettingsText.Dynamic(() =>
                                     string.Format(L("ritsulib.showcase.list.summary", "Current item count: {0}"),
-                                        showcaseState.ListItems.Count)))),
+                                        showcaseState.ListItems.Count)),
+                                true,
+                                false,
+                                null)),
                     "debug-showcase");
 
                 _initialized = true;

@@ -16,7 +16,10 @@ namespace STS2RitsuLib.Settings
         Func<ModSettingsListItemContext<TItem>, Control>? itemEditorFactory,
         IStructuredModSettingsValueAdapter<TItem>? itemDataAdapter,
         ModSettingsText addButtonText,
-        ModSettingsText? description)
+        ModSettingsText? description,
+        bool collapsibleItems,
+        bool startItemsCollapsed,
+        Func<ModSettingsListItemContext<TItem>, Control?>? itemHeaderAccessoryFactory)
         : ModSettingsEntryDefinition(id, label, description)
     {
         /// <summary>
@@ -56,6 +59,22 @@ namespace STS2RitsuLib.Settings
         ///     Localized label for the add button.
         /// </summary>
         public ModSettingsText AddButtonText { get; } = addButtonText;
+
+        /// <summary>
+        ///     When true, each list item can collapse its detail editor body.
+        /// </summary>
+        public bool CollapsibleItems { get; } = collapsibleItems;
+
+        /// <summary>
+        ///     Initial collapsed state when <see cref="CollapsibleItems" /> is true.
+        /// </summary>
+        public bool StartItemsCollapsed { get; } = startItemsCollapsed;
+
+        /// <summary>
+        ///     Optional factory for compact controls rendered in the always-visible item header.
+        /// </summary>
+        public Func<ModSettingsListItemContext<TItem>, Control?>? ItemHeaderAccessoryFactory { get; } =
+            itemHeaderAccessoryFactory;
 
         internal override void CollectChromeBindingSnapshots(
             Dictionary<string, ModSettingsChromeBindingSnapshot> target)

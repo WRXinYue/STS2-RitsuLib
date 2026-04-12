@@ -1,11 +1,13 @@
 using Godot;
 using STS2RitsuLib.Compat;
 using STS2RitsuLib.Utils.Persistence;
+using System.Collections.Generic;
 
 namespace STS2RitsuLib.Settings
 {
     internal sealed class ModSettingsUiContext(RitsuModSettingsSubmenu submenu) : IModSettingsUiActionHost
     {
+        private readonly Dictionary<string, Dictionary<string, object?>> _rowUiState = [];
         public void MarkDirty(IModSettingsBinding binding)
         {
             submenu.MarkDirty(binding);
@@ -74,6 +76,29 @@ namespace STS2RitsuLib.Settings
         public void NotifyPasteFailure(ModSettingsPasteFailureReason reason)
         {
             submenu.ShowPasteFailure(reason);
+        }
+
+        public bool TryGetRowState<TValue>(string rowKey, string stateKey, out TValue? value)
+        {
+            value = default;
+            if (!_rowUiState.TryGetValue(rowKey, out var row) || !row.TryGetValue(stateKey, out var stored))
+                return false;
+            if (stored is TValue typed)
+            {
+                value = typed;
+                return true;
+            }
+            return false;
+        }
+
+        public void SetRowState<TValue>(string rowKey, string stateKey, TValue value)
+        {
+            if (!_rowUiState.TryGetValue(rowKey, out var row))
+            {
+                row = [];
+                _rowUiState[rowKey] = row;
+            }
+            row[stateKey] = value;
         }
     }
 }

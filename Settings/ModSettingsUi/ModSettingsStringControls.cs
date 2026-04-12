@@ -5,13 +5,20 @@ namespace STS2RitsuLib.Settings
     /// <summary>
     ///     Single-line string entry backed by a <see cref="LineEdit" />.
     /// </summary>
-    internal sealed partial class ModSettingsStringLineControl : HBoxContainer
+    public sealed partial class ModSettingsStringLineControl : HBoxContainer
     {
         private readonly int? _maxLength;
         private readonly Action<string>? _onChanged;
         private string _lastCommitted = string.Empty;
         private bool _suppressCallbacks;
 
+        /// <summary>
+        ///     Creates a single-line string editor.
+        /// </summary>
+        /// <param name="initialValue">The initial text value.</param>
+        /// <param name="placeholder">Placeholder text shown when the field is empty.</param>
+        /// <param name="maxLength">Optional maximum text length.</param>
+        /// <param name="onChanged">Callback invoked after the committed value changes.</param>
         public ModSettingsStringLineControl(string? initialValue, string? placeholder, int? maxLength,
             Action<string> onChanged)
         {
@@ -51,6 +58,9 @@ namespace STS2RitsuLib.Settings
             Editor = edit;
         }
 
+        /// <summary>
+        ///     Creates the string editor for Godot scene instantiation.
+        /// </summary>
         public ModSettingsStringLineControl()
         {
         }
@@ -60,6 +70,10 @@ namespace STS2RitsuLib.Settings
         /// </summary>
         public LineEdit? Editor { get; private set; }
 
+        /// <summary>
+        ///     Updates the displayed value without recreating the control.
+        /// </summary>
+        /// <param name="value">The value to display.</param>
         public void SetValue(string? value)
         {
             if (Editor == null)
@@ -99,13 +113,20 @@ namespace STS2RitsuLib.Settings
     /// <summary>
     ///     Multiline string entry backed by a <see cref="TextEdit" />.
     /// </summary>
-    internal sealed partial class ModSettingsStringMultilineControl : HBoxContainer
+    public sealed partial class ModSettingsStringMultilineControl : HBoxContainer
     {
         private readonly int? _maxLength;
         private readonly Action<string>? _onChanged;
         private string _lastCommitted = string.Empty;
         private bool _suppressCallbacks;
 
+        /// <summary>
+        ///     Creates a multiline string editor.
+        /// </summary>
+        /// <param name="initialValue">The initial text value.</param>
+        /// <param name="placeholder">Placeholder text shown when the field is empty.</param>
+        /// <param name="maxLength">Optional maximum text length.</param>
+        /// <param name="onChanged">Callback invoked after the committed value changes.</param>
         public ModSettingsStringMultilineControl(string? initialValue, string? placeholder, int? maxLength,
             Action<string> onChanged)
         {
@@ -142,6 +163,9 @@ namespace STS2RitsuLib.Settings
             Editor = edit;
         }
 
+        /// <summary>
+        ///     Creates the multiline editor for Godot scene instantiation.
+        /// </summary>
         public ModSettingsStringMultilineControl()
         {
         }
@@ -151,6 +175,10 @@ namespace STS2RitsuLib.Settings
         /// </summary>
         public TextEdit? Editor { get; private set; }
 
+        /// <summary>
+        ///     Updates the displayed value without recreating the control.
+        /// </summary>
+        /// <param name="value">The value to display.</param>
         public void SetValue(string? value)
         {
             if (Editor == null)
