@@ -393,7 +393,7 @@ namespace STS2RitsuLib.Settings
     ///     but comparisons and binding I/O stay in <see cref="float" /> space to match obsolete
     ///     <c>AddSlider(..., IModSettingsValueBinding&lt;float&gt;, ...)</c> mods without double bridges.
     /// </summary>
-    internal sealed partial class ModSettingsFloatSliderControl : HBoxContainer
+    public sealed partial class ModSettingsFloatSliderControl : HBoxContainer
     {
         private readonly float _bindingValueAtConstruct;
         private readonly Func<float, string>? _formatter;
@@ -403,6 +403,15 @@ namespace STS2RitsuLib.Settings
         private bool _suppressCallbacks;
         private LineEdit? _valueEdit;
 
+        /// <summary>
+        ///     Creates a float-backed slider editor.
+        /// </summary>
+        /// <param name="initialValue">The starting value shown by the slider.</param>
+        /// <param name="minValue">The minimum allowed value.</param>
+        /// <param name="maxValue">The maximum allowed value.</param>
+        /// <param name="step">The slider increment.</param>
+        /// <param name="formatter">Formats committed values for the text field.</param>
+        /// <param name="onChanged">Invoked when the effective value changes.</param>
         public ModSettingsFloatSliderControl(
             float initialValue,
             float minValue,
@@ -471,10 +480,14 @@ namespace STS2RitsuLib.Settings
             _slider = slider;
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsFloatSliderControl()
         {
         }
 
+        /// <inheritdoc />
         public override void _EnterTree()
         {
             base._EnterTree();
@@ -488,6 +501,7 @@ namespace STS2RitsuLib.Settings
             ApplyFloatSliderMouseFilterForInputMode();
         }
 
+        /// <inheritdoc />
         public override void _ExitTree()
         {
             if (_hookedControllerManagerFloat != null)
@@ -500,6 +514,7 @@ namespace STS2RitsuLib.Settings
             base._ExitTree();
         }
 
+        /// <inheritdoc />
         public override void _Ready()
         {
             if (_slider == null)
@@ -541,6 +556,10 @@ namespace STS2RitsuLib.Settings
             _onChanged?.Invoke(f);
         }
 
+        /// <summary>
+        ///     Replaces the current slider value without leaving stale formatted text behind.
+        /// </summary>
+        /// <param name="value">The value to apply.</param>
         public void SetValue(float value)
         {
             if (_slider == null)
@@ -635,7 +654,11 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal sealed partial class ModSettingsChoiceControl<TValue> : HBoxContainer
+    /// <summary>
+    ///     Stepper-style choice editor that cycles through labeled values.
+    /// </summary>
+    /// <typeparam name="TValue">The stored option value type.</typeparam>
+    public sealed partial class ModSettingsChoiceControl<TValue> : HBoxContainer
     {
         private readonly TValue? _currentValue;
         private readonly Action<TValue>? _onChanged;
@@ -644,6 +667,12 @@ namespace STS2RitsuLib.Settings
         private Label? _label;
         private bool _suppressCallbacks;
 
+        /// <summary>
+        ///     Creates a stepper-style choice editor.
+        /// </summary>
+        /// <param name="options">The labeled values available to the editor.</param>
+        /// <param name="currentValue">The value selected initially.</param>
+        /// <param name="onChanged">Invoked after the user picks a different value.</param>
         public ModSettingsChoiceControl(
             IReadOnlyList<(TValue Value, string Label)> options,
             TValue currentValue,
@@ -702,10 +731,14 @@ namespace STS2RitsuLib.Settings
             });
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsChoiceControl()
         {
         }
 
+        /// <inheritdoc />
         public override void _Ready()
         {
             if (_optionsWithValues == null)
@@ -730,6 +763,10 @@ namespace STS2RitsuLib.Settings
                 _onChanged?.Invoke(_optionsWithValues[_currentIndex].Value);
         }
 
+        /// <summary>
+        ///     Selects the matching option without triggering the external change callback.
+        /// </summary>
+        /// <param name="value">The value to select.</param>
         public void SetValue(TValue value)
         {
             if (_optionsWithValues == null)
@@ -752,7 +789,11 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal sealed partial class ModSettingsDropdownChoiceControl<TValue> : HBoxContainer
+    /// <summary>
+    ///     Dropdown-style choice editor for labeled values.
+    /// </summary>
+    /// <typeparam name="TValue">The stored option value type.</typeparam>
+    public sealed partial class ModSettingsDropdownChoiceControl<TValue> : HBoxContainer
     {
         private const float DropListMinWidth = 200f;
         private const float RowHeight = 38f;
@@ -768,6 +809,12 @@ namespace STS2RitsuLib.Settings
         private int _selectedIndex;
         private bool _suppressCallbacks;
 
+        /// <summary>
+        ///     Creates a dropdown-style choice editor.
+        /// </summary>
+        /// <param name="options">The labeled values available to the editor.</param>
+        /// <param name="currentValue">The value selected initially.</param>
+        /// <param name="onChanged">Invoked after the user picks a different value.</param>
         public ModSettingsDropdownChoiceControl(
             IReadOnlyList<(TValue Value, string Label)> options,
             TValue currentValue,
@@ -817,10 +864,14 @@ namespace STS2RitsuLib.Settings
             RefreshFaceLabel();
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsDropdownChoiceControl()
         {
         }
 
+        /// <inheritdoc />
         public override void _Ready()
         {
             BuildDropdownShell();
@@ -828,6 +879,7 @@ namespace STS2RitsuLib.Settings
             RefreshFaceLabel();
         }
 
+        /// <inheritdoc />
         public override void _ExitTree()
         {
             if (_dropOpen)
@@ -835,6 +887,7 @@ namespace STS2RitsuLib.Settings
             base._ExitTree();
         }
 
+        /// <inheritdoc />
         public override void _Input(InputEvent @event)
         {
             if (_dropOpen && !@event.IsEcho() &&
@@ -848,6 +901,7 @@ namespace STS2RitsuLib.Settings
             base._Input(@event);
         }
 
+        /// <inheritdoc />
         public override void _UnhandledInput(InputEvent @event)
         {
             if (_dropOpen && !@event.IsEcho() &&
@@ -861,6 +915,10 @@ namespace STS2RitsuLib.Settings
             base._UnhandledInput(@event);
         }
 
+        /// <summary>
+        ///     Selects the matching option without reopening the dropdown or firing the external callback.
+        /// </summary>
+        /// <param name="value">The value to select.</param>
         public void SetValue(TValue value)
         {
             if (_optionsWithValues == null || _faceButton == null)
@@ -1374,7 +1432,10 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal sealed partial class ModSettingsKeyBindingControl : VBoxContainer
+    /// <summary>
+    ///     Keybinding capture editor used by settings pages and custom editors.
+    /// </summary>
+    public sealed partial class ModSettingsKeyBindingControl : VBoxContainer
     {
         private readonly bool _allowModifierCombos;
         private readonly bool _allowModifierOnly;
@@ -1385,6 +1446,14 @@ namespace STS2RitsuLib.Settings
         private string _currentValue = string.Empty;
         private Label? _hintLabel;
 
+        /// <summary>
+        ///     Creates a keybinding capture editor.
+        /// </summary>
+        /// <param name="initialValue">The binding shown initially.</param>
+        /// <param name="allowModifierCombos">Whether modifier combinations are allowed.</param>
+        /// <param name="allowModifierOnly">Whether modifier-only bindings are allowed.</param>
+        /// <param name="distinguishModifierSides">Whether left and right modifier keys are recorded separately.</param>
+        /// <param name="onChanged">Invoked after the binding changes.</param>
         public ModSettingsKeyBindingControl(string initialValue, bool allowModifierCombos, bool allowModifierOnly,
             bool distinguishModifierSides, Action<string> onChanged)
         {
@@ -1452,16 +1521,24 @@ namespace STS2RitsuLib.Settings
             SetProcessUnhandledKeyInput(true);
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsKeyBindingControl()
         {
         }
 
+        /// <inheritdoc />
         public override void _Ready()
         {
             if (_captureButton != null)
                 _captureButton.Pressed += BeginCapture;
         }
 
+        /// <summary>
+        ///     Replaces the captured binding without starting capture mode.
+        /// </summary>
+        /// <param name="value">The binding to display.</param>
         public void SetValue(string value)
         {
             _currentValue = value;
@@ -1469,6 +1546,7 @@ namespace STS2RitsuLib.Settings
                 RefreshText();
         }
 
+        /// <inheritdoc />
         public override void _UnhandledKeyInput(InputEvent @event)
         {
             if (!_capturing || @event is not InputEventKey { Pressed: true } keyEvent || keyEvent.IsEcho())
@@ -1857,8 +1935,16 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal sealed partial class ModSettingsMiniButton : ModSettingsGamepadCompatibleButton
+    /// <summary>
+    ///     Compact button used by stepper controls, dropdown rows, and other dense settings editors.
+    /// </summary>
+    public sealed partial class ModSettingsMiniButton : ModSettingsGamepadCompatibleButton
     {
+        /// <summary>
+        ///     Creates a compact button with the standard mini-button chrome.
+        /// </summary>
+        /// <param name="text">The button label.</param>
+        /// <param name="action">Invoked when the button is pressed.</param>
         public ModSettingsMiniButton(string text, Action action)
         {
             Text = text;
@@ -1879,6 +1965,9 @@ namespace STS2RitsuLib.Settings
             Pressed += action;
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsMiniButton()
         {
         }
@@ -3205,12 +3294,21 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal partial class ModSettingsTextButton : ModSettingsGamepadCompatibleButton
+    /// <summary>
+    ///     Textured action button using the standard settings button chrome.
+    /// </summary>
+    public partial class ModSettingsTextButton : ModSettingsGamepadCompatibleButton
     {
         private readonly string? _text;
         private readonly ModSettingsButtonTone _tone;
         private bool _selected;
 
+        /// <summary>
+        ///     Creates a standard settings action button.
+        /// </summary>
+        /// <param name="text">The button label.</param>
+        /// <param name="tone">The visual tone applied to the button.</param>
+        /// <param name="action">Invoked when the button is pressed.</param>
         public ModSettingsTextButton(string text, ModSettingsButtonTone tone, Action? action)
         {
             _text = text;
@@ -3234,16 +3332,24 @@ namespace STS2RitsuLib.Settings
             Pressed += () => action?.Invoke();
         }
 
+        /// <summary>
+        ///     Godot serialization constructor.
+        /// </summary>
         public ModSettingsTextButton()
         {
         }
 
+        /// <inheritdoc />
         public override void _Ready()
         {
             Text = _text ?? string.Empty;
             ApplyVisualState();
         }
 
+        /// <summary>
+        ///     Updates the selected visual state used by segmented button groups and previews.
+        /// </summary>
+        /// <param name="selected">Whether the button should render as selected.</param>
         public void SetSelected(bool selected)
         {
             _selected = selected;
