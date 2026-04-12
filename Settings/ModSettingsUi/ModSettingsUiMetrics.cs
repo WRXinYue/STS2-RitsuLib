@@ -3,7 +3,7 @@ namespace STS2RitsuLib.Settings
     /// <summary>
     ///     Central layout and chrome numbers for mod settings UI. Tune here instead of scattering literals.
     /// </summary>
-    internal static class ModSettingsUiMetrics
+    public static class ModSettingsUiMetrics
     {
         /// <summary>
         ///     Shared StyleBox corner radius (0 = square).
@@ -35,12 +35,29 @@ namespace STS2RitsuLib.Settings
         /// </summary>
         public const float ChoiceRowMinWidth = 292f;
 
+        /// <summary>
+        ///     Minimum width reserved for the center label/value area of a choice row.
+        /// </summary>
         public const float ChoiceCenterMinWidth = 180f;
 
+        /// <summary>
+        ///     Width of the inline numeric field shown next to sliders.
+        /// </summary>
         public const float SliderValueFieldWidth = 72f;
+
+        /// <summary>
+        ///     Height of the inline numeric field shown next to sliders.
+        /// </summary>
         public const float SliderValueFieldHeight = 40f;
 
+        /// <summary>
+        ///     Minimum width reserved for color picker rows.
+        /// </summary>
         public const float ColorRowMinWidth = 300f;
+
+        /// <summary>
+        ///     Size of the color swatch shown by color picker controls.
+        /// </summary>
         public const float ColorSwatchSize = 40f;
 
         /// <summary>
@@ -63,8 +80,14 @@ namespace STS2RitsuLib.Settings
         /// </summary>
         public const float KeybindingCaptureMinWidth = 300f;
 
+        /// <summary>
+        ///     Font size used by keybinding helper text.
+        /// </summary>
         public const int KeybindingHintFontSize = 16;
 
+        /// <summary>
+        ///     Square size used by compact stepper buttons.
+        /// </summary>
         public const int MiniStepperButtonSize = 40;
     }
 }

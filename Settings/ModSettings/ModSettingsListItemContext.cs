@@ -18,6 +18,7 @@ namespace STS2RitsuLib.Settings
         internal ModSettingsListItemContext(
             ModSettingsUiContext uiContext,
             IModSettingsValueBinding<TItem> binding,
+            string rowStateKey,
             int index,
             int itemCount,
             TItem item,
@@ -30,6 +31,7 @@ namespace STS2RitsuLib.Settings
         {
             _uiContext = uiContext;
             Binding = binding;
+            RowStateKey = rowStateKey;
             Index = index;
             ItemCount = itemCount;
             Item = item;
@@ -40,6 +42,11 @@ namespace STS2RitsuLib.Settings
             _remove = remove;
             _requestRefresh = requestRefresh;
         }
+
+        /// <summary>
+        ///     Stable state key for transient per-row UI state.
+        /// </summary>
+        public string RowStateKey { get; }
 
         /// <summary>
         ///     Zero-based index of this row in the list.
@@ -122,6 +129,24 @@ namespace STS2RitsuLib.Settings
         public void RequestRefresh()
         {
             _requestRefresh();
+        }
+
+        /// <summary>
+        ///     Reads transient row UI state for the current settings session.
+        /// </summary>
+        public TValue GetRowState<TValue>(string key, TValue fallback = default!)
+        {
+            if (_uiContext.TryGetRowState(RowStateKey, key, out TValue? value) && value is not null)
+                return value;
+            return fallback;
+        }
+
+        /// <summary>
+        ///     Stores transient row UI state for the current settings session.
+        /// </summary>
+        public void SetRowState<TValue>(string key, TValue value)
+        {
+            _uiContext.SetRowState(RowStateKey, key, value);
         }
 
         /// <summary>
@@ -208,7 +233,10 @@ namespace STS2RitsuLib.Settings
                 itemEditorFactory,
                 null,
                 addButtonText ?? ModSettingsText.I18N(ModSettingsLocalization.Instance, "button.add", "Add"),
-                description));
+                description,
+                false,
+                false,
+                null));
         }
     }
 }

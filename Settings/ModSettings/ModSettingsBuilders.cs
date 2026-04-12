@@ -303,6 +303,41 @@ namespace STS2RitsuLib.Settings
             ModSettingsText? addButtonText = null,
             ModSettingsText? description = null)
         {
+            return AddList(
+                id,
+                label,
+                binding,
+                createItem,
+                itemLabel,
+                itemDescription,
+                itemEditorFactory,
+                itemDataAdapter,
+                addButtonText,
+                description,
+                false,
+                false,
+                null);
+        }
+
+        /// <summary>
+        ///     Adds an editable list bound to <paramref name="binding" /> with optional collapsible item cards and
+        ///     compact header accessories.
+        /// </summary>
+        public ModSettingsSectionBuilder AddList<TItem>(
+            string id,
+            ModSettingsText label,
+            IModSettingsValueBinding<List<TItem>> binding,
+            Func<TItem> createItem,
+            Func<TItem, ModSettingsText> itemLabel,
+            Func<TItem, ModSettingsText?>? itemDescription,
+            Func<ModSettingsListItemContext<TItem>, Control>? itemEditorFactory,
+            IStructuredModSettingsValueAdapter<TItem>? itemDataAdapter,
+            ModSettingsText? addButtonText,
+            ModSettingsText? description,
+            bool collapsibleItems,
+            bool startItemsCollapsed,
+            Func<ModSettingsListItemContext<TItem>, Control?>? itemHeaderAccessoryFactory)
+        {
             ArgumentNullException.ThrowIfNull(createItem);
             ArgumentNullException.ThrowIfNull(itemLabel);
             AddEntry(id, new ListModSettingsEntryDefinition<TItem>(
@@ -315,7 +350,10 @@ namespace STS2RitsuLib.Settings
                 itemEditorFactory,
                 itemDataAdapter,
                 addButtonText ?? ModSettingsText.I18N(ModSettingsLocalization.Instance, "button.add", "Add"),
-                description));
+                description,
+                collapsibleItems,
+                startItemsCollapsed,
+                itemHeaderAccessoryFactory));
             return this;
         }
 

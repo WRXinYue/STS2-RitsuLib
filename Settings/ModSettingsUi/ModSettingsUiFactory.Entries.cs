@@ -182,7 +182,7 @@ namespace STS2RitsuLib.Settings
                 entry.Binding.Read(),
                 value =>
                 {
-                    entry.Binding.Write(value);
+                    entry.Binding.Write(value ?? string.Empty);
                     context.MarkDirty(entry.Binding);
                     context.RequestRefresh();
                 });

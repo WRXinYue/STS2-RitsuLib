@@ -8,8 +8,11 @@ namespace STS2RitsuLib.Settings
     ///     <see cref="MegaInput.select" /> (<c>ui_select</c>) like
     ///     <see cref="MegaCrit.Sts2.Core.Nodes.GodotExtensions.NClickableControl" />.
     /// </summary>
-    internal partial class ModSettingsGamepadCompatibleButton : Button
+    public partial class ModSettingsGamepadCompatibleButton : Button
     {
+        /// <summary>
+        ///     Creates a button that maps both keyboard and controller confirm actions to press behavior.
+        /// </summary>
         public ModSettingsGamepadCompatibleButton()
         {
             ClipContents = false;
@@ -22,6 +25,10 @@ namespace STS2RitsuLib.Settings
             ModSettingsFocusChrome.AttachControllerSelectionReticle(this);
         }
 
+        /// <summary>
+        ///     Handles controller confirm input so the button behaves like standard STS2 clickable controls.
+        /// </summary>
+        /// <param name="event">The input event to process.</param>
         public override void _GuiInput(InputEvent @event)
         {
             if (!Disabled && !@event.IsEcho() &&

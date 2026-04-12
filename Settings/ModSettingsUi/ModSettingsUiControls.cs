@@ -8,12 +8,20 @@ using Array = System.Array;
 
 namespace STS2RitsuLib.Settings
 {
-    internal sealed partial class ModSettingsToggleControl : ModSettingsGamepadCompatibleButton
+    /// <summary>
+    ///     Standard On/Off toggle control used by mod settings entries.
+    /// </summary>
+    public sealed partial class ModSettingsToggleControl : ModSettingsGamepadCompatibleButton
     {
         private readonly bool _initialValue;
         private readonly Action<bool>? _onChanged;
         private bool _isOn;
 
+        /// <summary>
+        ///     Creates a toggle control with an initial value and change callback.
+        /// </summary>
+        /// <param name="initialValue">Whether the toggle starts enabled.</param>
+        /// <param name="onChanged">Callback invoked after the value changes.</param>
         public ModSettingsToggleControl(bool initialValue, Action<bool> onChanged)
         {
             _initialValue = initialValue;
@@ -34,16 +42,26 @@ namespace STS2RitsuLib.Settings
             Pressed += ToggleValue;
         }
 
+        /// <summary>
+        ///     Creates the toggle control for Godot scene instantiation.
+        /// </summary>
         public ModSettingsToggleControl()
         {
         }
 
+        /// <summary>
+        ///     Initializes the visual state after the control enters the scene tree.
+        /// </summary>
         public override void _Ready()
         {
             _isOn = _initialValue;
             ApplyVisualState();
         }
 
+        /// <summary>
+        ///     Sets the current toggle value without recreating the control.
+        /// </summary>
+        /// <param name="value">The value to display.</param>
         public void SetValue(bool value)
         {
             _isOn = value;
@@ -1141,14 +1159,25 @@ namespace STS2RitsuLib.Settings
         }
     }
 
-    internal sealed partial class ModSettingsColorControl : HBoxContainer
+    /// <summary>
+    ///     Color editor with a visible swatch picker and editable hex value.
+    /// </summary>
+    public sealed partial class ModSettingsColorControl : HBoxContainer
     {
-        private readonly Action<string>? _onChanged;
+        private readonly Action<string?>? _onChanged;
+        private string _lastCommitted = string.Empty;
+        private bool _pickerChangedWhileOpen;
         private LineEdit? _hexEdit;
         private ColorPickerButton? _pickerButton;
         private bool _suppressCallbacks;
+        private Color _unsetPreviewColor = new(1f, 215f / 255f, 64f / 255f);
 
-        public ModSettingsColorControl(string initialValue, Action<string> onChanged)
+        /// <summary>
+        ///     Creates a color editor.
+        /// </summary>
+        /// <param name="initialValue">The initial hex color, or null/empty to leave the value unset.</param>
+        /// <param name="onChanged">Callback invoked after the committed color value changes.</param>
+        public ModSettingsColorControl(string? initialValue, Action<string?> onChanged)
         {
             _onChanged = onChanged;
 
@@ -1195,10 +1224,16 @@ namespace STS2RitsuLib.Settings
             ApplyFromHex(initialValue, false);
         }
 
+        /// <summary>
+        ///     Creates the color editor for Godot scene instantiation.
+        /// </summary>
         public ModSettingsColorControl()
         {
         }
 
+        /// <summary>
+        ///     Wires editor events after the control enters the scene tree.
+        /// </summary>
         public override void _Ready()
         {
             if (_hexEdit != null)
@@ -1213,24 +1248,56 @@ namespace STS2RitsuLib.Settings
             }
 
             if (_pickerButton == null) return;
-            _pickerButton.ColorChanged += color => ApplyColor(color, true);
+            _pickerButton.PopupClosed += OnPickerPopupClosed;
+            _pickerButton.ColorChanged += color => OnPickerColorChanged(color);
             ModSettingsFocusChrome.AttachControllerSelectionReticle(_pickerButton);
         }
 
-        public void SetValue(string value)
+        /// <summary>
+        ///     Updates the displayed value without recreating the control.
+        /// </summary>
+        /// <param name="value">The hex color to display, or null/empty to leave the field unset.</param>
+        public void SetValue(string? value)
         {
             ApplyFromHex(value, false);
         }
 
-        private void ApplyFromHex(string text, bool notify)
+        /// <summary>
+        ///     Current hex text shown by the editor, or an empty string when the color is unset.
+        /// </summary>
+        public string ValueText => _hexEdit?.Text ?? _lastCommitted;
+
+        private void ApplyFromHex(string? text, bool notify)
         {
-            if (!TryParseColor(text, out var color))
+            var trimmed = text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(trimmed))
             {
-                ApplyColor(ReadCurrentColor(), false);
+                ApplyUnset(notify);
+                return;
+            }
+
+            if (!TryParseColor(trimmed, out var color))
+            {
+                RestoreCurrentPresentation();
                 return;
             }
 
             ApplyColor(color, notify);
+        }
+
+        private void ApplyUnset(bool notify)
+        {
+            if (_suppressCallbacks)
+                return;
+
+            _suppressCallbacks = true;
+            _hexEdit?.Set("text", string.Empty);
+            _pickerButton?.Set("color",_unsetPreviewColor);
+            _suppressCallbacks = false;
+            _lastCommitted = string.Empty;
+
+            if (notify)
+                _onChanged?.Invoke(null);
         }
 
         private void ApplyColor(Color color, bool notify)
@@ -1238,18 +1305,34 @@ namespace STS2RitsuLib.Settings
             if (_suppressCallbacks)
                 return;
 
+            var formatted = FormatColor(color);
             _suppressCallbacks = true;
-            _pickerButton?.Color = color;
-            _hexEdit?.Text = FormatColor(color);
+            _pickerButton?.Set("color",color);
+            _hexEdit?.Set("text", formatted);
             _suppressCallbacks = false;
+            _lastCommitted = formatted;
+            _unsetPreviewColor = color;
 
             if (notify)
-                _onChanged?.Invoke(FormatColor(color));
+                _onChanged?.Invoke(formatted);
         }
 
-        private Color ReadCurrentColor()
+        private void RestoreCurrentPresentation()
         {
-            return _pickerButton?.Color ?? new(1f, 215f / 255f, 64f / 255f);
+            ApplyFromHex(_lastCommitted, false);
+        }
+
+        private void OnPickerColorChanged(Color color)
+        {
+            _pickerChangedWhileOpen = true;
+            ApplyColor(color, false);
+            _onChanged?.Invoke(FormatColor(color));
+        }
+
+        private void OnPickerPopupClosed()
+        {
+            _pickerChangedWhileOpen = false;
+            _pickerButton?.ReleaseFocus();
         }
 
         private static bool TryParseColor(string text, out Color color)
@@ -2218,6 +2301,7 @@ namespace STS2RitsuLib.Settings
             var itemContext = new ModSettingsListItemContext<TItem>(
                 UiContext,
                 CreateItemBinding(index),
+                $"{_entry.Id}[{index}]",
                 index,
                 itemCount,
                 item,
@@ -2236,7 +2320,10 @@ namespace STS2RitsuLib.Settings
                     ? ModSettingsUiContext.Resolve(description)
                     : null,
                 itemContext,
-                _entry.ItemEditorFactory?.Invoke(itemContext));
+                _entry.ItemEditorFactory?.Invoke(itemContext),
+                _entry.CollapsibleItems,
+                _entry.StartItemsCollapsed,
+                _entry.ItemHeaderAccessoryFactory?.Invoke(itemContext));
         }
 
         private void Mutate(Action<List<TItem>> mutate)
@@ -2500,7 +2587,12 @@ namespace STS2RitsuLib.Settings
     internal sealed partial class ModSettingsListItemCard<TItem> : PanelContainer
     {
         private readonly int _index;
+        private readonly bool _isCollapsible;
+        private readonly ModSettingsListItemContext<TItem>? _itemContext;
         private readonly ModSettingsListControl<TItem> _owner;
+        private bool _collapsed;
+        private PanelContainer? _editorSurface;
+        private ModSettingsCollapsibleHeaderButton? _toggleButton;
 
         public ModSettingsListItemCard(
             ModSettingsListControl<TItem> owner,
@@ -2508,10 +2600,18 @@ namespace STS2RitsuLib.Settings
             string title,
             string? subtitle,
             ModSettingsListItemContext<TItem> itemContext,
-            Control? editorContent)
+            Control? editorContent,
+            bool collapsible,
+            bool startCollapsed,
+            Control? headerAccessory)
         {
             _owner = owner;
             _index = index;
+            _itemContext = itemContext;
+            _isCollapsible = collapsible && editorContent != null;
+            _collapsed = _isCollapsible
+                ? itemContext.GetRowState("collapsed", startCollapsed)
+                : false;
             SizeFlagsHorizontal = SizeFlags.ExpandFill;
             MouseFilter = MouseFilterEnum.Stop;
             AddThemeStyleboxOverride("panel", ModSettingsUiFactory.CreateListItemCardStyle(index == 0));
@@ -2535,26 +2635,46 @@ namespace STS2RitsuLib.Settings
             root.AddThemeConstantOverride("separation", 8);
             outer.AddChild(root);
 
-            var header = new HBoxContainer
+            var headerRow = new HBoxContainer
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 MouseFilter = MouseFilterEnum.Ignore,
                 Alignment = BoxContainer.AlignmentMode.Center,
             };
-            header.AddThemeConstantOverride("separation", 8);
-            root.AddChild(header);
+            headerRow.AddThemeConstantOverride("separation", 8);
+            root.AddChild(headerRow);
 
-            var textColumn = new VBoxContainer
+            if (_isCollapsible)
             {
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                MouseFilter = MouseFilterEnum.Ignore,
-            };
-            textColumn.AddThemeConstantOverride("separation", 2);
-            header.AddChild(textColumn);
+                _toggleButton = new(title, subtitle, ToggleCollapsed)
+                {
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                };
+                headerRow.AddChild(_toggleButton);
+            }
+            else
+            {
+                var header = new HBoxContainer
+                {
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                    Alignment = BoxContainer.AlignmentMode.Center,
+                };
+                header.AddThemeConstantOverride("separation", 8);
+                headerRow.AddChild(header);
 
-            textColumn.AddChild(ModSettingsUiFactory.CreateSectionTitle(title));
-            if (!string.IsNullOrWhiteSpace(subtitle))
-                textColumn.AddChild(ModSettingsUiFactory.CreateInlineDescription(subtitle));
+                var textColumn = new VBoxContainer
+                {
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                textColumn.AddThemeConstantOverride("separation", 2);
+                header.AddChild(textColumn);
+
+                textColumn.AddChild(ModSettingsUiFactory.CreateSectionTitle(title));
+                if (!string.IsNullOrWhiteSpace(subtitle))
+                    textColumn.AddChild(ModSettingsUiFactory.CreateInlineDescription(subtitle));
+            }
 
             var actions = new HBoxContainer
             {
@@ -2562,7 +2682,11 @@ namespace STS2RitsuLib.Settings
                 Alignment = BoxContainer.AlignmentMode.Center,
             };
             actions.AddThemeConstantOverride("separation", 8);
-            header.AddChild(actions);
+            headerRow.AddChild(actions);
+
+            if (headerAccessory != null)
+                actions.AddChild(headerAccessory);
+
             var actionsButton = new ModSettingsActionsButton(
                 ModSettingsUiFactory.BuildListItemMenuActions(owner.UiContext, itemContext),
                 itemContext.RequestRefresh);
@@ -2571,19 +2695,36 @@ namespace STS2RitsuLib.Settings
             ModSettingsUiFactory.AttachContextMenuTargets(this, outer, actionsButton);
 
             if (editorContent == null) return;
-            var editorSurface = new PanelContainer
+            _editorSurface = new()
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 MouseFilter = MouseFilterEnum.Ignore,
+                Visible = !_collapsed,
             };
-            editorSurface.AddThemeStyleboxOverride("panel", ModSettingsUiFactory.CreateListEditorSurfaceStyle());
-            root.AddChild(editorSurface);
-            editorSurface.AddChild(editorContent);
+            _editorSurface.AddThemeStyleboxOverride("panel", ModSettingsUiFactory.CreateListEditorSurfaceStyle());
+            root.AddChild(_editorSurface);
+            _editorSurface.AddChild(editorContent);
+            ApplyCollapsedState();
         }
 
         public ModSettingsListItemCard()
         {
             _owner = null!;
+        }
+
+        private void ToggleCollapsed()
+        {
+            if (!_isCollapsible)
+                return;
+            _collapsed = !_collapsed;
+            _itemContext?.SetRowState("collapsed", _collapsed);
+            ApplyCollapsedState();
+        }
+
+        private void ApplyCollapsedState()
+        {
+            _editorSurface?.SetDeferred(Control.PropertyName.Visible, !_collapsed);
+            _toggleButton?.SetSelected(!_collapsed);
         }
 
         public override bool _CanDropData(Vector2 atPosition, Variant data)
