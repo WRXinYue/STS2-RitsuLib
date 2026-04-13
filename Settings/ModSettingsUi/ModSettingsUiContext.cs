@@ -83,13 +83,9 @@ namespace STS2RitsuLib.Settings
             value = default;
             if (!_rowUiState.TryGetValue(rowKey, out var row) || !row.TryGetValue(stateKey, out var stored))
                 return false;
-            if (stored is TValue typed)
-            {
-                value = typed;
-                return true;
-            }
-
-            return false;
+            if (stored is not TValue typed) return false;
+            value = typed;
+            return true;
         }
 
         public void SetRowState<TValue>(string rowKey, string stateKey, TValue value)

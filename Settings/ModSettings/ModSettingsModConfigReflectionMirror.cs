@@ -43,7 +43,7 @@ namespace STS2RitsuLib.Settings
     {
         private const string ApiTypeName = "ModConfig.ModConfigApi";
         private const string ManagerTypeName = "ModConfig.ModConfigManager";
-        private const string I18nTypeName = "ModConfig.I18n";
+        private const string I18NTypeName = "ModConfig.I18n";
 
         private static readonly Lock Gate = new();
 
@@ -51,7 +51,7 @@ namespace STS2RitsuLib.Settings
         private static MethodInfo? _cachedGetValueOpen;
         private static MethodInfo? _cachedSetValue;
         private static MethodInfo? _cachedResetDefaults;
-        private static MethodInfo? _cachedI18nGet;
+        private static MethodInfo? _cachedI18NGet;
         private static PropertyInfo? _cachedRegistrationsProp;
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace STS2RitsuLib.Settings
             lock (Gate)
             {
                 if (!TryResolveInterop(out _, out var getValueOpen, out var setValue, out var resetDefaults,
-                        out var registrationsProp, out var i18nGet))
+                        out var registrationsProp, out var i18NGet))
                     return 0;
 
                 var registrations = registrationsProp.GetValue(null);
@@ -117,7 +117,7 @@ namespace STS2RitsuLib.Settings
                         continue;
 
                     if (!TryRegisterOneMod(modId, pageId, sortOrder, pageTitle, pageDescription, reg,
-                            getValueOpen, setValue, resetDefaults, i18nGet, o))
+                            getValueOpen, setValue, resetDefaults, i18NGet, o))
                         continue;
 
                     added++;
@@ -139,7 +139,7 @@ namespace STS2RitsuLib.Settings
                 _cachedSetValue = null;
                 _cachedResetDefaults = null;
                 _cachedRegistrationsProp = null;
-                _cachedI18nGet = null;
+                _cachedI18NGet = null;
             }
         }
 
@@ -149,7 +149,7 @@ namespace STS2RitsuLib.Settings
             out MethodInfo setValue,
             out MethodInfo resetDefaults,
             out PropertyInfo registrationsProp,
-            out MethodInfo? i18nGet)
+            out MethodInfo? i18NGet)
         {
             if (_cachedApiType != null && _cachedGetValueOpen != null && _cachedSetValue != null &&
                 _cachedResetDefaults != null && _cachedRegistrationsProp != null)
@@ -159,7 +159,7 @@ namespace STS2RitsuLib.Settings
                 setValue = _cachedSetValue;
                 resetDefaults = _cachedResetDefaults;
                 registrationsProp = _cachedRegistrationsProp;
-                i18nGet = _cachedI18nGet;
+                i18NGet = _cachedI18NGet;
                 return true;
             }
 
@@ -173,7 +173,7 @@ namespace STS2RitsuLib.Settings
                 resetDefaults = null!;
                 registrationsProp = null!;
 #pragma warning restore CS8601
-                i18nGet = null;
+                i18NGet = null;
                 return false;
             }
 
@@ -181,7 +181,7 @@ namespace STS2RitsuLib.Settings
             var asm = apiType.Assembly;
 
             var resolvedGetValue = apiType.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .FirstOrDefault(m => m.Name == "GetValue" && m.IsGenericMethodDefinition &&
+                .FirstOrDefault(m => m is { Name: "GetValue", IsGenericMethodDefinition: true } &&
                                      m.GetParameters() is [{ ParameterType: var p0 }, { ParameterType: var p1 }] &&
                                      p0 == typeof(string) && p1 == typeof(string));
             var resolvedSetValue = apiType.GetMethod("SetValue",
@@ -203,7 +203,7 @@ namespace STS2RitsuLib.Settings
                 resetDefaults = null!;
                 registrationsProp = null!;
 #pragma warning restore CS8601
-                i18nGet = null;
+                i18NGet = null;
                 return false;
             }
 
@@ -212,8 +212,8 @@ namespace STS2RitsuLib.Settings
             resetDefaults = resolvedReset;
             registrationsProp = resolvedRegs;
 
-            var i18nType = asm.GetType(I18nTypeName);
-            i18nGet = i18nType?.GetMethod("Get",
+            var i18NType = asm.GetType(I18NTypeName);
+            i18NGet = i18NType?.GetMethod("Get",
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, null,
                 [typeof(string), typeof(string)], null);
 
@@ -222,7 +222,7 @@ namespace STS2RitsuLib.Settings
             _cachedSetValue = setValue;
             _cachedResetDefaults = resetDefaults;
             _cachedRegistrationsProp = registrationsProp;
-            _cachedI18nGet = i18nGet;
+            _cachedI18NGet = i18NGet;
 
             return true;
         }
@@ -273,7 +273,7 @@ namespace STS2RitsuLib.Settings
             MethodInfo getValueOpen,
             MethodInfo setValue,
             MethodInfo resetDefaults,
-            MethodInfo? i18nGet,
+            MethodInfo? i18NGet,
             ModConfigMirrorRegistrationOptions mirrorOptions)
         {
             var regType = registration.GetType();
@@ -286,11 +286,9 @@ namespace STS2RitsuLib.Settings
             {
                 if (entries.GetValue(i) is not { } entry)
                     continue;
-                if (IsRenderableConfigEntry(entry))
-                {
-                    hasRenderable = true;
-                    break;
-                }
+                if (!IsRenderableConfigEntry(entry)) continue;
+                hasRenderable = true;
+                break;
             }
 
             if (!hasRenderable)
@@ -305,7 +303,7 @@ namespace STS2RitsuLib.Settings
                         .WithDescription(pageDescription)
                         .WithSortOrder(sortOrder)
                         .WithModDisplayName(ModSettingsText.Dynamic(() =>
-                            ResolveRegistrationDisplayName(registration, i18nGet)));
+                            ResolveRegistrationDisplayName(registration, i18NGet)));
 
                     builder.AddSection("modconfig_main", section =>
                     {
@@ -314,7 +312,7 @@ namespace STS2RitsuLib.Settings
                             if (entries.GetValue(i) is not { } entry)
                                 continue;
 
-                            AppendConfigEntry(section, modId, entry, i, getValueOpen, setValue, i18nGet,
+                            AppendConfigEntry(section, modId, entry, i, getValueOpen, setValue, i18NGet,
                                 mirrorOptions);
                         }
 
@@ -349,14 +347,17 @@ namespace STS2RitsuLib.Settings
         {
             var t = entry.GetType();
             var typeObj = t.GetProperty("Type")?.GetValue(entry);
-            if (typeObj == null)
-                return "";
-
-            if (typeObj is Enum e)
+            switch (typeObj)
             {
-                var et = e.GetType();
-                if (Enum.IsDefined(et, e))
-                    return e.ToString();
+                case null:
+                    return "";
+                case Enum e:
+                {
+                    var et = e.GetType();
+                    if (Enum.IsDefined(et, e))
+                        return e.ToString();
+                    break;
+                }
             }
 
             var name = typeObj.ToString();
@@ -391,7 +392,7 @@ namespace STS2RitsuLib.Settings
             int index,
             MethodInfo getValueOpen,
             MethodInfo setValue,
-            MethodInfo? i18nGet,
+            MethodInfo? i18NGet,
             ModConfigMirrorRegistrationOptions mirrorOptions)
         {
             var t = entry.GetType();
@@ -402,7 +403,7 @@ namespace STS2RitsuLib.Settings
                 case "Header":
                 {
                     var id = $"mc_hdr_{index}";
-                    var label = ModSettingsText.Dynamic(() => ResolveEntryLabel(entry, i18nGet));
+                    var label = ModSettingsText.Dynamic(() => ResolveEntryLabel(entry, i18NGet));
                     section.AddHeader(id, label);
                     return;
                 }
@@ -420,8 +421,8 @@ namespace STS2RitsuLib.Settings
 
             var slug = StringHelper.Slugify(key);
             var idBase = $"mc_{slug}";
-            var labelText = ModSettingsText.Dynamic(() => ResolveEntryLabel(entry, i18nGet));
-            var descText = ResolveEntryDescription(entry, i18nGet);
+            var labelText = ModSettingsText.Dynamic(() => ResolveEntryLabel(entry, i18NGet));
+            var descText = ResolveEntryDescription(entry, i18NGet);
             var dataKey = $"modconfig::{key}";
 
             switch (typeName)
@@ -446,7 +447,15 @@ namespace STS2RitsuLib.Settings
                         step = 1d;
 
                     var format = t.GetProperty("Format")?.GetValue(entry) as string ?? "F0";
-                    Func<double, string> fmt = v =>
+
+                    var binding = ModSettingsBindings.Callback(modId, dataKey,
+                        () => CoerceModConfigSliderDouble(getValueOpen, modId, key),
+                        v => InvokeSetValue(setValue, modId, key, (float)v),
+                        () => { });
+                    section.AddSlider(idBase, labelText, binding, min, max, step, Fmt, descText);
+                    return;
+
+                    string Fmt(double v)
                     {
                         try
                         {
@@ -456,14 +465,7 @@ namespace STS2RitsuLib.Settings
                         {
                             return v.ToString("F2", CultureInfo.InvariantCulture);
                         }
-                    };
-
-                    var binding = ModSettingsBindings.Callback(modId, dataKey,
-                        () => CoerceModConfigSliderDouble(getValueOpen, modId, key),
-                        v => InvokeSetValue(setValue, modId, key, (float)v),
-                        () => { });
-                    section.AddSlider(idBase, labelText, binding, min, max, step, fmt, descText);
-                    return;
+                    }
                 }
                 case "Dropdown":
                 {
@@ -487,7 +489,7 @@ namespace STS2RitsuLib.Settings
                             var captured = o;
                             var optVal = optValues[captured];
                             choiceOptions[captured + 1] = new(optVal, ModSettingsText.Dynamic(() =>
-                                ResolveOptionLabel(entry, captured, optVal, i18nGet)));
+                                ResolveOptionLabel(entry, captured, optVal, i18NGet)));
                         }
                     }
                     else
@@ -498,7 +500,7 @@ namespace STS2RitsuLib.Settings
                             var captured = o;
                             var optVal = optValues[captured];
                             choiceOptions[captured] = new(optVal, ModSettingsText.Dynamic(() =>
-                                ResolveOptionLabel(entry, captured, optVal, i18nGet)));
+                                ResolveOptionLabel(entry, captured, optVal, i18NGet)));
                         }
                     }
 
@@ -506,9 +508,7 @@ namespace STS2RitsuLib.Settings
                         () =>
                         {
                             var cur = InvokeGetValue<string>(getValueOpen, modId, key) ?? "";
-                            if (string.IsNullOrEmpty(cur))
-                                return optValues[0];
-                            return cur;
+                            return string.IsNullOrEmpty(cur) ? optValues[0] : cur;
                         },
                         v => InvokeSetValue(setValue, modId, key, v ?? optValues[0]),
                         () => { });
@@ -553,7 +553,7 @@ namespace STS2RitsuLib.Settings
                             try
                             {
                                 var r = validatorDel.DynamicInvoke(text);
-                                return r is bool ok && ok;
+                                return r is true;
                             }
                             catch
                             {
@@ -571,7 +571,7 @@ namespace STS2RitsuLib.Settings
                 }
                 case "Button":
                 {
-                    var buttonText = ModSettingsText.Dynamic(() => ResolveButtonText(entry, i18nGet));
+                    var buttonText = ModSettingsText.Dynamic(() => ResolveButtonText(entry, i18NGet));
                     section.AddButton(idBase, labelText, buttonText,
                         () => InvokeConfigButtonCallback(entry),
                         ModSettingsButtonTone.Normal,
@@ -592,29 +592,27 @@ namespace STS2RitsuLib.Settings
             }
         }
 
-        private static string ResolveRegistrationDisplayName(object registration, MethodInfo? i18nGet)
+        private static string ResolveRegistrationDisplayName(object registration, MethodInfo? i18NGet)
         {
             var regType = registration.GetType();
             var fallback = regType.GetProperty("DisplayName")?.GetValue(registration) as string ?? "";
-            var map = regType.GetProperty("DisplayNames")?.GetValue(registration) as IDictionary;
-            if (map != null && map.Count > 0)
+            if (regType.GetProperty("DisplayNames")?.GetValue(registration) is not IDictionary { Count: > 0 } map)
+                return string.IsNullOrEmpty(fallback) ? "Mod" : fallback;
+            var lang = TryModConfigCurrentLang();
+            if (!string.IsNullOrEmpty(lang) && map.Contains(lang) && map[lang] is string exact)
+                return exact;
+
+            foreach (DictionaryEntry e in map)
             {
-                var lang = TryModConfigCurrentLang();
-                if (!string.IsNullOrEmpty(lang) && map.Contains(lang) && map[lang] is string exact)
-                    return exact;
-
-                foreach (DictionaryEntry e in map)
-                {
-                    if (e.Key is not string k || e.Value is not string v)
-                        continue;
-                    if (lang != null && (lang.StartsWith(k, StringComparison.OrdinalIgnoreCase) ||
-                                         k.StartsWith(lang, StringComparison.OrdinalIgnoreCase)))
-                        return v;
-                }
-
-                if (map.Contains("en") && map["en"] is string en)
-                    return en;
+                if (e.Key is not string k || e.Value is not string v)
+                    continue;
+                if (lang != null && (lang.StartsWith(k, StringComparison.OrdinalIgnoreCase) ||
+                                     k.StartsWith(lang, StringComparison.OrdinalIgnoreCase)))
+                    return v;
             }
+
+            if (map.Contains("en") && map["en"] is string en)
+                return en;
 
             return string.IsNullOrEmpty(fallback) ? "Mod" : fallback;
         }
@@ -623,20 +621,17 @@ namespace STS2RitsuLib.Settings
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                Type? i18n;
+                Type? i18N;
                 try
                 {
-                    i18n = asm.GetType(I18nTypeName, false);
+                    i18N = asm.GetType(I18NTypeName, false);
                 }
                 catch
                 {
                     continue;
                 }
 
-                if (i18n == null)
-                    continue;
-
-                var p = i18n.GetProperty("CurrentLang",
+                var p = i18N?.GetProperty("CurrentLang",
                     BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
                 if (p?.GetValue(null) is string lang)
                     return lang;
@@ -645,26 +640,23 @@ namespace STS2RitsuLib.Settings
             return null;
         }
 
-        private static string ResolveEntryLabel(object entry, MethodInfo? i18nGet)
+        private static string ResolveEntryLabel(object entry, MethodInfo? i18NGet)
         {
             var t = entry.GetType();
             var fallback = t.GetProperty("Label")?.GetValue(entry) as string ?? "";
             var labelKey = t.GetProperty("LabelKey")?.GetValue(entry) as string;
-            var fromI18n = TryI18n(labelKey, fallback, i18nGet);
-            if (fromI18n != null)
-                return fromI18n;
-
-            return ResolveLangMap(t.GetProperty("Labels")?.GetValue(entry) as IDictionary, fallback);
+            var fromI18N = TryI18N(labelKey, fallback, i18NGet);
+            return fromI18N ?? ResolveLangMap(t.GetProperty("Labels")?.GetValue(entry) as IDictionary, fallback);
         }
 
-        private static ModSettingsText? ResolveEntryDescription(object entry, MethodInfo? i18nGet)
+        private static ModSettingsText? ResolveEntryDescription(object entry, MethodInfo? i18NGet)
         {
             var t = entry.GetType();
             var body = t.GetProperty("Description")?.GetValue(entry) as string;
             if (string.IsNullOrWhiteSpace(body))
             {
                 var dk = t.GetProperty("DescriptionKey")?.GetValue(entry) as string;
-                body = TryI18n(dk, "", i18nGet);
+                body = TryI18N(dk, "", i18NGet);
             }
 
             if (string.IsNullOrWhiteSpace(body))
@@ -673,36 +665,31 @@ namespace STS2RitsuLib.Settings
             return string.IsNullOrWhiteSpace(body) ? null : ModSettingsText.Literal(body);
         }
 
-        private static string ResolveButtonText(object entry, MethodInfo? i18nGet)
+        private static string ResolveButtonText(object entry, MethodInfo? i18NGet)
         {
             var t = entry.GetType();
             var fallback = t.GetProperty("ButtonText")?.GetValue(entry) as string ?? "";
             return ResolveLangMap(t.GetProperty("ButtonTexts")?.GetValue(entry) as IDictionary, fallback);
         }
 
-        private static string ResolveOptionLabel(object entry, int index, string fallback, MethodInfo? i18nGet)
+        private static string ResolveOptionLabel(object entry, int index, string fallback, MethodInfo? i18NGet)
         {
             var t = entry.GetType();
-            var keys = t.GetProperty("OptionsKeys")?.GetValue(entry) as string[];
-            if (keys != null && index >= 0 && index < keys.Length)
-            {
-                var k = keys[index];
-                var fromI18n = TryI18n(k, fallback, i18nGet);
-                if (fromI18n != null)
-                    return fromI18n;
-            }
-
-            return fallback;
+            if (t.GetProperty("OptionsKeys")?.GetValue(entry) is not string[] keys || index < 0 || index >= keys.Length)
+                return fallback;
+            var k = keys[index];
+            var fromI18N = TryI18N(k, fallback, i18NGet);
+            return fromI18N ?? fallback;
         }
 
-        private static string? TryI18n(string? key, string fallback, MethodInfo? i18nGet)
+        private static string? TryI18N(string? key, string fallback, MethodInfo? i18NGet)
         {
-            if (i18nGet == null || string.IsNullOrWhiteSpace(key))
+            if (i18NGet == null || string.IsNullOrWhiteSpace(key))
                 return null;
 
             try
             {
-                return i18nGet.Invoke(null, [key, fallback]) as string;
+                return i18NGet.Invoke(null, [key, fallback]) as string;
             }
             catch
             {
@@ -744,12 +731,12 @@ namespace STS2RitsuLib.Settings
             {
                 var m = getValueOpen.MakeGenericMethod(typeof(T));
                 var r = m.Invoke(null, [modId, key]);
-                if (r is T ok)
-                    return ok;
-                if (r == null)
-                    return default!;
-
-                return (T)Convert.ChangeType(r, typeof(T))!;
+                return r switch
+                {
+                    T ok => ok,
+                    null => default!,
+                    _ => (T)Convert.ChangeType(r, typeof(T)),
+                };
             }
             catch
             {
@@ -772,8 +759,7 @@ namespace STS2RitsuLib.Settings
 
         private static void InvokeConfigButtonCallback(object entry)
         {
-            var onChanged = entry.GetType().GetProperty("OnChanged")?.GetValue(entry) as Delegate;
-            if (onChanged == null)
+            if (entry.GetType().GetProperty("OnChanged")?.GetValue(entry) is not Delegate onChanged)
                 return;
 
             try
@@ -789,9 +775,7 @@ namespace STS2RitsuLib.Settings
                     {
                         var p0 = ps[0].ParameterType;
                         object? arg;
-                        if (p0 == typeof(bool))
-                            arg = false;
-                        else if (p0 == typeof(object))
+                        if (p0 == typeof(bool) || p0 == typeof(object))
                             arg = false;
                         else if (!p0.IsValueType)
                             arg = null;
@@ -831,14 +815,13 @@ namespace STS2RitsuLib.Settings
             {
                 var m = getValueOpen.MakeGenericMethod(typeof(object));
                 var r = m.Invoke(null, [modId, key]);
-                if (r == null)
-                    return false;
-                if (r is bool b)
-                    return b;
-                if (r is string s)
-                    return bool.TryParse(s, out var bs) && bs;
-
-                return Convert.ToBoolean(r, CultureInfo.InvariantCulture);
+                return r switch
+                {
+                    null => false,
+                    bool b => b,
+                    string s => bool.TryParse(s, out var bs) && bs,
+                    _ => Convert.ToBoolean(r, CultureInfo.InvariantCulture),
+                };
             }
             catch
             {
@@ -852,18 +835,15 @@ namespace STS2RitsuLib.Settings
             {
                 var m = getValueOpen.MakeGenericMethod(typeof(object));
                 var r = m.Invoke(null, [modId, key]);
-                if (r == null)
-                    return 0d;
-                if (r is double d)
-                    return d;
-                if (r is float f)
-                    return f;
-                if (r is int i)
-                    return i;
-                if (r is long l)
-                    return l;
-
-                return Convert.ToDouble(r, CultureInfo.InvariantCulture);
+                return r switch
+                {
+                    null => 0d,
+                    double d => d,
+                    float f => f,
+                    int i => i,
+                    long l => l,
+                    _ => Convert.ToDouble(r, CultureInfo.InvariantCulture),
+                };
             }
             catch
             {
@@ -877,16 +857,14 @@ namespace STS2RitsuLib.Settings
             {
                 var m = getValueOpen.MakeGenericMethod(typeof(object));
                 var r = m.Invoke(null, [modId, key]);
-                if (r == null)
-                    return 0;
-                if (r is long L)
-                    return L;
-                if (r is int i)
-                    return i;
-                if (r is double d)
-                    return (long)Math.Round(d);
-
-                return Convert.ToInt64(r, CultureInfo.InvariantCulture);
+                return r switch
+                {
+                    null => 0,
+                    long l => l,
+                    int i => i,
+                    double d => (long)Math.Round(d),
+                    _ => Convert.ToInt64(r, CultureInfo.InvariantCulture),
+                };
             }
             catch
             {

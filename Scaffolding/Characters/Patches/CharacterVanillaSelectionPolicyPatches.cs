@@ -47,6 +47,7 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
             ];
         }
 
+        // ReSharper disable once InconsistentNaming
         /// <summary>
         ///     Rewrites direct reads of <see cref="ModelDb.AllCharacters" /> in target methods.
         /// </summary>
@@ -84,27 +85,18 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
 
         private static IEnumerable<CharacterModel> GetVisibleCharacters()
         {
-            foreach (var character in ModelDb.AllCharacters)
+            return ModelDb.AllCharacters.Where(character => character is not IModCharacterVanillaSelectionPolicy
             {
-                if (character is IModCharacterVanillaSelectionPolicy { HideFromVanillaCharacterSelect: true })
-                    continue;
-
-                yield return character;
-            }
+                HideFromVanillaCharacterSelect: true,
+            });
         }
 
         private static IEnumerable<CharacterModel> GetRandomEligibleCharacters()
         {
-            foreach (var character in ModelDb.AllCharacters)
+            return ModelDb.AllCharacters.Where(character => character is not IModCharacterVanillaSelectionPolicy
             {
-                if (character is IModCharacterVanillaSelectionPolicy
-                    {
-                        AllowInVanillaRandomCharacterSelect: false,
-                    })
-                    continue;
-
-                yield return character;
-            }
+                AllowInVanillaRandomCharacterSelect: false,
+            });
         }
     }
 }

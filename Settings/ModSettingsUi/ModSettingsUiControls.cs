@@ -1360,7 +1360,7 @@ namespace STS2RitsuLib.Settings
 
             if (_pickerButton == null) return;
             _pickerButton.PopupClosed += OnPickerPopupClosed;
-            _pickerButton.ColorChanged += color => OnPickerColorChanged(color);
+            _pickerButton.ColorChanged += OnPickerColorChanged;
             ModSettingsFocusChrome.AttachControllerSelectionReticle(_pickerButton);
         }
 
@@ -1485,16 +1485,12 @@ namespace STS2RitsuLib.Settings
             if (parts.Length != 4)
                 return false;
 
-            if (float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var r) &&
-                float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var g) &&
-                float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var b) &&
-                float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out var a))
-            {
-                color = new(r, g, b, a);
-                return true;
-            }
-
-            return false;
+            if (!float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var r) ||
+                !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var g) ||
+                !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var b) ||
+                !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out var a)) return false;
+            color = new(r, g, b, a);
+            return true;
         }
 
         private static string FormatColorValue(Color color)
@@ -2770,9 +2766,7 @@ namespace STS2RitsuLib.Settings
             _index = index;
             _itemContext = itemContext;
             _isCollapsible = collapsible && editorContent != null;
-            _collapsed = _isCollapsible
-                ? itemContext.GetRowState("collapsed", startCollapsed)
-                : false;
+            _collapsed = _isCollapsible && itemContext.GetRowState("collapsed", startCollapsed);
             SizeFlagsHorizontal = SizeFlags.ExpandFill;
             MouseFilter = MouseFilterEnum.Stop;
             AddThemeStyleboxOverride("panel", ModSettingsUiFactory.CreateListItemCardStyle(index == 0));
@@ -2884,7 +2878,7 @@ namespace STS2RitsuLib.Settings
 
         private void ApplyCollapsedState()
         {
-            _editorSurface?.SetDeferred(Control.PropertyName.Visible, !_collapsed);
+            _editorSurface?.SetDeferred(CanvasItem.PropertyName.Visible, !_collapsed);
             _toggleButton?.SetSelected(!_collapsed);
         }
 

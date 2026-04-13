@@ -30,6 +30,7 @@ namespace STS2RitsuLib.Timeline.Patches
             ];
         }
 
+        // ReSharper disable once InconsistentNaming
         /// <summary>
         ///     Uses <see cref="ModTimelineEraIconRegistry" /> when configured; otherwise keeps vanilla icon resolution if
         ///     resources exist and hides icon when they do not.
@@ -60,10 +61,7 @@ namespace STS2RitsuLib.Timeline.Patches
 
         private static bool HasVanillaEraIconResource(EpochEra era)
         {
-            if (!Enum.IsDefined(era))
-                return false;
-
-            return ResourceLoader.Exists(GetEraTexturePath(era));
+            return Enum.IsDefined(era) && ResourceLoader.Exists(GetEraTexturePath(era));
         }
 
         private static string ResolveEraLocKey(EpochEra era)
@@ -107,6 +105,7 @@ namespace STS2RitsuLib.Timeline.Patches
             ];
         }
 
+        // ReSharper disable once InconsistentNaming
         /// <summary>
         ///     Ensures no empty placeholder icon remains visible when texture is absent.
         /// </summary>

@@ -14,10 +14,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         internal static bool TryRelicIconPath(RelicModel instance, ref string result)
         {
             var overrides = TryGetOwningCharacterOverrides(instance);
-            if (overrides == null)
-                return true;
 
-            var profile = overrides.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
+            var profile = overrides?.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
             if (profile == null)
                 return true;
 
@@ -33,10 +31,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         internal static bool TryRelicIconTexture(RelicModel instance, ref Texture2D result)
         {
             var overrides = TryGetOwningCharacterOverrides(instance);
-            if (overrides == null)
-                return true;
 
-            var profile = overrides.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
+            var profile = overrides?.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
             if (profile == null)
                 return true;
 
@@ -52,10 +48,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         internal static bool TryRelicIconOutlineTexture(RelicModel instance, ref Texture2D result)
         {
             var overrides = TryGetOwningCharacterOverrides(instance);
-            if (overrides == null)
-                return true;
 
-            var profile = overrides.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
+            var profile = overrides?.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
             if (profile == null)
                 return true;
 
@@ -71,10 +65,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
         internal static bool TryRelicBigIconTexture(RelicModel instance, ref Texture2D result)
         {
             var overrides = TryGetOwningCharacterOverrides(instance);
-            if (overrides == null)
-                return true;
 
-            var profile = overrides.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
+            var profile = overrides?.TryGetVanillaRelicVisualOverrideForOwnedRelic(instance);
             if (profile == null)
                 return true;
 

@@ -223,8 +223,7 @@ namespace STS2RitsuLib.Scaffolding.Characters
 
             foreach (var e in profile)
                 if (map.TryGetValue(e.RelicModelIdEntry, out var existing))
-                    map[e.RelicModelIdEntry] = new(e.RelicModelIdEntry,
-                        MergeRelicAssetProfiles(existing.Assets, e.Assets));
+                    map[e.RelicModelIdEntry] = e with { Assets = MergeRelicAssetProfiles(existing.Assets, e.Assets) };
                 else
                     map[e.RelicModelIdEntry] = e;
 

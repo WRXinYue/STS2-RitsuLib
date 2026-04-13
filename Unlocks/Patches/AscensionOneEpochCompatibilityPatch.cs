@@ -192,13 +192,12 @@ namespace STS2RitsuLib.Unlocks.Patches
             var character = ModelDb.GetById<CharacterModel>(characterId);
             if (!ModUnlockRegistry.TryGetAscensionRevealEpoch(characterId, out var epochId))
             {
-                if (character is IModCharacterEpochTimelineRequirement { RequiresEpochAndTimeline: false })
-                {
-                    __result = true;
-                    return false;
-                }
-
-                return true;
+                if (character is not IModCharacterEpochTimelineRequirement
+                    {
+                        RequiresEpochAndTimeline: false,
+                    }) return true;
+                __result = true;
+                return false;
             }
 
             if (ModUnlockRegistry.IsEpochRequirementIgnoredForModelType(character.GetType()))

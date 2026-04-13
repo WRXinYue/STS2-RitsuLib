@@ -417,12 +417,11 @@ namespace STS2RitsuLib.Scaffolding.Characters
                 return null;
 
             var id = relic.Id.Entry;
-            foreach (var row in entries)
+            foreach (var (relicModelIdEntry, a) in entries)
             {
-                if (!id.Equals(row.RelicModelIdEntry, StringComparison.OrdinalIgnoreCase))
+                if (!id.Equals(relicModelIdEntry, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                var a = row.Assets;
                 if (string.IsNullOrWhiteSpace(a.IconPath) && string.IsNullOrWhiteSpace(a.IconOutlinePath) &&
                     string.IsNullOrWhiteSpace(a.BigIconPath))
                     return null;
