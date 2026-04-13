@@ -1,3 +1,5 @@
+using System.Reflection;
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
@@ -31,9 +33,26 @@ namespace STS2RitsuLib.Combat.CardTargeting.Patches
             AccessTools.MethodDelegate<Action<NCardPlay>>(
                 AccessTools.DeclaredMethod(typeof(NCardPlay), "AutoDisableCannotPlayCardFtueCheck"));
 
-        private static readonly Action<NCardPlay, bool> Cleanup =
-            AccessTools.MethodDelegate<Action<NCardPlay, bool>>(
-                AccessTools.DeclaredMethod(typeof(NCardPlay), "Cleanup", [typeof(bool)]));
+        // 0.103.0+: Cleanup(bool isFinished); 0.99.1: Cleanup() + manual EmitSignal
+        private static readonly Action<NCardPlay, bool>? CleanupWithParam = CreateCleanupWithParam();
+        private static readonly Action<NCardPlay>? CleanupNoParam = CreateCleanupNoParam();
+
+        private static Action<NCardPlay, bool>? CreateCleanupWithParam()
+        {
+            var mi = AccessTools.DeclaredMethod(typeof(NCardPlay), "Cleanup", [typeof(bool)]);
+            return mi != null
+                ? AccessTools.MethodDelegate<Action<NCardPlay, bool>>(mi)
+                : null;
+        }
+
+        private static Action<NCardPlay>? CreateCleanupNoParam()
+        {
+            if (CleanupWithParam != null) return null;
+            var mi = AccessTools.DeclaredMethod(typeof(NCardPlay), "Cleanup", Type.EmptyTypes);
+            return mi != null
+                ? AccessTools.MethodDelegate<Action<NCardPlay>>(mi)
+                : null;
+        }
 
         public static string PatchId => "card_any_player_try_play_card";
 
@@ -78,10 +97,10 @@ namespace STS2RitsuLib.Combat.CardTargeting.Patches
                 if (__instance.Holder.IsInsideTree())
                 {
                     var size = __instance.GetViewport().GetVisibleRect().Size;
-                    __instance.Holder.SetTargetPosition(new(size.X / 2f, size.Y - __instance.Holder.Size.Y));
+                    __instance.Holder.SetTargetPosition(new Vector2(size.X / 2f, size.Y - __instance.Holder.Size.Y));
                 }
 
-                Cleanup(__instance, true);
+                InvokeCleanupFinished(__instance, true);
                 NCombatRoom.Instance?.Ui.Hand.TryGrabFocus();
             }
             else
@@ -90,6 +109,18 @@ namespace STS2RitsuLib.Combat.CardTargeting.Patches
             }
 
             return false;
+        }
+
+        private static void InvokeCleanupFinished(NCardPlay instance, bool success)
+        {
+            if (CleanupWithParam != null)
+            {
+                CleanupWithParam(instance, success);
+                return;
+            }
+
+            CleanupNoParam?.Invoke(instance);
+            instance.EmitSignal(NCardPlay.SignalName.Finished, success);
         }
     }
 }
