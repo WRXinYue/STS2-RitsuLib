@@ -61,7 +61,8 @@ namespace STS2RitsuLib.Settings
 
         /// <summary>
         ///     Registers one RitsuLib settings page per ModConfig-registered mod that does not yet have page
-        ///     <paramref name="pageId" />. Returns how many new pages were added this call.
+        ///     <paramref name="pageId" />. Returns how many new pages were added this call. Mirror directives from
+        ///     <see cref="AssemblyMetadataAttribute" /> are honored.
         /// </summary>
         /// <param name="pageId">Stable page id (default <c>modconfig</c>).</param>
         /// <param name="sortOrder">Sidebar ordering among sibling pages.</param>
@@ -111,6 +112,9 @@ namespace STS2RitsuLib.Settings
                 foreach (var item in enumerable)
                 {
                     if (!TryUnwrapDictionaryItem(item, out var modId, out var reg))
+                        continue;
+
+                    if (!ModSettingsMirrorInteropPolicy.ShouldMirror(ModSettingsMirrorSource.ModConfig, modId))
                         continue;
 
                     if (ModSettingsRegistry.TryGetPage(modId, pageId, out _))

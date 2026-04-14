@@ -67,6 +67,52 @@ RitsuLib 提供一套用于玩家可编辑值的设置 UI。它构建在 `ModDat
 
 ---
 
+## 自动镜像策略（BaseLib / ModConfig）
+
+`RitsuModSettingsSubmenu` 会自动尝试镜像 `BaseLib` 与 `ModConfig` 的设置页。  
+当你的模组同时接入多套设置源时，可以通过程序集级 `AssemblyMetadata` 指令（仅依赖 `System.Reflection`）控制镜像行为，无需引用 `STS2RitsuLib`。
+
+支持的键（不区分大小写）：
+
+- `RitsuLib.ModSettingsMirror.Global.DisableSources`
+- `RitsuLib.ModSettingsMirror.Global.PreferredSource`
+- `RitsuLib.ModSettingsMirror.Mod.<ModId>.DisableSources`
+- `RitsuLib.ModSettingsMirror.Mod.<ModId>.PreferredSource`
+- `RitsuLib.ModSettingsMirror.Type.<FullTypeName>.DisableSources`
+- `RitsuLib.ModSettingsMirror.Type.<FullTypeName>.PreferredSource`
+
+值约定：
+
+- `DisableSources`：`baselib`、`modconfig`、`all`（可用 `,` / `;` / `|` 分隔多个值）
+- `PreferredSource`：`baselib` 或 `modconfig`
+
+优先级（高 -> 低）：`Type` -> `Mod` -> `Global`。  
+`PreferredSource` 会让非首选来源不参与镜像；`DisableSources` 会直接禁用对应来源镜像。
+
+示例：
+
+```csharp
+using System.Reflection;
+
+[assembly: AssemblyMetadata("RitsuLib.ModSettingsMirror.Mod.MyMod.DisableSources", "modconfig")]
+[assembly: AssemblyMetadata("RitsuLib.ModSettingsMirror.Mod.MyMod.PreferredSource", "baselib")]
+[assembly: AssemblyMetadata(
+    "RitsuLib.ModSettingsMirror.Type.MyMod.Config.AdvancedSettings.DisableSources",
+    "baselib")]
+```
+
+也可以直接写在 `csproj` 中：
+
+```xml
+<ItemGroup>
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Mod.MyMod.DisableSources" Value="modconfig" />
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Mod.MyMod.PreferredSource" Value="baselib" />
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Type.MyMod.Config.AdvancedSettings.DisableSources" Value="baselib" />
+</ItemGroup>
+```
+
+---
+
 ## 最小示例
 
 先注册持久化数据：

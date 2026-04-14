@@ -68,6 +68,52 @@ The result is an explicit contract between stored data and the settings UI.
 
 ---
 
+## Auto-Mirror Policy (BaseLib / ModConfig)
+
+`RitsuModSettingsSubmenu` automatically tries to mirror settings from both `BaseLib` and `ModConfig`.  
+When your mod intentionally supports multiple settings stacks, you can control mirror behavior with assembly-level `AssemblyMetadata` directives (requires only `System.Reflection`, no `STS2RitsuLib` reference).
+
+Supported keys (case-insensitive):
+
+- `RitsuLib.ModSettingsMirror.Global.DisableSources`
+- `RitsuLib.ModSettingsMirror.Global.PreferredSource`
+- `RitsuLib.ModSettingsMirror.Mod.<ModId>.DisableSources`
+- `RitsuLib.ModSettingsMirror.Mod.<ModId>.PreferredSource`
+- `RitsuLib.ModSettingsMirror.Type.<FullTypeName>.DisableSources`
+- `RitsuLib.ModSettingsMirror.Type.<FullTypeName>.PreferredSource`
+
+Value rules:
+
+- `DisableSources`: `baselib`, `modconfig`, `all` (multiple values can be separated by `,` / `;` / `|`)
+- `PreferredSource`: `baselib` or `modconfig`
+
+Priority (high -> low): `Type` -> `Mod` -> `Global`.  
+`PreferredSource` suppresses non-preferred mirror sources, and `DisableSources` blocks specific sources directly.
+
+Example:
+
+```csharp
+using System.Reflection;
+
+[assembly: AssemblyMetadata("RitsuLib.ModSettingsMirror.Mod.MyMod.DisableSources", "modconfig")]
+[assembly: AssemblyMetadata("RitsuLib.ModSettingsMirror.Mod.MyMod.PreferredSource", "baselib")]
+[assembly: AssemblyMetadata(
+    "RitsuLib.ModSettingsMirror.Type.MyMod.Config.AdvancedSettings.DisableSources",
+    "baselib")]
+```
+
+You can also place the same directives directly in `csproj`:
+
+```xml
+<ItemGroup>
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Mod.MyMod.DisableSources" Value="modconfig" />
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Mod.MyMod.PreferredSource" Value="baselib" />
+  <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Type.MyMod.Config.AdvancedSettings.DisableSources" Value="baselib" />
+</ItemGroup>
+```
+
+---
+
 ## Minimal Example
 
 First register persisted data:

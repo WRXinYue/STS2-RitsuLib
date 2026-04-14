@@ -38,7 +38,8 @@ namespace STS2RitsuLib.Settings
         ///     Registers one RitsuLib settings page per BaseLib registry entry, approximating <c>SimpleModConfig</c>
         ///     layout (sections, bool / int / float / double / string / color / enum, and <c>[ConfigButton]</c> methods).
         ///     Returns the number
-        ///     of pages registered. Subsequent calls are ignored until the process restarts.
+        ///     of pages registered. Subsequent calls are ignored until the process restarts. Mirror directives from
+        ///     <see cref="AssemblyMetadataAttribute" /> are honored.
         /// </summary>
         /// <param name="pageId">Stable page id under each mod (default <c>baselib</c>).</param>
         /// <param name="sortOrder">Sidebar ordering for mirrored pages (higher appears after native Ritsu pages).</param>
@@ -114,6 +115,11 @@ namespace STS2RitsuLib.Settings
                     if (string.IsNullOrWhiteSpace(modId) || config == null)
                         continue;
 
+                    var configConcreteType = config.GetType();
+                    if (!ModSettingsMirrorInteropPolicy.ShouldMirror(ModSettingsMirrorSource.BaseLib, modId,
+                            configConcreteType))
+                        continue;
+
                     if (configPropsField.GetValue(config) is not List<PropertyInfo> configProps)
                         continue;
 
@@ -127,7 +133,7 @@ namespace STS2RitsuLib.Settings
                             colorPickerAttrType,
                             hoverTipAttrType,
                             hoverTipsByDefaultAttrType,
-                            config.GetType()))
+                            configConcreteType))
                         continue;
 
                     count++;
