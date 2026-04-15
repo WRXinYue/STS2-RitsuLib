@@ -19,11 +19,13 @@ namespace STS2RitsuLib.Settings
         private const string ConfigSectionAttributeName = "BaseLib.Config.ConfigSectionAttribute";
         private const string ConfigHideInUiAttributeName = "BaseLib.Config.ConfigHideInUI";
         private const string ConfigButtonAttributeName = "BaseLib.Config.ConfigButtonAttribute";
+        private const string ConfigSliderAttributeName = "BaseLib.Config.ConfigSliderAttribute";
         private const string SliderRangeAttributeName = "BaseLib.Config.SliderRangeAttribute";
         private const string SliderLabelFormatAttributeName = "BaseLib.Config.SliderLabelFormatAttribute";
         private const string ConfigTextInputAttributeName = "BaseLib.Config.ConfigTextInputAttribute";
         private const string ConfigColorPickerAttributeName = "BaseLib.Config.ConfigColorPickerAttribute";
         private const string ConfigHoverTipAttributeName = "BaseLib.Config.ConfigHoverTipAttribute";
+        private const string ConfigHoverTipsByDefaultAttributeName = "BaseLib.Config.ConfigHoverTipsByDefaultAttribute";
         private const string HoverTipsByDefaultAttributeName = "BaseLib.Config.HoverTipsByDefaultAttribute";
 
         private static readonly Lock Gate = new();
@@ -94,11 +96,13 @@ namespace STS2RitsuLib.Settings
                 var sectionAttrType = ResolveType(ConfigSectionAttributeName);
                 var hideUiAttrType = ResolveType(ConfigHideInUiAttributeName);
                 var buttonAttrType = ResolveType(ConfigButtonAttributeName);
+                var configSliderType = ResolveType(ConfigSliderAttributeName);
                 var sliderRangeType = ResolveType(SliderRangeAttributeName);
                 var sliderFormatType = ResolveType(SliderLabelFormatAttributeName);
                 var textInputAttrType = ResolveType(ConfigTextInputAttributeName);
                 var colorPickerAttrType = ResolveType(ConfigColorPickerAttributeName);
                 var hoverTipAttrType = ResolveType(ConfigHoverTipAttributeName);
+                var configHoverTipsByDefaultAttrType = ResolveType(ConfigHoverTipsByDefaultAttributeName);
                 var hoverTipsByDefaultAttrType = ResolveType(HoverTipsByDefaultAttributeName);
 
                 pageTitle ??= ModSettingsText.I18N(ModSettingsLocalization.Instance, "baselib.mirroredPage.title",
@@ -129,9 +133,11 @@ namespace STS2RitsuLib.Settings
                     var host = new ConfigHost(config, changed, save, restore, getLabel, baseLibLabel);
                     if (!TryBuildPage(modId, pageId, sortOrder, pageTitle, pageDescription, host, configProps,
                             sectionAttrType,
-                            hideUiAttrType, buttonAttrType, sliderRangeType, sliderFormatType, textInputAttrType,
+                            hideUiAttrType, buttonAttrType, configSliderType, sliderRangeType, sliderFormatType,
+                            textInputAttrType,
                             colorPickerAttrType,
                             hoverTipAttrType,
+                            configHoverTipsByDefaultAttrType,
                             hoverTipsByDefaultAttrType,
                             configConcreteType))
                         continue;
@@ -157,11 +163,13 @@ namespace STS2RitsuLib.Settings
             Type? sectionAttrType,
             Type? hideUiAttrType,
             Type? buttonAttrType,
+            Type? configSliderType,
             Type? sliderRangeType,
             Type? sliderFormatType,
             Type? textInputAttrType,
             Type? colorPickerAttrType,
             Type? hoverTipAttrType,
+            Type? configHoverTipsByDefaultAttrType,
             Type? hoverTipsByDefaultAttrType,
             Type configConcreteType)
         {
@@ -231,13 +239,15 @@ namespace STS2RitsuLib.Settings
                                 switch (member)
                                 {
                                     case PropertyInfo prop:
-                                        AppendPropertyEntry(section, modId, prop, host, sliderRangeType,
-                                            sliderFormatType, textInputAttrType, colorPickerAttrType, hoverTipAttrType,
+                                        AppendPropertyEntry(section, modId, prop, host, configSliderType,
+                                            sliderRangeType, sliderFormatType, textInputAttrType, colorPickerAttrType,
+                                            hoverTipAttrType, configHoverTipsByDefaultAttrType,
                                             hoverTipsByDefaultAttrType, configConcreteType);
                                         break;
                                     case MethodInfo method:
                                         AppendButtonEntry(section, modId, method, host, buttonAttrType,
-                                            hoverTipAttrType, hoverTipsByDefaultAttrType, configConcreteType);
+                                            hoverTipAttrType, configHoverTipsByDefaultAttrType,
+                                            hoverTipsByDefaultAttrType, configConcreteType);
                                         break;
                                 }
 
@@ -270,11 +280,13 @@ namespace STS2RitsuLib.Settings
             string modId,
             PropertyInfo prop,
             ConfigHost host,
+            Type? configSliderType,
             Type? sliderRangeType,
             Type? sliderFormatType,
             Type? textInputAttrType,
             Type? colorPickerAttrType,
             Type? hoverTipAttrType,
+            Type? configHoverTipsByDefaultAttrType,
             Type? hoverTipsByDefaultAttrType,
             Type configConcreteType)
         {
@@ -282,6 +294,7 @@ namespace STS2RitsuLib.Settings
             var label = ModSettingsText.Dynamic(() => host.ResolveLabel(prop.Name));
             var dataKey = $"baselib::{prop.Name}";
             var hoverTipDescription = TryBaseLibHoverTipDescription(prop, configConcreteType, host, hoverTipAttrType,
+                configHoverTipsByDefaultAttrType,
                 hoverTipsByDefaultAttrType);
 
             var pt = prop.PropertyType;
@@ -337,8 +350,9 @@ namespace STS2RitsuLib.Settings
                 return;
             }
 
-            ReadSliderRange(prop, sliderRangeType, out var min, out var max, out var step);
-            var sliderFmtDouble = TryGetSliderLabelFormatterDouble(prop, sliderFormatType);
+            ReadSliderRange(prop, configSliderType, sliderRangeType, out var min, out var max, out var step);
+            var sliderFormat = TryGetSliderFormat(prop, configSliderType, sliderFormatType);
+            var sliderFmtDouble = TryGetSliderLabelFormatterDouble(sliderFormat);
 
             if (pt == typeof(int))
             {
@@ -364,14 +378,9 @@ namespace STS2RitsuLib.Settings
                     },
                     host.Save);
 
-                Func<double, string>? fmtDouble = null;
-                if (sliderFormatType != null &&
-                    prop.GetCustomAttribute(sliderFormatType) is { } fmtAttr)
-                {
-                    var format = fmtAttr.GetType().GetProperty("Format")?.GetValue(fmtAttr) as string;
-                    if (!string.IsNullOrEmpty(format))
-                        fmtDouble = v => string.Format(format, (int)Math.Round(v));
-                }
+                Func<double, string>? fmtDouble = string.IsNullOrEmpty(sliderFormat)
+                    ? null
+                    : v => string.Format(sliderFormat, (int)Math.Round(v));
 
                 section.AddSlider(id, label, binding, dMin, dMax, dStep, fmtDouble, hoverTipDescription);
                 return;
@@ -385,14 +394,9 @@ namespace STS2RitsuLib.Settings
                 if (fMax < fMin)
                     (fMin, fMax) = (fMax, fMin);
 
-                Func<float, string>? fmtFloat = null;
-                if (sliderFormatType != null &&
-                    prop.GetCustomAttribute(sliderFormatType) is { } fmtAttrF)
-                {
-                    var format = fmtAttrF.GetType().GetProperty("Format")?.GetValue(fmtAttrF) as string;
-                    if (!string.IsNullOrEmpty(format))
-                        fmtFloat = v => string.Format(format, v);
-                }
+                Func<float, string>? fmtFloat = string.IsNullOrEmpty(sliderFormat)
+                    ? null
+                    : v => string.Format(sliderFormat, v);
 
 #pragma warning disable CS0618
                 section.AddSlider(id, label, CallbackForStaticProperty<float>(modId, dataKey, prop, host), fMin, fMax,
@@ -435,14 +439,20 @@ namespace STS2RitsuLib.Settings
             ]);
         }
 
-        private static void ReadSliderRange(PropertyInfo prop, Type? sliderRangeType, out double min, out double max,
-            out double step)
+        private static void ReadSliderRange(PropertyInfo prop, Type? configSliderType, Type? sliderRangeType,
+            out double min, out double max, out double step)
         {
             min = 0;
             max = 100;
             step = 1;
-            if (sliderRangeType == null ||
-                prop.GetCustomAttribute(sliderRangeType) is not { } rangeAttr)
+            object? rangeAttr = null;
+            if (configSliderType != null)
+                rangeAttr = prop.GetCustomAttribute(configSliderType, false);
+
+            if (rangeAttr == null && sliderRangeType != null)
+                rangeAttr = prop.GetCustomAttribute(sliderRangeType, false);
+
+            if (rangeAttr == null)
                 return;
 
             var t = rangeAttr.GetType();
@@ -451,15 +461,27 @@ namespace STS2RitsuLib.Settings
             step = Convert.ToDouble(t.GetProperty("Step")?.GetValue(rangeAttr) ?? 1.0);
         }
 
-        private static Func<double, string>? TryGetSliderLabelFormatterDouble(PropertyInfo prop,
-            Type? sliderFormatType)
+        private static string? TryGetSliderFormat(PropertyInfo prop, Type? configSliderType, Type? sliderFormatType)
         {
+            if (configSliderType != null &&
+                prop.GetCustomAttribute(configSliderType, false) is { } sliderAttr)
+            {
+                var format = sliderAttr.GetType().GetProperty("Format")?.GetValue(sliderAttr) as string;
+                if (!string.IsNullOrEmpty(format))
+                    return format;
+            }
+
             if (sliderFormatType == null ||
-                prop.GetCustomAttribute(sliderFormatType) is not { } fmtAttr)
+                prop.GetCustomAttribute(sliderFormatType, false) is not { } fmtAttr)
                 return null;
 
-            var format = fmtAttr.GetType().GetProperty("Format")?.GetValue(fmtAttr) as string;
-            return string.IsNullOrEmpty(format) ? null : v => string.Format(format, v);
+            var legacyFormat = fmtAttr.GetType().GetProperty("Format")?.GetValue(fmtAttr) as string;
+            return string.IsNullOrEmpty(legacyFormat) ? null : legacyFormat;
+        }
+
+        private static Func<double, string>? TryGetSliderLabelFormatterDouble(string? sliderFormat)
+        {
+            return string.IsNullOrEmpty(sliderFormat) ? null : v => string.Format(sliderFormat, v);
         }
 
         private static (bool EditAlpha, bool EditIntensity) ResolveConfigColorPickerUiOptions(
@@ -484,9 +506,11 @@ namespace STS2RitsuLib.Settings
         }
 
         private static ModSettingsText? TryBaseLibHoverTipDescription(MemberInfo member, Type configConcreteType,
-            ConfigHost host, Type? configHoverTipAttrType, Type? hoverTipsByDefaultAttrType)
+            ConfigHost host, Type? configHoverTipAttrType, Type? configHoverTipsByDefaultAttrType,
+            Type? hoverTipsByDefaultAttrType)
         {
             if (!ShouldShowBaseLibHoverTip(member, configConcreteType, configHoverTipAttrType,
+                    configHoverTipsByDefaultAttrType,
                     hoverTipsByDefaultAttrType))
                 return null;
 
@@ -504,7 +528,7 @@ namespace STS2RitsuLib.Settings
         }
 
         private static bool ShouldShowBaseLibHoverTip(MemberInfo member, Type configConcreteType,
-            Type? configHoverTipAttrType, Type? hoverTipsByDefaultAttrType)
+            Type? configHoverTipAttrType, Type? configHoverTipsByDefaultAttrType, Type? hoverTipsByDefaultAttrType)
         {
             object? hoverAttr = null;
             if (configHoverTipAttrType != null)
@@ -518,8 +542,11 @@ namespace STS2RitsuLib.Settings
                     explicitEnabled = b;
             }
 
-            var hoverTipsByDefault = hoverTipsByDefaultAttrType != null &&
-                                     configConcreteType.GetCustomAttribute(hoverTipsByDefaultAttrType, false) != null;
+            var hoverTipsByDefault = (configHoverTipsByDefaultAttrType != null &&
+                                      configConcreteType.GetCustomAttribute(configHoverTipsByDefaultAttrType, false) !=
+                                      null) ||
+                                     (hoverTipsByDefaultAttrType != null &&
+                                      configConcreteType.GetCustomAttribute(hoverTipsByDefaultAttrType, false) != null);
 
             return explicitEnabled ?? hoverTipsByDefault;
         }
@@ -531,6 +558,7 @@ namespace STS2RitsuLib.Settings
             ConfigHost host,
             Type? buttonAttrType,
             Type? hoverTipAttrType,
+            Type? configHoverTipsByDefaultAttrType,
             Type? hoverTipsByDefaultAttrType,
             Type configConcreteType)
         {
@@ -546,6 +574,7 @@ namespace STS2RitsuLib.Settings
             var rowLabel = ModSettingsText.Dynamic(() => host.ResolveLabel(method.Name));
             var buttonLabel = ModSettingsText.Dynamic(() => host.ResolveLabel(key));
             var hoverTipDescription = TryBaseLibHoverTipDescription(method, configConcreteType, host, hoverTipAttrType,
+                configHoverTipsByDefaultAttrType,
                 hoverTipsByDefaultAttrType);
 
             section.AddButton(id, rowLabel, buttonLabel,
