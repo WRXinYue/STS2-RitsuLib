@@ -17,13 +17,19 @@ namespace STS2RitsuLib.Diagnostics
             if (Interlocked.CompareExchange(ref _autoRunIssuedForSession, 1, 0) != 0)
                 return;
 
-            TryRunWithConfiguredPath(outputPath, "[SelfCheck][Auto]");
+            TryRunWithConfiguredPath(outputPath, "[SelfCheck][Auto]", false, out _, out _);
         }
 
         internal static void TryManualRunFromSettings()
         {
             var (outputPath, _) = RitsuLibSettingsStore.GetSelfCheckOptions();
-            TryRunWithConfiguredPath(outputPath, "[SelfCheck][Manual]");
+            TryRunWithConfiguredPath(outputPath, "[SelfCheck][Manual]", true, out _, out _);
+        }
+
+        internal static bool TryManualRunFromConsole(out string message)
+        {
+            var (outputPath, _) = RitsuLibSettingsStore.GetSelfCheckOptions();
+            return TryRunWithConfiguredPath(outputPath, "[SelfCheck][Console]", false, out _, out message);
         }
 
         internal static void TryOpenOutputFolderFromSettings()
@@ -59,8 +65,10 @@ namespace STS2RitsuLib.Diagnostics
             }
         }
 
-        private static void TryRunWithConfiguredPath(string outputPath, string logPrefix)
+        private static bool TryRunWithConfiguredPath(string outputPath, string logPrefix, bool showPrompt,
+            out string? zipPath, out string message)
         {
+            zipPath = null;
             var promptTitle = ModSettingsLocalization.Get(
                 "ritsulib.selfCheck.prompt.title",
                 "RitsuLib Self-check");
@@ -69,30 +77,36 @@ namespace STS2RitsuLib.Diagnostics
             {
                 RitsuLibFramework.Logger.Warn(
                     $"{logPrefix} Output folder is empty or invalid. Configure a valid path in RitsuLib settings.");
-                var message = ModSettingsLocalization.Get(
+                message = ModSettingsLocalization.Get(
                     "ritsulib.selfCheck.prompt.invalidPath",
                     "Self-check did not run: output folder is empty or invalid. Configure a valid path first.");
-                ShowCompletionPrompt(promptTitle, message);
-                return;
+                if (showPrompt)
+                    ShowCompletionPrompt(promptTitle, message);
+                return false;
             }
 
             RitsuLibFramework.Logger.Info($"{logPrefix} Starting self-check bundle export...");
 
-            if (!SelfCheckBundleWriter.TryWriteBundle(resolvedOutputDirectory, out var zipPath, out var error))
+            if (!SelfCheckBundleWriter.TryWriteBundle(resolvedOutputDirectory, out zipPath, out var error))
             {
                 RitsuLibFramework.Logger.Warn($"{logPrefix} Export failed: {error}");
-                var messagePattern = ModSettingsLocalization.Get(
+                var failedPattern = ModSettingsLocalization.Get(
                     "ritsulib.selfCheck.prompt.failed",
                     "Self-check export failed: {0}");
-                ShowCompletionPrompt(promptTitle, string.Format(messagePattern, error));
-                return;
+                message = string.Format(failedPattern, error);
+                if (showPrompt)
+                    ShowCompletionPrompt(promptTitle, message);
+                return false;
             }
 
             RitsuLibFramework.Logger.Info($"{logPrefix} Export complete. Zip: {zipPath}");
             var successPattern = ModSettingsLocalization.Get(
                 "ritsulib.selfCheck.prompt.success",
                 "Self-check complete. Exported zip: {0}");
-            ShowCompletionPrompt(promptTitle, string.Format(successPattern, NormalizePathForDisplay(zipPath)));
+            message = string.Format(successPattern, NormalizePathForDisplay(zipPath));
+            if (showPrompt)
+                ShowCompletionPrompt(promptTitle, message);
+            return true;
         }
 
         private static void ShowCompletionPrompt(string title, string message)
