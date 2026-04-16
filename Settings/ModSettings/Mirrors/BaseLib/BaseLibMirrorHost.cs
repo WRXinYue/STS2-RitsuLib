@@ -74,10 +74,7 @@ namespace STS2RitsuLib.Settings
                 }
 
                 var assemblyName = type.Assembly.GetName().Name ?? "";
-                if (!string.IsNullOrWhiteSpace(assemblyName))
-                    return assemblyName;
-
-                return modId;
+                return !string.IsNullOrWhiteSpace(assemblyName) ? assemblyName : modId;
             });
         }
     }
