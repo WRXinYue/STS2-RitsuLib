@@ -1616,7 +1616,7 @@ namespace STS2RitsuLib.Settings
 
                     nextContent.AddChild(item.Control);
                     if (item.YieldAfter)
-                        await this.AwaitProcessFrame(ct);
+                        await this.AwaitRitsuProcessFrame(ct);
                 }
 
                 if (buildVersion != cache.BuildVersion || !IsInstanceValid(cache.Root))
