@@ -9,6 +9,21 @@ namespace STS2RitsuLib.Audio
     public static class FmodStudioEventInstances
     {
         /// <summary>
+        ///     Creates a typed event handle for a Studio event source.
+        /// </summary>
+        public static AudioEventHandle? TryCreateHandle(AudioSource source, AudioPlaybackOptions? options = null)
+        {
+            options ??= new();
+            if (source is not StudioEventSource path)
+                return null;
+
+            var instance = TryCreate(path.Path);
+            return instance is null
+                ? null
+                : new AudioEventHandle(source, options.ScopeToken?.Scope ?? options.Scope, instance);
+        }
+
+        /// <summary>
         ///     Creates a Studio event or snapshot instance; null when creation fails.
         /// </summary>
         public static GodotObject? TryCreate(string eventOrSnapshotPath)

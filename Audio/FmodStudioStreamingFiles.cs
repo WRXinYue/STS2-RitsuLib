@@ -14,6 +14,33 @@ namespace STS2RitsuLib.Audio
         private static readonly ConcurrentDictionary<string, LoadedKind> Loaded = new(StringComparer.Ordinal);
 
         /// <summary>
+        ///     Creates a typed handle for a short loose-file sound.
+        /// </summary>
+        public static AudioFileHandle? TryCreateSoundHandle(string absolutePath, AudioPlaybackOptions? options = null)
+        {
+            options ??= new();
+            var instance = TryCreateSoundInstance(absolutePath);
+            return instance is null
+                ? null
+                : new AudioFileHandle(AudioSource.File(absolutePath), options.ScopeToken?.Scope ?? options.Scope,
+                    instance);
+        }
+
+        /// <summary>
+        ///     Creates a typed handle for a streaming loose-file music instance.
+        /// </summary>
+        public static AudioMusicHandle? TryCreateStreamingMusicHandle(string absolutePath,
+            AudioPlaybackOptions? options = null)
+        {
+            options ??= new();
+            var instance = TryCreateStreamingMusicInstance(absolutePath);
+            return instance is null
+                ? null
+                : new AudioMusicHandle(AudioSource.StreamingMusic(absolutePath),
+                    options.ScopeToken?.Scope ?? options.Scope, instance);
+        }
+
+        /// <summary>
         ///     Preloads the loose audio file at <paramref name="absolutePath" /> as a sound; succeeds immediately if already
         ///     tracked.
         /// </summary>
