@@ -46,6 +46,8 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="mod_manifest.json" Pack="true" PackagePath="contentFiles/any/any/"/>
+        <None Include="buildTransitive\STS2.RitsuLib.targets" Pack="true" PackagePath="buildTransitive/"/>
     </ItemGroup>
     <!-- Exclude game source reference folder from compilation -->
     <ItemGroup>
