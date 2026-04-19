@@ -29,10 +29,23 @@ namespace STS2RitsuLib.Audio
                 return false;
             }
 
-            if (FileAccess.FileExists(resourcePath))
-                return FmodStudioGateway.TryCall(FmodStudioMethodNames.LoadBank, resourcePath, (int)mode);
-            RitsuLibFramework.Logger.Warn($"[Audio] FMOD load_bank: file not found: {resourcePath}");
-            return false;
+            if (!FileAccess.FileExists(resourcePath))
+            {
+                RitsuLibFramework.Logger.Warn($"[Audio] FMOD load_bank: file not found: {resourcePath}");
+                return false;
+            }
+
+            if (!FmodStudioGateway.TryCall(out var result, FmodStudioMethodNames.LoadBank, resourcePath, (int)mode))
+                return false;
+
+            if (result.VariantType == Variant.Type.Bool)
+                return result.AsBool();
+
+            if (result.VariantType == Variant.Type.Nil)
+                return false;
+
+            var bank = result.AsGodotObject();
+            return bank is not null && GodotObject.IsInstanceValid(bank);
         }
 
         /// <summary>
