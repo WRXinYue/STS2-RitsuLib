@@ -971,7 +971,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
                 return true;
 
             var path = overrides.CustomOverlayScenePath;
-            if (string.IsNullOrWhiteSpace(path) || !ResourceLoader.Exists(path))
+            if (string.IsNullOrWhiteSpace(path) ||
+                !AssetPathDiagnostics.Exists(path, __instance, nameof(IModCardAssetOverrides.CustomOverlayScenePath)))
                 return true;
 
             __result = ResourceLoader.Load<PackedScene>(path).Instantiate<Control>();
@@ -2191,7 +2192,8 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
                     nameof(IModAfflictionAssetOverrides.CustomOverlayScenePath)))
                 return true;
 
-            if (!ResourceLoader.Exists(path))
+            if (!AssetPathDiagnostics.Exists(path, __instance,
+                    nameof(IModAfflictionAssetOverrides.CustomOverlayScenePath)))
                 return true;
 
             __result = ResourceLoader.Load<PackedScene>(path).Instantiate<Control>();

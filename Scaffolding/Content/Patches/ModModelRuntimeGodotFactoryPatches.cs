@@ -1,8 +1,11 @@
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Bindings.MegaSpine;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using STS2RitsuLib.Patching.Models;
+using STS2RitsuLib.Scaffolding.Godot;
 
 namespace STS2RitsuLib.Scaffolding.Content.Patches
 {
@@ -308,7 +311,7 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
 
             /// <inheritdoc cref="IPatchMethod.Description" />
             public static string Description =>
-                "Allow mod orbs to supply combat sprite Node2D from code before SpritePath scene load";
+                "Mod orbs: code factory first, then Ritsu Godot Node2D scene conversion (baselib-style tscn) before raw vanilla load";
 
             /// <inheritdoc cref="IPatchMethod.GetTargets" />
             public static ModPatchTarget[] GetTargets()
@@ -324,14 +327,29 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
             public static bool Prefix(OrbModel __instance, ref Node2D __result)
                 // ReSharper restore InconsistentNaming
             {
-                if (__instance is not IModOrbSpriteFactory factory)
+                if (__instance is IModOrbSpriteFactory spriteFactory)
+                {
+                    var fromFactory = spriteFactory.TryCreateOrbSprite();
+                    if (fromFactory != null)
+                    {
+                        __result = fromFactory;
+                        return false;
+                    }
+                }
+
+                if (__instance is not IModOrbAssetOverrides)
                     return true;
 
-                var created = factory.TryCreateOrbSprite();
-                if (created == null)
+                var path = __instance.SpritePath;
+                if (string.IsNullOrEmpty(path) || !ResourceLoader.Exists(path))
                     return true;
 
-                __result = created;
+                var scene = PreloadManager.Cache.GetScene(path);
+                var node2D = RitsuGodotNodeFactories.CreateFromScene<Node2D>(scene, PackedScene.GenEditState.Disabled);
+                if (node2D.GetNodeOrNull("SpineSkeleton") is { } spineNode)
+                    new MegaSprite(spineNode).GetAnimationState().SetAnimation("idle_loop");
+
+                __result = node2D;
                 return false;
             }
         }
