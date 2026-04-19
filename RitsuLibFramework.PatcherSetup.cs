@@ -58,7 +58,14 @@ namespace STS2RitsuLib
         {
             var patcher = CreatePatcher(Const.ModId, "framework-core", "framework core");
             patcher.RegisterPatch<ModTypeDiscoveryPatch>();
-            patcher.RegisterPatch<NAudioManagerGuidMappedOneShotPatch>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.PlayOneShot>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.PlayLoop>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.StopLoop>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.SetParam>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.StopAllLoops>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.PlayMusic>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.StopMusic>();
+            patcher.RegisterPatch<NAudioManagerGuidMappedStudioEventsPatches.UpdateMusicParameter>();
             patcher.RegisterPatch<SavedPropertiesTypeCacheInjectionPatch>();
             patcher.RegisterPatch<SavedAttachedStatePatches.SavedPropertiesFromInternalPatch>();
             patcher.RegisterPatch<SavedAttachedStatePatches.SavedPropertiesFillInternalPatch>();
