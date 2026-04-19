@@ -26,6 +26,7 @@ RitsuLib 将音频 API 分层，既能走与原版一致的管线，也能在需
 
 | 需求 | 使用 |
 |---|---|
+| 更易用的高层播放、返回 handle、自动生命周期清理 | **`GameFmod.Playback`** |
 | 与原版相同的路由 / `TestMode` 行为 | **`GameFmod.Studio`** → `NAudioManager` |
 | 与 `SfxCmd` 相同的防护（非交互、战斗结束等） | **`Sts2SfxAlignedFmod`** |
 | 加载/卸载 Studio Bank、检查路径 | **`FmodStudioServer`** |
@@ -71,14 +72,26 @@ var sfxPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly()
 FmodStudioStreamingFiles.TryPlaySoundFile(sfxPath, volume: 0.9f);
 ```
 
-**流式音乐**
+**流式音乐（推荐：新 Playback/Handle API）**
 
 ```csharp
 var musicPath = ProjectSettings.GlobalizePath("user://mymod/loop.ogg");
-FmodStudioStreamingFiles.TryPreloadAsStreamingMusic(musicPath);
-var handle = FmodStudioStreamingFiles.TryCreateStreamingMusicInstance(musicPath);
-handle?.Call("set_volume", 0.7f);
-handle?.Call("play");
+var handle = GameFmod.Playback.PlayMusic(
+    AudioSource.StreamingMusic(musicPath),
+    new AudioPlaybackOptions { Volume = 0.7f, Scope = AudioLifecycleScope.Room }
+);
+```
+
+**跟随游戏自动切换的常见三段式音乐（房间 / 战斗 / 胜利）**
+
+```csharp
+var adaptive = GameFmod.Playback.FollowAdaptiveMusic(
+    AudioAdaptivePlans.FullRunOverride(
+        roomSource: AudioSource.StreamingMusic(roomLoopPath),
+        combatSource: AudioSource.StreamingMusic(combatLoopPath),
+        victorySource: AudioSource.StreamingMusic(victoryStingerPath)
+    )
+);
 ```
 
 **触发过快时节流**
@@ -86,6 +99,40 @@ handle?.Call("play");
 ```csharp
 if (FmodPlaybackThrottle.TryEnter("my_power_proc", cooldownMs: 120))
     Sts2SfxAlignedFmod.PlayOneShot("event:/sfx/buff");
+```
+
+**单例频道：替换当前播放**
+
+```csharp
+GameFmod.Playback.PlayMusic(
+    AudioSource.StreamingMusic(nextMusicPath),
+    new AudioPlaybackOptions
+    {
+        Volume = 0.8f,
+        Routing = new AudioRoutingOptions
+        {
+            Channel = "my-mod/music",
+            ChannelMode = AudioChannelMode.ReplaceExisting,
+            AllowFadeOutOnReplace = true,
+        },
+    }
+);
+```
+
+**标签分组：替换整组 UI 提示音**
+
+```csharp
+GameFmod.Playback.Play(
+    AudioSource.File(uiCuePath),
+    new AudioPlaybackOptions
+    {
+        Routing = new AudioRoutingOptions
+        {
+            Tag = "my-mod/ui-tooltips",
+            ReplaceTaggedGroup = true,
+        },
+    }
+);
 ```
 
 ---

@@ -26,6 +26,7 @@ RitsuLib layers the audio API so you can use the vanilla-aligned pipeline or tal
 
 | Need | Use |
 |------|-----|
+| Easier high-level playback, typed handles, lifecycle cleanup | **`GameFmod.Playback`** |
 | Same routing / `TestMode` behaviour as vanilla | **`GameFmod.Studio`** → `NAudioManager` |
 | Same guards as `SfxCmd` (non-interactive, combat ending, etc.) | **`Sts2SfxAlignedFmod`** |
 | Load/unload Studio banks, check paths | **`FmodStudioServer`** |
@@ -71,14 +72,26 @@ var sfxPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly()
 FmodStudioStreamingFiles.TryPlaySoundFile(sfxPath, volume: 0.9f);
 ```
 
-**Streaming music file**
+**Streaming music file (recommended: Playback/Handle API)**
 
 ```csharp
 var musicPath = ProjectSettings.GlobalizePath("user://mymod/loop.ogg");
-FmodStudioStreamingFiles.TryPreloadAsStreamingMusic(musicPath);
-var handle = FmodStudioStreamingFiles.TryCreateStreamingMusicInstance(musicPath);
-handle?.Call("set_volume", 0.7f);
-handle?.Call("play");
+var handle = GameFmod.Playback.PlayMusic(
+    AudioSource.StreamingMusic(musicPath),
+    new AudioPlaybackOptions { Volume = 0.7f, Scope = AudioLifecycleScope.Room }
+);
+```
+
+**Common adaptive music flow (room / combat / victory)**
+
+```csharp
+var adaptive = GameFmod.Playback.FollowAdaptiveMusic(
+    AudioAdaptivePlans.FullRunOverride(
+        roomSource: AudioSource.StreamingMusic(roomLoopPath),
+        combatSource: AudioSource.StreamingMusic(combatLoopPath),
+        victorySource: AudioSource.StreamingMusic(victoryStingerPath)
+    )
+);
 ```
 
 **Throttle rapid triggers**
@@ -86,6 +99,40 @@ handle?.Call("play");
 ```csharp
 if (FmodPlaybackThrottle.TryEnter("my_power_proc", cooldownMs: 120))
     Sts2SfxAlignedFmod.PlayOneShot("event:/sfx/buff");
+```
+
+**Singleton channel: replace the current playback**
+
+```csharp
+GameFmod.Playback.PlayMusic(
+    AudioSource.StreamingMusic(nextMusicPath),
+    new AudioPlaybackOptions
+    {
+        Volume = 0.8f,
+        Routing = new AudioRoutingOptions
+        {
+            Channel = "my-mod/music",
+            ChannelMode = AudioChannelMode.ReplaceExisting,
+            AllowFadeOutOnReplace = true,
+        },
+    }
+);
+```
+
+**Tagged group: replace an entire UI cue group**
+
+```csharp
+GameFmod.Playback.Play(
+    AudioSource.File(uiCuePath),
+    new AudioPlaybackOptions
+    {
+        Routing = new AudioRoutingOptions
+        {
+            Tag = "my-mod/ui-tooltips",
+            ReplaceTaggedGroup = true,
+        },
+    }
+);
 ```
 
 ---
