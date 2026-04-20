@@ -440,13 +440,44 @@ namespace STS2RitsuLib.Interop.AutoRegistration
                                     ownedCardKeyword.Order,
                                     $"RegisterOwnedCardKeyword:{ownedCardKeyword.LocalKeywordStem}:{type.FullName}",
                                     nameof(RegisterOwnedCardKeywordAttribute),
-                                    () => keywordRegistry.RegisterCardKeywordOwned(
-                                        ValidateNonEmpty(ownedCardKeyword.LocalKeywordStem,
-                                            nameof(ownedCardKeyword.LocalKeywordStem)),
-                                        ownedCardKeyword.LocKeyPrefix,
-                                        ownedCardKeyword.IconPath,
-                                        ownedCardKeyword.CardDescriptionPlacement,
-                                        ownedCardKeyword.IncludeInCardHoverTip)));
+                                    () =>
+                                    {
+                                        var localStem = ValidateNonEmpty(ownedCardKeyword.LocalKeywordStem,
+                                            nameof(ownedCardKeyword.LocalKeywordStem));
+
+                                        if (!string.IsNullOrWhiteSpace(ownedCardKeyword.LocNamespace))
+                                        {
+                                            keywordRegistry.RegisterCardKeywordOwnedByLocNamespace(
+                                                localStem,
+                                                ownedCardKeyword.LocNamespace,
+                                                ownedCardKeyword.IconPath,
+                                                ownedCardKeyword.CardDescriptionPlacement,
+                                                ownedCardKeyword.IncludeInCardHoverTip);
+                                            return;
+                                        }
+
+#pragma warning disable CS0618
+                                        if (!string.IsNullOrWhiteSpace(ownedCardKeyword.LocKeyPrefix))
+                                        {
+                                            keywordRegistry.RegisterCardKeywordOwned(
+                                                localStem,
+                                                ownedCardKeyword.LocKeyPrefix,
+                                                ownedCardKeyword.IconPath,
+                                                ownedCardKeyword.CardDescriptionPlacement,
+                                                ownedCardKeyword.IncludeInCardHoverTip);
+                                            return;
+                                        }
+#pragma warning restore CS0618
+
+#pragma warning disable CS0618
+                                        keywordRegistry.RegisterCardKeywordOwned(
+                                            localStem,
+                                            null,
+                                            ownedCardKeyword.IconPath,
+                                            ownedCardKeyword.CardDescriptionPlacement,
+                                            ownedCardKeyword.IncludeInCardHoverTip);
+#pragma warning restore CS0618
+                                    }));
                             });
                         break;
                     case AutoTimelineSlotAttribute autoTimelineSlot:
