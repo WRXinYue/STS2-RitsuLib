@@ -464,6 +464,39 @@ namespace STS2RitsuLib.Scaffolding.Content
         /// <summary>
         ///     Queues <c>ModKeywordRegistry.RegisterCardKeywordOwned</c> (mod-local stem → qualified id).
         /// </summary>
+        public ModContentPackBuilder CardKeywordOwnedByLocNamespace(
+            string localKeywordStem,
+            string? locNamespace,
+            string? iconPath,
+            ModKeywordCardDescriptionPlacement cardDescriptionPlacement,
+            bool includeInCardHoverTip)
+        {
+            return AddStep(ctx =>
+                ctx.Keywords.RegisterCardKeywordOwnedByLocNamespace(localKeywordStem, locNamespace, iconPath,
+                    cardDescriptionPlacement, includeInCardHoverTip));
+        }
+
+        /// <summary>
+        ///     Queues <c>ModKeywordRegistry.RegisterCardKeywordOwnedByLocNamespace</c> with legacy hover defaults.
+        /// </summary>
+        public ModContentPackBuilder CardKeywordOwnedByLocNamespace(
+            string localKeywordStem,
+            string? locNamespace = null,
+            string? iconPath = null)
+        {
+            return CardKeywordOwnedByLocNamespace(
+                localKeywordStem,
+                locNamespace,
+                iconPath,
+                ModKeywordCardDescriptionPlacement.None,
+                true);
+        }
+
+        /// <summary>
+        ///     Queues <c>ModKeywordRegistry.RegisterCardKeywordOwned</c> (mod-local stem → qualified id).
+        /// </summary>
+        [Obsolete(
+            "Pitfall: locKeyPrefix is NOT a prefix that affects only the modid/namespace portion. It is the full card_keywords entry stem used to form '{stem}.title' and '{stem}.description'. Prefer CardKeywordOwnedByLocNamespace (default stem: '<modid>_<keyword>').")]
         public ModContentPackBuilder CardKeywordOwned(
             string localKeywordStem,
             string? locKeyPrefix,
@@ -479,6 +512,8 @@ namespace STS2RitsuLib.Scaffolding.Content
         /// <summary>
         ///     Queues <c>ModKeywordRegistry.RegisterCardKeywordOwned</c> with legacy hover defaults.
         /// </summary>
+        [Obsolete(
+            "Pitfall: locKeyPrefix is NOT a prefix that affects only the modid/namespace portion. It is the full card_keywords entry stem used to form '{stem}.title' and '{stem}.description'. Prefer CardKeywordOwnedByLocNamespace (default stem: '<modid>_<keyword>').")]
         public ModContentPackBuilder CardKeywordOwned(
             string localKeywordStem,
             string? locKeyPrefix = null,

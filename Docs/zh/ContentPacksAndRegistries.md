@@ -36,7 +36,7 @@ RitsuLibFramework.CreateContentPack("MyMod")
     .Character<MyCharacter>()
     .Card<MyCardPool, MyCard>()
     .Relic<MyRelicPool, MyRelic>()
-    .CardKeyword("brew", locKeyPrefix: "my_mod_brew")
+    .CardKeywordOwnedByLocNamespace("brew")
     .Epoch<MyCharacterEpoch>()
     .Story<MyStory>()
     .RequireEpoch<MyLateCard, MyCharacterEpoch>()
@@ -219,7 +219,7 @@ var contentEntries = new IContentRegistrationEntry[]
 
 var keywordEntries = new[]
 {
-    KeywordRegistrationEntry.Card("brew", "my_mod_brew"),
+    KeywordRegistrationEntry.OwnedCardByLocNamespace("MyMod", "brew"),
 };
 
 RitsuLibFramework.CreateContentPack("MyMod")
