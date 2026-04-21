@@ -39,11 +39,20 @@ namespace STS2RitsuLib.Scaffolding.Content
         }
 
         /// <summary>
-        ///     Canonical (class-level) mod keyword ids merged into the instance's keyword set on first access,
-        ///     mirroring vanilla <c>CardModel.CanonicalKeywords</c>. Runtime additions/removals persist per card
-        ///     instance via <see cref="CardModKeywordStore" /> (clone-safe, save/load-safe, applies to all cards).
+        ///     Mod keyword ids seeded onto every instance of this card on first <see cref="CardModel.Keywords" />
+        ///     access. Intentionally kept as a separate channel from vanilla
+        ///     <see cref="CardModel.CanonicalKeywords" /> so derived mods can still override
+        ///     <c>CanonicalKeywords</c> for vanilla keywords without accidentally dropping their mod keyword
+        ///     declarations. Each id is resolved to its pre-minted <see cref="CardKeyword" /> via
+        ///     <see cref="ModKeywordRegistry" /> and unioned into <c>CardModel.Keywords</c> right after the vanilla
+        ///     canonical seed runs, so runtime additions/removals and <c>DeepCloneFields</c> preserve them.
         /// </summary>
         protected virtual IEnumerable<string> RegisteredKeywordIds => [];
+
+        /// <summary>
+        ///     Internal accessor for the mod-keyword seeding patch.
+        /// </summary>
+        internal IEnumerable<string> EnumerateRegisteredKeywordIds() => RegisteredKeywordIds;
 
         /// <summary>
         ///     Extra hover tips appended after keyword-derived tips.
@@ -82,13 +91,5 @@ namespace STS2RitsuLib.Scaffolding.Content
 
         /// <inheritdoc />
         public virtual string? CustomBannerMaterialPath => AssetProfile.BannerMaterialPath;
-
-        /// <summary>
-        ///     Exposes <see cref="RegisteredKeywordIds" /> to the in-library keyword store as the canonical seed.
-        /// </summary>
-        internal IEnumerable<string> EnumerateRegisteredKeywordIds()
-        {
-            return RegisteredKeywordIds;
-        }
     }
 }
