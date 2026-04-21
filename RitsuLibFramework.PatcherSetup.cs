@@ -230,6 +230,7 @@ namespace STS2RitsuLib
             var patcher = CreatePatcher(Const.ModId, "framework-character-assets", "character assets");
             patcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.CharacterCreatureVisualsRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.CharacterCreatureAnimatorRuntimeFactoryPatch>();
             patcher.RegisterPatch<CharacterVisualsPathPatch>();
             patcher.RegisterPatch<CharacterEnergyCounterRuntimeFactoryPatch>();
             patcher.RegisterPatch<CharacterEnergyCounterPathPatch>();

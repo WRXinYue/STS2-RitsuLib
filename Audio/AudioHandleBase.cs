@@ -182,6 +182,8 @@ namespace STS2RitsuLib.Audio
             TryRelease();
             AudioLifecycleRegistry.Shared.Detach(this);
             AudioChannelRegistry.Shared.Detach(this);
+
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

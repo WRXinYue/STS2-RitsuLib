@@ -1,5 +1,6 @@
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Animation;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Bindings.MegaSpine;
 using MegaCrit.Sts2.Core.Models;
@@ -89,6 +90,48 @@ namespace STS2RitsuLib.Scaffolding.Content.Patches
                     return true;
 
                 var created = factory.TryCreateCreatureVisuals();
+                if (created == null)
+                    return true;
+
+                __result = created;
+                return false;
+            }
+        }
+
+        /// <summary>
+        ///     Patches <see cref="CharacterModel.GenerateAnimator" /> for
+        ///     <see cref="IModCharacterCreatureAnimatorFactory" />.
+        /// </summary>
+        public class CharacterCreatureAnimatorRuntimeFactoryPatch : IPatchMethod
+        {
+            /// <inheritdoc cref="IPatchMethod.PatchId" />
+            public static string PatchId => "runtime_godot_factory_character_creature_animator";
+
+            /// <inheritdoc cref="IPatchMethod.IsCritical" />
+            public static bool IsCritical => false;
+
+            /// <inheritdoc cref="IPatchMethod.Description" />
+            public static string Description =>
+                "Allow mod characters to supply CreatureAnimator (Spine state graph) from code";
+
+            /// <inheritdoc cref="IPatchMethod.GetTargets" />
+            public static ModPatchTarget[] GetTargets()
+            {
+                return [new(typeof(CharacterModel), nameof(CharacterModel.GenerateAnimator))];
+            }
+
+            // ReSharper disable InconsistentNaming
+            /// <summary>
+            ///     Uses <see cref="IModCharacterCreatureAnimatorFactory.TryCreateCreatureAnimator" /> when it returns non-null.
+            /// </summary>
+            [HarmonyPriority(Priority.First)]
+            public static bool Prefix(CharacterModel __instance, MegaSprite controller, ref CreatureAnimator __result)
+                // ReSharper restore InconsistentNaming
+            {
+                if (__instance is not IModCharacterCreatureAnimatorFactory factory)
+                    return true;
+
+                var created = factory.TryCreateCreatureAnimator(controller);
                 if (created == null)
                     return true;
 

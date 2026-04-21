@@ -1,0 +1,119 @@
+using Godot;
+using MegaCrit.Sts2.Core.Bindings.MegaSpine;
+using MegaCrit.Sts2.Core.Random;
+
+namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
+{
+    /// <summary>
+    ///     <see cref="IAnimationBackend" /> driver for Spine via <see cref="MegaSprite" />.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Connects to <c>animation_started</c>, <c>animation_completed</c>, and <c>animation_interrupted</c>
+    ///         signals; behaviour mirrors <see cref="MegaCrit.Sts2.Core.Animation.CreatureAnimator" /> (including
+    ///         looping-state random time-scale and start offset for natural idle variation).
+    ///     </para>
+    /// </remarks>
+    public sealed class SpineAnimationBackend : IAnimationBackend
+    {
+        private readonly Callable _completedCallable;
+        private readonly MegaSprite _controller;
+        private readonly Callable _interruptedCallable;
+        private readonly Callable _startedCallable;
+        private string? _currentId;
+
+        /// <summary>
+        ///     Wraps the given <paramref name="controller" /> and hooks its lifecycle signals.
+        /// </summary>
+        public SpineAnimationBackend(MegaSprite controller)
+        {
+            ArgumentNullException.ThrowIfNull(controller);
+            _controller = controller;
+            OwnerNode = controller.BoundObject as Node;
+            _startedCallable = Callable.From<GodotObject, GodotObject, GodotObject>(OnStarted);
+            _completedCallable = Callable.From<GodotObject, GodotObject, GodotObject>(OnCompleted);
+            _interruptedCallable = Callable.From<GodotObject, GodotObject, GodotObject>(OnInterrupted);
+            _controller.ConnectAnimationStarted(_startedCallable);
+            _controller.ConnectAnimationCompleted(_completedCallable);
+            _controller.ConnectAnimationInterrupted(_interruptedCallable);
+        }
+
+        /// <inheritdoc />
+        public Node? OwnerNode { get; }
+
+        /// <inheritdoc />
+        public event Action<string>? Started;
+
+        /// <inheritdoc />
+        public event Action<string>? Completed;
+
+        /// <inheritdoc />
+        public event Action<string>? Interrupted;
+
+        /// <inheritdoc />
+        public bool HasAnimation(string id)
+        {
+            return !string.IsNullOrWhiteSpace(id) && _controller.HasAnimation(id);
+        }
+
+        /// <inheritdoc />
+        public void Play(string id, bool loop)
+        {
+            if (!HasAnimation(id))
+                return;
+
+            _currentId = id;
+            var animationState = _controller.GetAnimationState();
+            var track = animationState.SetAnimation(id, loop);
+            if (track == null)
+                return;
+
+            if (loop)
+                OffsetLoopingAnimation(track);
+        }
+
+        /// <inheritdoc />
+        public void Queue(string id, bool loop)
+        {
+            if (!HasAnimation(id))
+                return;
+
+            var animationState = _controller.GetAnimationState();
+            var track = animationState.AddAnimation(id, 0f, loop);
+            if (loop)
+                OffsetLoopingAnimation(track);
+        }
+
+        /// <summary>
+        ///     Detaches signal connections. Safe to call more than once.
+        /// </summary>
+        public void Dispose()
+        {
+            _controller.DisconnectAnimationStarted(_startedCallable);
+            _controller.DisconnectAnimationCompleted(_completedCallable);
+            _controller.DisconnectAnimationInterrupted(_interruptedCallable);
+        }
+
+        private void OnStarted(GodotObject _, GodotObject __, GodotObject ___)
+        {
+            Started?.Invoke(_currentId ?? string.Empty);
+        }
+
+        private void OnCompleted(GodotObject _, GodotObject __, GodotObject ___)
+        {
+            Completed?.Invoke(_currentId ?? string.Empty);
+        }
+
+        private void OnInterrupted(GodotObject _, GodotObject __, GodotObject ___)
+        {
+            Interrupted?.Invoke(_currentId ?? string.Empty);
+        }
+
+        private static void OffsetLoopingAnimation(MegaTrackEntry track)
+        {
+            track.SetTimeScale(Rng.Chaotic.NextFloat(0.9f, 1.1f));
+            var end = track.GetAnimationEnd();
+            track.SetTrackTime((end + Rng.Chaotic.NextFloat(-0.1f, 0.1f)) % end);
+        }
+    }
+}

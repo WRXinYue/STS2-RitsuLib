@@ -1,6 +1,11 @@
+using System.Runtime.CompilerServices;
+using Godot;
+using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using STS2RitsuLib.Patching.Models;
 using STS2RitsuLib.Scaffolding.Characters.Visuals;
+using STS2RitsuLib.Scaffolding.Content;
+using STS2RitsuLib.Scaffolding.Visuals.StateMachine;
 
 namespace STS2RitsuLib.Scaffolding.Characters.Patches
 {
@@ -9,8 +14,18 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
     ///     <see cref="ModCreatureVisualPlayback" /> (cue textures, Godot animators). Co-loading another library that
     ///     patches the same method may run both prefixes; prefer a single stack for creature visuals when possible.
     /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         When the character implements
+    ///         <see cref="IModCharacterNonSpineAnimationStateMachineFactory" />, the trigger is routed through the
+    ///         state machine's <see cref="ModAnimStateMachine.SetTrigger" /> so branches, any-state transitions and
+    ///         <see cref="ModAnimState.NextState" /> apply. Otherwise the original single-shot playback path is used.
+    ///     </para>
+    /// </remarks>
     public class ModCreatureNonSpineAnimationPlaybackPatch : IPatchMethod
     {
+        private static readonly ConditionalWeakTable<Node, StateMachineSlot> StateMachinesByVisuals = new();
+
         /// <inheritdoc cref="IPatchMethod.PatchId" />
         public static string PatchId => "mod_creature_non_spine_animation_playback";
 
@@ -36,7 +51,47 @@ namespace STS2RitsuLib.Scaffolding.Characters.Patches
             if (__instance.HasSpineAnimation)
                 return true;
 
+            if (TryRouteToStateMachine(__instance, trigger))
+                return false;
+
             return !ModCreatureVisualPlayback.TryPlayFromCreatureAnimatorTrigger(__instance, trigger);
+        }
+
+        private static bool TryRouteToStateMachine(NCreature creature, string trigger)
+        {
+            var character = creature.Entity?.Player?.Character;
+            if (character is not IModCharacterNonSpineAnimationStateMachineFactory factory)
+                return false;
+
+            var visuals = creature.Visuals;
+            if (visuals == null || !GodotObject.IsInstanceValid(visuals))
+                return false;
+
+            var slot = StateMachinesByVisuals.GetValue(visuals,
+                _ => new());
+
+            slot.EnsureBuilt(factory, visuals, character);
+            if (slot.StateMachine == null)
+                return false;
+
+            slot.StateMachine.SetTrigger(trigger);
+            return true;
+        }
+
+        private sealed class StateMachineSlot
+        {
+            private bool _built;
+            public ModAnimStateMachine? StateMachine { get; private set; }
+
+            public void EnsureBuilt(IModCharacterNonSpineAnimationStateMachineFactory factory, Node visuals,
+                CharacterModel character)
+            {
+                if (_built)
+                    return;
+
+                _built = true;
+                StateMachine = factory.TryCreateNonSpineAnimationStateMachine(visuals, character);
+            }
         }
     }
 }

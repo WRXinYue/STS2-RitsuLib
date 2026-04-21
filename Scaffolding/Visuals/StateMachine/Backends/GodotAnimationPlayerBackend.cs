@@ -1,0 +1,94 @@
+using Godot;
+
+namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
+{
+    /// <summary>
+    ///     <see cref="IAnimationBackend" /> driver for Godot <see cref="AnimationPlayer" />.
+    /// </summary>
+    public sealed class GodotAnimationPlayerBackend : IAnimationBackend
+    {
+        private readonly Callable _finishedCallable;
+        private readonly AnimationPlayer _player;
+        private string? _currentId;
+
+        /// <summary>
+        ///     Wraps <paramref name="player" /> and hooks <c>AnimationPlayer.AnimationFinished</c>.
+        /// </summary>
+        public GodotAnimationPlayerBackend(AnimationPlayer player)
+        {
+            ArgumentNullException.ThrowIfNull(player);
+            _player = player;
+            _finishedCallable = Callable.From<StringName>(OnAnimationFinished);
+            _player.Connect(AnimationMixer.SignalName.AnimationFinished, _finishedCallable);
+        }
+
+        /// <inheritdoc />
+        public Node? OwnerNode => _player;
+
+        /// <inheritdoc />
+        public event Action<string>? Started;
+
+        /// <inheritdoc />
+        public event Action<string>? Completed;
+
+        /// <inheritdoc />
+        public event Action<string>? Interrupted;
+
+        /// <inheritdoc />
+        public bool HasAnimation(string id)
+        {
+            return !string.IsNullOrWhiteSpace(id) && _player.HasAnimation(id);
+        }
+
+        /// <inheritdoc />
+        public void Play(string id, bool loop)
+        {
+            if (!HasAnimation(id))
+                return;
+
+            if (_currentId != null && _player.IsPlaying())
+                Interrupted?.Invoke(_currentId);
+
+            _currentId = id;
+            var animation = _player.GetAnimation(id);
+            if (animation != null)
+                animation.LoopMode = loop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+
+            if (_player.CurrentAnimation == id)
+                _player.Stop();
+
+            _player.Play(id);
+            Started?.Invoke(id);
+        }
+
+        /// <inheritdoc />
+        public void Queue(string id, bool loop)
+        {
+            if (!HasAnimation(id))
+                return;
+
+            var animation = _player.GetAnimation(id);
+            if (animation != null)
+                animation.LoopMode = loop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+
+            _player.Queue(id);
+        }
+
+        /// <summary>
+        ///     Detaches the signal connection. Safe to call more than once.
+        /// </summary>
+        public void Dispose()
+        {
+            if (_player.IsConnected(AnimationMixer.SignalName.AnimationFinished, _finishedCallable))
+                _player.Disconnect(AnimationMixer.SignalName.AnimationFinished, _finishedCallable);
+        }
+
+        private void OnAnimationFinished(StringName animName)
+        {
+            var name = animName.ToString();
+            _currentId = name;
+
+            Completed?.Invoke(name);
+        }
+    }
+}

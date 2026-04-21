@@ -121,10 +121,8 @@ namespace STS2RitsuLib.Utils
 
             public bool Export(object model, SavedProperties props)
             {
-                if (!owner.TryGetValue((TSavedKey)model, out var value))
-                    return false;
-
-                return SavedAttachedStateRegistry.AddToProperties(props, Name, value);
+                return owner.TryGetValue((TSavedKey)model, out var value) &&
+                       SavedAttachedStateRegistry.AddToProperties(props, Name, value);
             }
 
             public void Import(object model, SavedProperties props)
