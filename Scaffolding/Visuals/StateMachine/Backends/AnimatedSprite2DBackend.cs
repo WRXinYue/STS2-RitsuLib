@@ -14,6 +14,8 @@ namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
         private readonly Callable _finishedCallable;
         private readonly AnimatedSprite2D _sprite;
         private string? _currentId;
+        private string? _queuedId;
+        private bool _queuedLoop;
 
         /// <summary>
         ///     Wraps <paramref name="sprite" /> and hooks <see cref="AnimatedSprite2D.AnimationFinished" />.
@@ -55,6 +57,7 @@ namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
             if (_currentId != null && _sprite.IsPlaying())
                 Interrupted?.Invoke(_currentId);
 
+            _queuedId = null;
             _currentId = id;
             var frames = _sprite.SpriteFrames;
             if (frames != null && frames.GetAnimationLoop(id) != loop)
@@ -70,7 +73,14 @@ namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
             if (!HasAnimation(id))
                 return;
 
-            Play(id, loop);
+            if (_currentId == null || !_sprite.IsPlaying())
+            {
+                Play(id, loop);
+                return;
+            }
+
+            _queuedId = id;
+            _queuedLoop = loop;
         }
 
         /// <summary>
@@ -85,6 +95,13 @@ namespace STS2RitsuLib.Scaffolding.Visuals.StateMachine.Backends
         private void OnAnimationFinished()
         {
             Completed?.Invoke(_currentId ?? _sprite.Animation.ToString());
+
+            if (_queuedId is not { } next)
+                return;
+
+            var loop = _queuedLoop;
+            _queuedId = null;
+            Play(next, loop);
         }
     }
 }
