@@ -1,8 +1,10 @@
 using Godot;
+using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using STS2RitsuLib.Content;
+using STS2RitsuLib.Utils;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace STS2RitsuLib.Keywords
@@ -21,6 +23,10 @@ namespace STS2RitsuLib.Keywords
 
         private static readonly Dictionary<string, ModKeywordDefinition> Definitions =
             new(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly Dictionary<CardKeyword, ModKeywordDefinition> DefinitionsByCardKeyword = [];
+
+        private static readonly DynamicEnumValueMinter<CardKeyword> CardKeywordMinter = new();
 
         private readonly Logger _logger;
 
@@ -360,6 +366,7 @@ namespace STS2RitsuLib.Keywords
             EnsureMutable("register keywords");
 
             var normalizedId = NormalizeId(id);
+            var cardKeywordValue = CardKeywordMinter.Mint(normalizedId);
             var definition = new ModKeywordDefinition(
                 _modId,
                 normalizedId,
@@ -369,7 +376,10 @@ namespace STS2RitsuLib.Keywords
                 descriptionKey ?? $"{normalizedId}.description",
                 iconPath,
                 cardDescriptionPlacement,
-                includeInCardHoverTip);
+                includeInCardHoverTip)
+            {
+                CardKeywordValue = cardKeywordValue,
+            };
 
             lock (SyncRoot)
             {
@@ -383,9 +393,11 @@ namespace STS2RitsuLib.Keywords
                 }
 
                 Definitions[normalizedId] = definition;
+                DefinitionsByCardKeyword[cardKeywordValue] = definition;
             }
 
-            _logger.Info($"[Keywords] Registered keyword: {normalizedId}");
+            _logger.Info(
+                $"[Keywords] Registered keyword: {normalizedId} (CardKeyword=0x{(int)cardKeywordValue:X8})");
             return definition;
         }
 
@@ -410,6 +422,57 @@ namespace STS2RitsuLib.Keywords
             return TryGet(id, out var definition)
                 ? definition
                 : throw new KeyNotFoundException($"Keyword '{NormalizeId(id)}' is not registered.");
+        }
+
+        /// <summary>
+        ///     Reverse lookup: resolves the mod keyword <see cref="ModKeywordDefinition" /> that minted
+        ///     <paramref name="value" />. Returns <c>false</c> for vanilla <see cref="CardKeyword" /> literals and
+        ///     for any value that was never registered.
+        /// </summary>
+        public static bool TryGetByCardKeyword(CardKeyword value, out ModKeywordDefinition definition)
+        {
+            lock (SyncRoot)
+            {
+                return DefinitionsByCardKeyword.TryGetValue(value, out definition!);
+            }
+        }
+
+        /// <summary>
+        ///     Whether <paramref name="value" /> is a registered mod keyword (as opposed to a vanilla
+        ///     <see cref="CardKeyword" /> literal or an unknown integer cast).
+        /// </summary>
+        public static bool IsModCardKeyword(CardKeyword value)
+        {
+            lock (SyncRoot)
+            {
+                return DefinitionsByCardKeyword.ContainsKey(value);
+            }
+        }
+
+        /// <summary>
+        ///     Resolves the <see cref="CardKeyword" /> value minted for <paramref name="id" />. Prefer this over
+        ///     passing a string when interacting with vanilla keyword APIs (<c>CardModel.AddKeyword</c> /
+        ///     <c>Keywords.Contains</c>).
+        /// </summary>
+        public static bool TryGetCardKeyword(string id, out CardKeyword value)
+        {
+            if (TryGet(id, out var definition))
+            {
+                value = definition.CardKeywordValue;
+                return true;
+            }
+
+            value = CardKeyword.None;
+            return false;
+        }
+
+        /// <summary>
+        ///     Returns the <see cref="CardKeyword" /> minted for <paramref name="id" /> or throws
+        ///     <see cref="KeyNotFoundException" /> when unregistered.
+        /// </summary>
+        public static CardKeyword GetCardKeyword(string id)
+        {
+            return Get(id).CardKeywordValue;
         }
 
         internal static ModKeywordDefinition[] GetDefinitionsSnapshot()

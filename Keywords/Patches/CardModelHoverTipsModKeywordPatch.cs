@@ -5,21 +5,21 @@ using STS2RitsuLib.Patching.Models;
 namespace STS2RitsuLib.Keywords.Patches
 {
     /// <summary>
-    ///     Appends the card's current mod-keyword hover tips to the vanilla <see cref="CardModel.HoverTips" />
-    ///     enumeration so mod keywords always reflect the **effective** runtime set for every card, whether the
-    ///     card is a vanilla <see cref="CardModel" />, a third-party mod card, or a
-    ///     <see cref="Scaffolding.Content.ModCardTemplate" /> subclass. The set is read from
-    ///     <see cref="CardModKeywordStore" /> which itself returns canonical seeds for untouched cards and the
-    ///     persisted runtime set for modified ones.
+    ///     Strips hover tips for mod keywords whose <see cref="ModKeywordDefinition.IncludeInCardHoverTip" /> is
+    ///     <c>false</c> from the vanilla <see cref="CardModel.HoverTips" /> enumeration. Mod keywords now live
+    ///     inside vanilla <c>CardModel.Keywords</c> as minted <c>CardKeyword</c> values, so vanilla already
+    ///     iterates them and calls <see cref="HoverTipFactory.FromKeyword" /> on each; the Registry routing
+    ///     patch (<see cref="HoverTipFactoryFromKeywordPatch" />) returns a real hover tip for every mod
+    ///     keyword. This postfix is only required to honor the opt-out flag.
     /// </summary>
     public sealed class CardModelHoverTipsModKeywordPatch : IPatchMethod
     {
         /// <inheritdoc />
-        public static string PatchId => "ritsulib_card_model_hover_tips_mod_keyword_append";
+        public static string PatchId => "ritsulib_card_model_hover_tips_mod_keyword_exclude";
 
         /// <inheritdoc />
         public static string Description =>
-            "Append mod keyword hover tips to CardModel.HoverTips for all cards via CardModKeywordStore";
+            "Remove mod keyword hover tips from CardModel.HoverTips when IncludeInCardHoverTip is false";
 
         /// <inheritdoc />
         public static bool IsCritical => false;
@@ -32,19 +32,28 @@ namespace STS2RitsuLib.Keywords.Patches
 
         // ReSharper disable InconsistentNaming
         /// <summary>
-        ///     Appends unique mod-keyword hover tips after vanilla keyword / enchantment / affliction tips.
+        ///     Removes any mod-keyword hover tip that vanilla produced (via
+        ///     <see cref="HoverTipFactory.FromKeyword" />) but is marked non-hoverable in the registry.
         /// </summary>
         public static void Postfix(CardModel __instance, ref IEnumerable<IHoverTip> __result)
         {
-            var ids = CardModKeywordStore.GetIds(__instance);
-            if (ids.Count == 0)
+            HashSet<IHoverTip>? toRemove = null;
+            foreach (var keyword in __instance.Keywords)
+            {
+                if (!ModKeywordRegistry.TryGetByCardKeyword(keyword, out var definition))
+                    continue;
+
+                if (definition.IncludeInCardHoverTip)
+                    continue;
+
+                toRemove ??= [];
+                toRemove.Add(HoverTipFactory.FromKeyword(keyword));
+            }
+
+            if (toRemove is null)
                 return;
 
-            var extra = ids.ToHoverTips().ToArray();
-            if (extra.Length == 0)
-                return;
-
-            __result = [.. __result, .. extra];
+            __result = __result.Where(tip => !toRemove.Contains(tip)).ToArray();
         }
         // ReSharper restore InconsistentNaming
     }

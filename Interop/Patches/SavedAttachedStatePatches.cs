@@ -21,10 +21,8 @@ namespace STS2RitsuLib.Interop.Patches
             var props = __result ?? new SavedProperties();
             var added = false;
             foreach (var state in states)
-            {
-                state.Export(model, props);
-                added = true;
-            }
+                if (state.Export(model, props))
+                    added = true;
 
             if (__result == null && added)
                 __result = props;
