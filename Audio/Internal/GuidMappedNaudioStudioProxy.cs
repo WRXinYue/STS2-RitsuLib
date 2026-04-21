@@ -17,7 +17,7 @@ namespace STS2RitsuLib.Audio.Internal
         internal static bool IsMappedPath(string? path)
         {
             return !string.IsNullOrEmpty(path) &&
-                   FmodStudioGuidPathTable.TryGetStudioGuidForEventPath(path!, out _);
+                   FmodStudioGuidPathTable.TryGetStudioGuidForEventPath(path, out _);
         }
 
         internal static void StopAllMappedLoops()

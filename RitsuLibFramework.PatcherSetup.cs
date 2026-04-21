@@ -182,6 +182,7 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<ActAssetPathsBackgroundLayersPatch>();
 
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.MonsterCreatureVisualsRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.MonsterCreatureAnimatorRuntimeFactoryPatch>();
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EncounterCombatSceneRuntimeFactoryPatch>();
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventLayoutPackedSceneRuntimeFactoryPatch>();
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.EventBackgroundPackedSceneRuntimeFactoryPatch>();
@@ -230,6 +231,7 @@ namespace STS2RitsuLib
             var patcher = CreatePatcher(Const.ModId, "framework-character-assets", "character assets");
             patcher.RegisterPatch<CharacterIconOutlineTexturePathPatch>();
             patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.CharacterCreatureVisualsRuntimeFactoryPatch>();
+            patcher.RegisterPatch<ModModelRuntimeGodotFactoryPatches.CharacterCreatureAnimatorRuntimeFactoryPatch>();
             patcher.RegisterPatch<CharacterVisualsPathPatch>();
             patcher.RegisterPatch<CharacterEnergyCounterRuntimeFactoryPatch>();
             patcher.RegisterPatch<CharacterEnergyCounterPathPatch>();
@@ -252,6 +254,8 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<CharacterGameOverScreenCompatibilityPatch>();
             patcher.RegisterPatch<CharacterVanillaSelectionPolicyPatches>();
             patcher.RegisterPatch<ModCreatureNonSpineAnimationPlaybackPatch>();
+            patcher.RegisterPatch<NCreatureNonSpineDeathAnimationTriggerPatch>();
+            patcher.RegisterPatch<NCreatureNonSpineReviveAnimationTriggerPatch>();
             patcher.RegisterPatch<ModMerchantCharacterVisualPlaybackPatch>();
             patcher.RegisterPatch<NMerchantRoomProceduralCharacterInstantiationPatch>();
             patcher.RegisterPatch<NRestSiteCharacterCreateProceduralPatch>();
