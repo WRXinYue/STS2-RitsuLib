@@ -2,11 +2,13 @@ using System.Reflection;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Timeline;
+using STS2RitsuLib.CardPiles;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Keywords;
 using STS2RitsuLib.Scaffolding.Content;
 using STS2RitsuLib.Timeline;
 using STS2RitsuLib.Timeline.Scaffolding;
+using STS2RitsuLib.TopBar;
 
 namespace STS2RitsuLib.Interop.AutoRegistration
 {
@@ -478,6 +480,42 @@ namespace STS2RitsuLib.Interop.AutoRegistration
                                             ownedCardKeyword.IncludeInCardHoverTip);
 #pragma warning restore CS0618
                                     }));
+                            });
+                        break;
+                    case RegisterOwnedCardPileAttribute ownedCardPile:
+                        RegisterCase($"RegisterOwnedCardPile:{ownedCardPile.LocalPileStem}:{type.FullName}", () =>
+                        {
+                            operations.Add(CreateOperation(ownerModId, type, AutoRegistrationPhase.CardPiles,
+                                ownedCardPile.Order,
+                                $"RegisterOwnedCardPile:{ownedCardPile.LocalPileStem}:{type.FullName}",
+                                nameof(RegisterOwnedCardPileAttribute),
+                                () =>
+                                {
+                                    var localStem = ValidateNonEmpty(ownedCardPile.LocalPileStem,
+                                        nameof(ownedCardPile.LocalPileStem));
+                                    var spec = BuildCardPileSpec(type, ownedCardPile);
+                                    ModCardPileRegistry.For(ownerModId).RegisterOwned(localStem, spec);
+                                },
+                                [TypeDependencyKey(type)]));
+                        });
+                        break;
+                    case RegisterOwnedTopBarButtonAttribute ownedTopBarButton:
+                        RegisterCase(
+                            $"RegisterOwnedTopBarButton:{ownedTopBarButton.LocalButtonStem}:{type.FullName}", () =>
+                            {
+                                operations.Add(CreateOperation(ownerModId, type,
+                                    AutoRegistrationPhase.TopBarButtons,
+                                    ownedTopBarButton.Order,
+                                    $"RegisterOwnedTopBarButton:{ownedTopBarButton.LocalButtonStem}:{type.FullName}",
+                                    nameof(RegisterOwnedTopBarButtonAttribute),
+                                    () =>
+                                    {
+                                        var localStem = ValidateNonEmpty(ownedTopBarButton.LocalButtonStem,
+                                            nameof(ownedTopBarButton.LocalButtonStem));
+                                        var spec = BuildTopBarButtonSpec(type, ownedTopBarButton);
+                                        ModTopBarButtonRegistry.For(ownerModId).RegisterOwned(localStem, spec);
+                                    },
+                                    [TypeDependencyKey(type)]));
                             });
                         break;
                     case AutoTimelineSlotAttribute autoTimelineSlot:
@@ -954,6 +992,104 @@ namespace STS2RitsuLib.Interop.AutoRegistration
         private static string TypeDependencyKey(Type type)
         {
             return $"RegisterType:{type.AssemblyQualifiedName}";
+        }
+
+        private static ModCardPileSpec BuildCardPileSpec(Type declaringType, RegisterOwnedCardPileAttribute attr)
+        {
+            var anchor = attr.AnchorKind == ModCardPileAnchorKind.Custom
+                ? new ModCardPileAnchor(
+                    ModCardPileAnchorKind.Custom,
+                    new(attr.AnchorOffsetX, attr.AnchorOffsetY),
+                    new(attr.AnchorCustomX, attr.AnchorCustomY))
+                : new ModCardPileAnchor(attr.AnchorKind, new(attr.AnchorOffsetX, attr.AnchorOffsetY));
+
+            return new()
+            {
+                Scope = attr.Scope,
+                Style = attr.Style,
+                Anchor = anchor,
+                IconPath = attr.IconPath,
+                LocStem = attr.LocStem,
+                Hotkeys = attr.Hotkeys,
+                CardShouldBeVisible = attr.CardShouldBeVisible,
+                OnOpen = ResolveCardPileOpenHandler(declaringType),
+            };
+        }
+
+        private static Action<ModCardPileOpenContext>? ResolveCardPileOpenHandler(Type declaringType)
+        {
+            if (!typeof(IModCardPileHandler).IsAssignableFrom(declaringType))
+                return null;
+
+            if (declaringType.GetConstructor(Type.EmptyTypes) == null)
+            {
+                RitsuLibFramework.Logger.Warn(
+                    $"[AutoRegister] RegisterOwnedCardPile: type '{declaringType.FullName}' implements "
+                    + $"{nameof(IModCardPileHandler)} but has no parameterless constructor — OnOpen will not be wired.");
+                return null;
+            }
+
+            try
+            {
+                var instance = (IModCardPileHandler)Activator.CreateInstance(declaringType)!;
+                return instance.OnOpen;
+            }
+            catch (Exception ex)
+            {
+                RitsuLibFramework.Logger.Error(
+                    $"[AutoRegister] RegisterOwnedCardPile: failed to instantiate handler '{declaringType.FullName}': {ex.Message}");
+                return null;
+            }
+        }
+
+        private static ModTopBarButtonSpec BuildTopBarButtonSpec(Type declaringType,
+            RegisterOwnedTopBarButtonAttribute attr)
+        {
+            var handler = ResolveTopBarButtonHandler(declaringType);
+            return new()
+            {
+                IconPath = attr.IconPath,
+                LocStem = attr.LocStem,
+                Order = attr.ButtonOrder,
+                Offset = new(attr.OffsetX, attr.OffsetY),
+                OnClick = handler is null ? null : handler.OnClick,
+                VisibleWhen = handler is null ? null : handler.IsVisible,
+                IsOpenWhen = handler is null ? null : handler.IsOpen,
+                // IModTopBarButtonHandler.GetCount returns -1 by default, which NModCardPileButton
+                // interprets as "hide the badge". Handlers that want a count simply override GetCount
+                // and return a non-negative value.
+                CountProvider = handler is null ? null : handler.GetCount,
+            };
+        }
+
+        private static IModTopBarButtonHandler? ResolveTopBarButtonHandler(Type declaringType)
+        {
+            if (!typeof(IModTopBarButtonHandler).IsAssignableFrom(declaringType))
+            {
+                RitsuLibFramework.Logger.Warn(
+                    $"[AutoRegister] RegisterOwnedTopBarButton: type '{declaringType.FullName}' must implement "
+                    + $"{nameof(IModTopBarButtonHandler)}; button will be registered without OnClick/VisibleWhen.");
+                return null;
+            }
+
+            if (declaringType.GetConstructor(Type.EmptyTypes) == null)
+            {
+                RitsuLibFramework.Logger.Warn(
+                    $"[AutoRegister] RegisterOwnedTopBarButton: type '{declaringType.FullName}' has no parameterless "
+                    + "constructor — OnClick / VisibleWhen will not be wired.");
+                return null;
+            }
+
+            try
+            {
+                return (IModTopBarButtonHandler)Activator.CreateInstance(declaringType)!;
+            }
+            catch (Exception ex)
+            {
+                RitsuLibFramework.Logger.Error(
+                    $"[AutoRegister] RegisterOwnedTopBarButton: failed to instantiate handler '{declaringType.FullName}': {ex.Message}");
+                return null;
+            }
         }
 
         private static string? ResolveOwnerModId(Type type,
