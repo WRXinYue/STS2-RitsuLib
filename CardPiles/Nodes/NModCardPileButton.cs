@@ -64,6 +64,7 @@ namespace STS2RitsuLib.CardPiles.Nodes
         private MegaLabel _countLabel = null!;
         private int _currentCount;
         private bool _hovered;
+        private Control _iconHost = null!;
 
         private HoverTip? _hoverTip;
 
@@ -235,14 +236,14 @@ namespace STS2RitsuLib.CardPiles.Nodes
             //   └── Count (MegaLabel, anchored bottom-right with vanilla offsets)
             // Keeping the node names identical means tooling / scene inspection / future vanilla
             // lookups by path (`Control/Icon`) work on our buttons too.
-            var iconHost = new Control
+            _iconHost = new Control
             {
                 Name = "Control",
                 MouseFilter = MouseFilterEnum.Ignore,
                 AnchorRight = 1f,
                 AnchorBottom = 1f,
             };
-            AddChild(iconHost);
+            AddChild(_iconHost);
 
             var texture = ResolveIconTexture();
             var textureRect = new TextureRect
@@ -267,7 +268,7 @@ namespace STS2RitsuLib.CardPiles.Nodes
                 PivotOffset = new(IconSize * 0.5f, IconSize * 0.5f - 2f),
             };
             _icon = textureRect;
-            iconHost.AddChild(_icon);
+            _iconHost.AddChild(_icon);
 
             // A placeholder count label — this will be swapped in Initialize() for a deep clone of the
             // vanilla %Deck's `DeckCardCount` MegaLabel, so we inherit the exact font / outline size /
@@ -630,10 +631,11 @@ namespace STS2RitsuLib.CardPiles.Nodes
                 return;
             }
 
-            if (_pile == null || _player == null || Definition == null || !CombatManager.Instance.IsInProgress)
+            if (_pile == null || _player == null || Definition == null)
                 return;
 
-            if (_pile.IsEmpty)
+            var inCombat = CombatManager.Instance.IsInProgress;
+            if (inCombat && _pile.IsEmpty)
             {
                 var instance = NCapstoneContainer.Instance;
                 if (instance is { InUse: true })
@@ -661,6 +663,12 @@ namespace STS2RitsuLib.CardPiles.Nodes
             }
 
             NCardPileScreen.ShowScreen(_pile, Definition.Hotkeys ?? []);
+        }
+
+        internal void ApplyVisualOffset(Vector2 offset)
+        {
+            _iconHost.Position = offset;
+            _countLabel.Position = offset;
         }
 
         /// <summary>

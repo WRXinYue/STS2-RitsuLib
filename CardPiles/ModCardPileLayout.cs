@@ -40,7 +40,7 @@ namespace STS2RitsuLib.CardPiles
             {
                 var deck = NRun.Instance?.GlobalUi?.TopBar?.Deck;
                 if (deck != null)
-                    return deck.GlobalPosition + deck.Size * 0.5f + new Vector2(120f, 0f) + definition.Anchor.Offset;
+                    return deck.GlobalPosition + deck.Size * 0.5f + new Vector2(-120f, 0f) + definition.Anchor.Offset;
             }
 
             if (!CombatManager.Instance.IsInProgress || NCombatRoom.Instance?.Ui == null)

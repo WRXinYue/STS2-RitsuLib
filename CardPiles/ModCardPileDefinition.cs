@@ -67,7 +67,7 @@ namespace STS2RitsuLib.CardPiles
         public string ModId { get; }
 
         /// <summary>
-        ///     Normalized global id (lowercased, trimmed).
+        ///     Normalized global id (trimmed).
         /// </summary>
         public string Id { get; }
 

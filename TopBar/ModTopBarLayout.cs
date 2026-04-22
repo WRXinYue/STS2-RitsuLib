@@ -93,47 +93,102 @@ namespace STS2RitsuLib.TopBar
         ///     — the enclosing <see cref="HBoxContainer" /> drives the actual screen position.
         ///     Returns true on success, false when the top bar isn't ready yet (caller should retry).
         /// </summary>
-        /// <remarks>
-        ///     The <paramref name="offset" /> parameter is intentionally ignored here: in an
-        ///     HBoxContainer-driven layout, "offset" doesn't map cleanly to a property without
-        ///     fighting the container. It's kept on the public API because existing definitions may
-        ///     supply it, but mods that relied on nudging their button by a few pixels should
-        ///     instead adjust their registration order or wait for a dedicated spacing knob.
-        /// </remarks>
         public static bool Place(NTopBar topBar, NModCardPileButton button, Vector2 offset = default)
         {
             ArgumentNullException.ThrowIfNull(topBar);
             ArgumentNullException.ThrowIfNull(button);
-            _ = offset;
 
             var container = GetRightAlignedContainer(topBar);
             var anchor = GetDeckSlotAnchor(topBar);
             if (container == null || anchor == null)
                 return false;
 
-            // Re-parent into the HBoxContainer if the injector dropped the button somewhere else
-            // (e.g. directly on NTopBar). Don't carry over Position / Size — the container will
-            // assign them based on CustomMinimumSize and the HBoxContainer's alignment rules.
-            if (button.GetParent() != container)
-            {
-                button.GetParent()?.RemoveChild(button);
-                container.AddChildSafely(button);
-            }
+        return PlaceBeforeAnchor(container, anchor, button, offset);
+    }
 
-            // Reset any stray transform state so HBoxContainer layout isn't fighting leftover values
-            // from an earlier "manual Position" implementation.
-            button.Position = Vector2.Zero;
-            button.Scale = Vector2.One;
+    /// <summary>
+    ///     Attaches <paramref name="button" /> to the right-aligned container and places it immediately
+    ///     <b>after</b> the deck slot anchor (typically between deck and pause).
+    /// </summary>
+    /// <returns>False when the top bar anchor nodes are not ready yet.</returns>
+    public static bool PlaceAfterDeck(NTopBar topBar, NModCardPileButton button, Vector2 offset = default)
+    {
+        ArgumentNullException.ThrowIfNull(topBar);
+        ArgumentNullException.ThrowIfNull(button);
 
-            // Slide the button into the slot immediately before the deck anchor. The anchor index
-            // must be re-read AFTER the reparent above because move_child shifts indices.
-            var anchorIndex = anchor.GetIndex();
-            var currentIndex = button.GetIndex();
-            var targetIndex = currentIndex < anchorIndex ? anchorIndex - 1 : anchorIndex;
-            if (currentIndex != targetIndex)
-                container.MoveChild(button, targetIndex);
+        var container = GetRightAlignedContainer(topBar);
+        var anchor = GetDeckSlotAnchor(topBar);
+        if (container == null || anchor == null)
+            return false;
 
-            return true;
+        return PlaceAfterAnchor(container, anchor, button, offset);
+    }
+
+    /// <summary>
+    ///     Attaches <paramref name="button" /> to the right-aligned container and places it immediately
+    ///     <b>before</b> the modifiers slot when available; falls back to the default deck-left placement.
+    /// </summary>
+    /// <returns>False only when all candidate anchors are unavailable.</returns>
+    public static bool PlaceBeforeModifiers(NTopBar topBar, NModCardPileButton button, Vector2 offset = default)
+    {
+        ArgumentNullException.ThrowIfNull(topBar);
+        ArgumentNullException.ThrowIfNull(button);
+
+        var container = GetRightAlignedContainer(topBar);
+        if (container == null)
+            return false;
+
+        var modifiers = topBar.GetNodeOrNull<Control>("%Modifiers");
+        if (modifiers == null)
+            return Place(topBar, button, offset);
+
+        Node anchor = modifiers;
+        while (anchor.GetParent() is { } parent && parent != container)
+            anchor = parent;
+        if (anchor.GetParent() != container)
+            return Place(topBar, button, offset);
+
+        return PlaceBeforeAnchor(container, anchor, button, offset);
+    }
+
+    private static bool PlaceBeforeAnchor(Control container, Node anchor, NModCardPileButton button, Vector2 offset)
+    {
+        AttachToContainer(container, button);
+
+        var anchorIndex = anchor.GetIndex();
+        var currentIndex = button.GetIndex();
+        var targetIndex = currentIndex < anchorIndex ? anchorIndex - 1 : anchorIndex;
+        if (currentIndex != targetIndex)
+            container.MoveChild(button, targetIndex);
+
+        button.ApplyVisualOffset(offset);
+        return true;
+    }
+
+    private static bool PlaceAfterAnchor(Control container, Node anchor, NModCardPileButton button, Vector2 offset)
+    {
+        AttachToContainer(container, button);
+
+        var anchorIndex = anchor.GetIndex();
+        var currentIndex = button.GetIndex();
+        var targetIndex = currentIndex < anchorIndex ? anchorIndex : anchorIndex + 1;
+        if (currentIndex != targetIndex)
+            container.MoveChild(button, targetIndex);
+
+        button.ApplyVisualOffset(offset);
+        return true;
+    }
+
+    private static void AttachToContainer(Control container, NModCardPileButton button)
+    {
+        if (button.GetParent() != container)
+        {
+            button.GetParent()?.RemoveChild(button);
+            container.AddChildSafely(button);
+        }
+
+        button.Position = Vector2.Zero;
+        button.Scale = Vector2.One;
         }
 
         /// <summary>

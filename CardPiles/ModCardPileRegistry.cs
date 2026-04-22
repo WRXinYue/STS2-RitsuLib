@@ -8,7 +8,7 @@ namespace STS2RitsuLib.CardPiles
 {
     /// <summary>
     ///     Per-mod registration surface for custom <see cref="CardPile" />s. Mirrors the conventions used by
-    ///     <c>ModKeywordRegistry</c>: ids are mod-qualified via <see cref="ModContentRegistry.GetQualifiedKeywordId" />,
+    ///     <c>ModKeywordRegistry</c>: ids are mod-qualified via <see cref="ModContentRegistry.GetQualifiedCardPileId" />,
     ///     <see cref="PileType" /> values are deterministically minted with
     ///     <see cref="DynamicEnumValueMinter{TEnum}" />, and registrations freeze at
     ///     <c>ModelDb.Init</c>.

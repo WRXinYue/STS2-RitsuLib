@@ -69,8 +69,12 @@ namespace STS2RitsuLib.CardPiles.Patches
             var player = LocalContext.GetMe(runState);
             if (player == null)
                 return;
-            foreach (var button in __instance.GetChildren().OfType<NModCardPileButton>())
-                button.Initialize(player);
+            var container = TopBar.ModTopBarLayout.GetRightAlignedContainer(__instance);
+            if (container == null)
+                return;
+            foreach (var button in container.GetChildren().OfType<NModCardPileButton>())
+                if (!button.IsActionMode)
+                    button.Initialize(player);
         }
         // ReSharper restore InconsistentNaming
     }

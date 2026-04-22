@@ -150,11 +150,20 @@ namespace STS2RitsuLib.CardPiles.Nodes
             if (_cards.Count == 0)
                 return;
 
-            var totalWidth = CardSpacing * (_cards.Count - 1);
+            var orderedCards = _pile?.Cards
+                .Select(card => _cards.GetValueOrDefault(card))
+                .OfType<NCard>()
+                .Where(ncard => ncard.IsInsideTree())
+                .ToArray()
+                ?? _cards.Values.Where(ncard => ncard.IsInsideTree()).ToArray();
+            if (orderedCards.Length == 0)
+                return;
+
+            var totalWidth = CardSpacing * (orderedCards.Length - 1);
             var startX = Size.X * 0.5f - totalWidth * 0.5f;
             var y = Size.Y * 0.5f;
             var i = 0;
-            foreach (var ncard in _cards.Values.Where(ncard => ncard.IsInsideTree()))
+            foreach (var ncard in orderedCards)
             {
                 ncard.Position = new(startX + CardSpacing * i - ncard.Size.X * 0.5f,
                     y - ncard.Size.Y * 0.5f);
