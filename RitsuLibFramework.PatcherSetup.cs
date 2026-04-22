@@ -83,6 +83,7 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<LocTableGetLocStringCompatibilityPatch>();
             patcher.RegisterPatch<LocTableGetRawTextCompatibilityPatch>();
             patcher.RegisterPatch<AncientDialoguePopulateLocKeysPatch>();
+            patcher.RegisterPatch<AncientEventInitialOptionsRegistryPatch>();
             patcher.RegisterPatch<TheArchitectLoadDialogueMissingFallbackPatch>();
             patcher.RegisterPatch<ModelRegistryLifecyclePatch>();
             patcher.RegisterPatch<GameNodeLifecyclePatch>();

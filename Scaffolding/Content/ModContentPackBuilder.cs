@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Timeline;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
 using STS2RitsuLib.Keywords;
+using STS2RitsuLib.Scaffolding.Ancients.Options;
 using STS2RitsuLib.Scaffolding.Cards.HandGlow;
 using STS2RitsuLib.Scaffolding.Cards.HandOutline;
 using STS2RitsuLib.Timeline;
@@ -459,6 +460,15 @@ namespace STS2RitsuLib.Scaffolding.Content
             where TAncient : AncientEventModel
         {
             return AddStep(ctx => ctx.Content.RegisterActAncient<TAct, TAncient>());
+        }
+
+        /// <summary>
+        ///     Queues <see cref="ModContentRegistry.RegisterAncientOption{TAncient}" /> for injecting extra initial options.
+        /// </summary>
+        public ModContentPackBuilder AncientOption<TAncient>(ModAncientOptionRule rule)
+            where TAncient : AncientEventModel
+        {
+            return AddStep(ctx => ctx.Content.RegisterAncientOption<TAncient>(rule));
         }
 
         /// <summary>

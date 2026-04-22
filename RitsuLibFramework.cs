@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
+using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Cards.FreePlay;
 using STS2RitsuLib.Combat.HealthBars;
 using STS2RitsuLib.Content;
@@ -15,6 +16,7 @@ using STS2RitsuLib.Interop;
 using STS2RitsuLib.Keywords;
 using STS2RitsuLib.Patching.Core;
 using STS2RitsuLib.RuntimeInput;
+using STS2RitsuLib.Scaffolding.Ancients.Options;
 using STS2RitsuLib.Scaffolding.Content;
 using STS2RitsuLib.Settings;
 using STS2RitsuLib.Timeline;
@@ -312,6 +314,15 @@ namespace STS2RitsuLib
         public static void RegisterFreePlayBinding(string bindingId, Func<CardPlay, bool> detector)
         {
             FreePlayBindingRegistry.Register(bindingId, detector);
+        }
+
+        /// <summary>
+        ///     Registers an initial-option injection rule for <typeparamref name="TAncient" />.
+        /// </summary>
+        public static void RegisterAncientOption<TAncient>(string modId, ModAncientOptionRule rule)
+            where TAncient : AncientEventModel
+        {
+            GetContentRegistry(modId).RegisterAncientOption<TAncient>(rule);
         }
 
         /// <summary>
