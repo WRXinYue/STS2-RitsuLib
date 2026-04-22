@@ -1,4 +1,5 @@
 using STS2RitsuLib.Audio.Patches;
+using STS2RitsuLib.CardPiles.Patches;
 using STS2RitsuLib.Cards.FreePlay.Patches;
 using STS2RitsuLib.Cards.Patches;
 using STS2RitsuLib.Combat.CardTargeting.Patches;
@@ -18,6 +19,7 @@ using STS2RitsuLib.Scaffolding.Content.Patches;
 using STS2RitsuLib.Scaffolding.Godot;
 using STS2RitsuLib.Settings.Patches;
 using STS2RitsuLib.Timeline.Patches;
+using STS2RitsuLib.TopBar.Patches;
 using STS2RitsuLib.Unlocks.Patches;
 using STS2RitsuLib.Utils.Persistence.Patches;
 
@@ -130,6 +132,19 @@ namespace STS2RitsuLib
             patcher.RegisterPatch<CombatRoomToSerializableRewardExtPatch>();
             patcher.RegisterPatch<CombatRoomFromSerializableRewardExtPatch>();
             patcher.RegisterPatch<RewardFromSerializableExtPatch>();
+            patcher.RegisterPatch<ModCardPileGetPatch>();
+            patcher.RegisterPatch<ModCardPileIsCombatPatch>();
+            patcher.RegisterPatch<ModCardPileGetTargetPositionPatch>();
+            patcher.RegisterPatch<ModCardPileAllPilesPatch>();
+            patcher.RegisterPatch<ModCardPileFindOnTablePatch>();
+            patcher.RegisterPatch<ModCardPileCombatPilesContainerReadyPatch>();
+            patcher.RegisterPatch<ModCardPileCombatPilesContainerInitializePatch>();
+            patcher.RegisterPatch<ModCardPileTopBarReadyPatch>();
+            patcher.RegisterPatch<ModCardPileTopBarInitializePatch>();
+            patcher.RegisterPatch<ModCardPileCombatUiReadyPatch>();
+            patcher.RegisterPatch<ModCardPileCombatUiActivatePatch>();
+            patcher.RegisterPatch<ModTopBarActionButtonReadyPatch>();
+            patcher.RegisterPatch<ModTopBarActionButtonInitializePatch>();
             RegisterFrameworkPatcher(FrameworkPatcherArea.Core, patcher);
         }
 
