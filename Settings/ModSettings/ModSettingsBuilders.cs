@@ -190,6 +190,7 @@ namespace STS2RitsuLib.Settings
     {
         private readonly List<ModSettingsEntryDefinition> _entries = [];
         private readonly HashSet<string> _entryIds = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Func<bool>> _entryVisibleWhen = new(StringComparer.OrdinalIgnoreCase);
 
         private ModSettingsMenuCapabilities _menuCapabilities = ModSettingsMenuCapabilities.Copy |
                                                                 ModSettingsMenuCapabilities.Paste;
@@ -773,7 +774,7 @@ namespace STS2RitsuLib.Settings
         {
             return _entries.Count == 0
                 ? throw new InvalidOperationException($"Settings section '{Id}' has no entries.")
-                : new(Id, Title, Description, IsCollapsible, StartCollapsed, _entries.ToArray(), _sectionVisibleWhen,
+                : new(Id, Title, Description, IsCollapsible, StartCollapsed, BuildEntries(), _sectionVisibleWhen,
                     _menuCapabilities);
         }
 
@@ -790,6 +791,18 @@ namespace STS2RitsuLib.Settings
             return this;
         }
 
+        internal ModSettingsSectionBuilder WithEntryVisibleWhen(string id, Func<bool> predicate)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            ArgumentNullException.ThrowIfNull(predicate);
+
+            if (!_entryIds.Contains(id))
+                throw new InvalidOperationException($"Settings entry '{id}' does not exist in section '{Id}'.");
+
+            _entryVisibleWhen[id] = predicate;
+            return this;
+        }
+
         private void AddEntry(string id, ModSettingsEntryDefinition entry)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(id);
@@ -798,6 +811,28 @@ namespace STS2RitsuLib.Settings
                 throw new InvalidOperationException($"Duplicate settings entry id '{id}' in section '{Id}'.");
 
             _entries.Add(entry);
+        }
+
+        private ModSettingsEntryDefinition[] BuildEntries()
+        {
+            var result = new ModSettingsEntryDefinition[_entries.Count];
+            for (var i = 0; i < _entries.Count; i++)
+            {
+                var entry = _entries[i];
+                if (_entryVisibleWhen.TryGetValue(entry.Id, out var visibilityPredicate))
+                {
+                    var wrapped = new ModSettingsEntryVisibilityWrapper(entry, visibilityPredicate)
+                    {
+                        MenuCapabilities = entry.MenuCapabilities,
+                    };
+                    result[i] = wrapped;
+                    continue;
+                }
+
+                result[i] = entry;
+            }
+
+            return result;
         }
     }
 }
