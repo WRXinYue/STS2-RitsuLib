@@ -993,6 +993,7 @@ namespace STS2RitsuLib.Content
                     .Concat(RegisteredActAncients.Values.SelectMany(static set => set))
                     .Distinct()
                     .Where(static t => t.Assembly.IsDynamic)
+                    .OrderBy(static t => t.FullName ?? t.Name, StringComparer.Ordinal)
                     .ToArray();
             }
 
@@ -1135,6 +1136,7 @@ namespace STS2RitsuLib.Content
             lock (SyncRoot)
             {
                 return modelTypes
+                    .OrderBy(static t => t.FullName ?? t.Name, StringComparer.Ordinal)
                     .Select(ModelDb.GetId)
                     .Select(ModelDb.GetById<TModel>)
                     .ToArray();
@@ -1150,6 +1152,7 @@ namespace STS2RitsuLib.Content
                 return !registry.TryGetValue(scopeType, out var modelTypes)
                     ? []
                     : modelTypes
+                        .OrderBy(static t => t.FullName ?? t.Name, StringComparer.Ordinal)
                         .Select(ModelDb.GetId)
                         .Select(ModelDb.GetById<TModel>)
                         .ToArray();
