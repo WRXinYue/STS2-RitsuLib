@@ -33,7 +33,7 @@ namespace STS2RitsuLib.Settings
                     return BuildPropertyCondition(targetProperty, conditionArgs, isInverted);
 
                 var targetMethod = configType.GetMethod(target, bindingFlags);
-                if (targetMethod is { ReturnType: not null } && targetMethod.ReturnType == typeof(bool))
+                if (targetMethod is not null && targetMethod.ReturnType == typeof(bool))
                     return BuildMethodCondition(targetMethod, conditionArgs, isInverted);
 
                 return null;
